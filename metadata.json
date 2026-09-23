@@ -1,0 +1,12 @@
+{
+  "name": "Warrior Cell",
+  "description": "A comprehensive health-focused platform for Sickle Cell Disease (SCD) awareness, education, management, and support, featuring gamification, telemedicine, and AI-driven advocacy.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

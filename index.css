@@ -1,0 +1,150 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Bangers&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fallback base styles */
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+}
+
+.game-font {
+  font-family: 'Bangers', cursive;
+}
+
+/* Custom gorgeous scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #ef4444;
+}
+
+/* Custom subtle animation classes to enrich UI aesthetics */
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.pulsing-glow {
+  animation: pulseGlow 4s infinite ease-in-out;
+}
+
+/* High Contrast Mode - Accessibility Overrides */
+html.high-contrast {
+  color-scheme: light dark;
+}
+
+html.high-contrast body {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  font-weight: 700 !important;
+}
+
+html.high-contrast.dark body {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* High Contrast Text Visibility */
+html.high-contrast p,
+html.high-contrast span,
+html.high-contrast label,
+html.high-contrast h1,
+html.high-contrast h2,
+html.high-contrast h3,
+html.high-contrast h4,
+html.high-contrast h5,
+html.high-contrast h6 {
+  opacity: 1 !important;
+  letter-spacing: 0.02em !important;
+}
+
+html.high-contrast:not(.dark) p,
+html.high-contrast:not(.dark) span,
+html.high-contrast:not(.dark) label,
+html.high-contrast:not(.dark) h1,
+html.high-contrast:not(.dark) h2,
+html.high-contrast:not(.dark) h3,
+html.high-contrast:not(.dark) h4,
+html.high-contrast:not(.dark) h5,
+html.high-contrast:not(.dark) h6 {
+  color: #000000 !important;
+}
+
+html.high-contrast.dark p,
+html.high-contrast.dark span,
+html.high-contrast.dark label,
+html.high-contrast.dark h1,
+html.high-contrast.dark h2,
+html.high-contrast.dark h3,
+html.high-contrast.dark h4,
+html.high-contrast.dark h5,
+html.high-contrast.dark h6 {
+  color: #ffffff !important;
+}
+
+/* High Contrast Buttons & Interactive Elements */
+html.high-contrast button,
+html.high-contrast a,
+html.high-contrast input,
+html.high-contrast select,
+html.high-contrast textarea {
+  border: 2px solid #000000 !important;
+  font-weight: 800 !important;
+}
+
+html.high-contrast.dark button,
+html.high-contrast.dark a,
+html.high-contrast.dark input,
+html.high-contrast.dark select,
+html.high-contrast.dark textarea {
+  border: 2px solid #ffffff !important;
+  font-weight: 800 !important;
+}
+
+html.high-contrast button:focus,
+html.high-contrast a:focus,
+html.high-contrast input:focus,
+html.high-contrast select:focus,
+html.high-contrast textarea:focus,
+html.high-contrast button:hover,
+html.high-contrast a:hover {
+  outline: 3px solid #facc15 !important;
+  outline-offset: 2px !important;
+}
+
+html.high-contrast button:active {
+  background-color: #facc15 !important;
+  color: #000000 !important;
+}

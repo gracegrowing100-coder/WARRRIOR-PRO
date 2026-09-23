@@ -1,0 +1,38 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warrior Cell - SCD Support & Advocacy</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bangers&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .game-font { font-family: 'Bangers', cursive; }
+    </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          const isLocalDevelopment = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+          if (isLocalDevelopment) {
+            navigator.serviceWorker.getRegistrations().then((registrations) => {
+              registrations.forEach((registration) => registration.unregister());
+            });
+            return;
+          }
+
+          navigator.serviceWorker.register('/sw.js').then((reg) => {
+            console.log('[ServiceWorker] Registered successfully with scope:', reg.scope);
+          }).catch((err) => {
+            console.warn('[ServiceWorker] Registration failed:', err);
+          });
+        });
+      }
+    </script>
+</body>
+</html>

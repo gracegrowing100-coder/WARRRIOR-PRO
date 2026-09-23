@@ -1,0 +1,134 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Information about a user in the Warrior Cell platform",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string", "description": "The user's full name" },
+        "role": { "type": "string", "description": "The user's role (e.g., Warrior, Advocate, Caregiver)" },
+        "age": { "type": "integer", "description": "The user's age" },
+        "email": { "type": "string", "format": "email" },
+        "photoURL": { "type": "string" },
+        "xp": { "type": "integer", "description": "Experience points earned through gamification" },
+        "streak": { "type": "integer", "description": "Days of consistent logs streak" },
+        "lastActiveDate": { "type": "string", "description": "Last logged active date" },
+        "rank": { "type": "string", "description": "Community rank based on activity" },
+        "badges": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "postsCount": { "type": "integer" },
+            "completedGames": { "type": "integer" }
+          }
+        }
+      },
+      "required": ["displayName", "role"]
+    },
+    "SymptomLog": {
+      "title": "Symptom Log",
+      "description": "Daily logged symptoms, pain levels, triggers, and water intake for a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The unique identifier of the user" },
+        "painLevel": { "type": "integer", "description": "Pain level from 1 to 10" },
+        "symptoms": { "type": "array", "items": { "type": "string" }, "description": "List of active symptoms" },
+        "triggers": { "type": "array", "items": { "type": "string" }, "description": "List of identified triggers" },
+        "waterIntake": { "type": "number", "description": "Daily water intake amount in Liters" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "dateStr": { "type": "string", "description": "YYYY-MM-DD date representation" }
+      },
+      "required": ["userId", "painLevel", "symptoms", "triggers", "waterIntake", "timestamp", "dateStr"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "A single message in a chat room",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "chatId": { "type": "string" },
+        "mediaUrl": { "type": "string", "description": "Base64 or external URL of sent multimedia file" },
+        "mediaType": { "type": "string", "description": "Format of media uploaded ('image', 'video' or null)" }
+      },
+      "required": ["text", "senderId", "timestamp"]
+    },
+    "CommunityPost": {
+      "title": "Community Post",
+      "description": "A post shared in the village hub",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "likes": { "type": "integer" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "authorId", "createdAt"]
+    },
+    "Appointment": {
+      "title": "Doctor Appointment",
+      "description": "An appointment scheduled with a certified specialist",
+      "type": "object",
+      "properties": {
+        "doctorId": { "type": "string" },
+        "doctorName": { "type": "string" },
+        "doctorIcon": { "type": "string" },
+        "doctorSpecialty": { "type": "string" },
+        "bookedDate": { "type": "string" },
+        "bookedTime": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["doctorId", "doctorName", "bookedDate", "bookedTime", "status"]
+    },
+    "CareVault": {
+      "title": "Care Vault",
+      "description": "Secure record of chronic medical events, surgeries, hospitalizations, transfusions, and allergies",
+      "type": "object",
+      "properties": {
+        "primaryDiagnosis": { "type": "string" },
+        "otherConditions": { "type": "array", "items": { "type": "string" } },
+        "allergies": { "type": "string" },
+        "surgeries": { "type": "array", "items": { "type": "object" } },
+        "hospitalizations": { "type": "array", "items": { "type": "object" } },
+        "transfusions": { "type": "array", "items": { "type": "object" } },
+        "immunizations": { "type": "array", "items": { "type": "string" } },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "users/{userId}/careVault/{docId}": {
+      "schema": "CareVault",
+      "description": "Personal highly secured medical history credentials"
+    },
+    "users/{userId}/symptomLogs/{logId}": {
+      "schema": "SymptomLog",
+      "description": "Logged daily sickle cell symptoms, triggers, and water intake"
+    },
+    "/users/{userId}/appointments/{appointmentId}": {
+      "schema": "Appointment",
+      "description": "Consultation appointments with clinical specialists"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Messages within specific chat channels"
+    },
+    "/posts/{postId}": {
+      "schema": "CommunityPost",
+      "description": "Village hub posts"
+    }
+  }
+}
