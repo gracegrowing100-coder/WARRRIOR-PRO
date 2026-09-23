@@ -62,3 +62,173 @@ For every completed redesign phase:
 4. Check keyboard navigation and browser console warnings.
 5. Verify online and local-fallback behavior without changing stored schemas.
 
+## Design and Frontend Skill Policy
+
+The purpose is to define how the installed project-local skills may be used
+during the Warrior AI brownfield redesign.
+
+### Source-of-truth hierarchy
+
+Skills are advisory implementation tools. They do not define product
+requirements.
+
+When instructions or recommendations conflict, follow this order:
+
+1. `PRODUCT.md`
+2. `DESIGN.md`
+3. `docs/REQUIREMENTS.md`
+4. `docs/INFORMATION_ARCHITECTURE.md`
+5. `docs/SCREEN_SPECIFICATIONS.md`
+6. `docs/DATA_CONTRACTS.md`
+7. `docs/REGRESSION_CHECKLIST.md`
+8. Installed design/frontend skills
+
+A skill must never silently override an authoritative project document.
+
+### Impeccable
+
+Use `impeccable` as the primary UI/UX design skill for:
+
+- visual hierarchy
+- typography
+- spacing
+- layout
+- design-system implementation
+- component quality
+- responsive design
+- accessibility
+- interface consistency
+- visual critique and polish
+
+Impeccable must implement `DESIGN.md` rather than create a competing design
+language.
+
+Do not allow Impeccable to redefine:
+
+- product scope
+- information architecture
+- clinical behavior
+- persistence behavior
+- Firebase contracts
+- health guidance
+
+### Emil design engineering
+
+Use `emil-design-eng` after basic screen structure and behavior are stable.
+
+Use it for:
+
+- interaction quality
+- component polish
+- thoughtful micro-interactions
+- motion decisions
+- refined frontend behavior
+
+It supplements Impeccable rather than replacing it.
+
+### Mobile/PWA
+
+Use `mobile-native` when implementing or reviewing mobile and PWA experiences.
+
+Apply its guidance only where compatible with `DESIGN.md` and Warrior AI
+accessibility requirements.
+
+Warrior AI remains a responsive web/PWA product. Do not introduce React Native
+or Expo architecture.
+
+### Animation
+
+Do not introduce animation during structural implementation merely for
+decoration.
+
+Use:
+
+- `find-animation-opportunities` for read-only motion audits;
+- `animate` for approved motion implementation;
+- `improve-animations` for animation improvement planning;
+- `review-animations` for final motion QA;
+- `animation-vocabulary` only when terminology/reference is useful.
+
+Animation must never:
+
+- delay emergency access;
+- hide or delay critical health information;
+- make clinical states ambiguous;
+- interfere with form completion;
+- create excessive cognitive load;
+- override reduced-motion preferences.
+
+Respect `prefers-reduced-motion`.
+
+### Toasts and feedback
+
+Use `ask-sonner` only if the project adopts Sonner for the shared toast/feedback
+primitive.
+
+Do not add Sonner solely because the skill exists.
+
+### UI library selection
+
+Use `pick-ui-library` only when an implementation requirement cannot reasonably
+be satisfied by the existing stack.
+
+Prefer the existing React + Tailwind stack and shared project primitives before
+adding another component library.
+
+Any significant new UI dependency must be justified before installation.
+
+### Prototyping
+
+Use `prototype` only when a screen or interaction has a genuine unresolved
+design decision where comparing variants would help.
+
+Do not generate competing variants for already-approved designs or
+specifications.
+
+### Skills not applicable to the current application
+
+Do not use these skills unless the technology or product requirements explicitly
+change:
+
+- `animate-expo`
+- `write-swift`
+
+Do not use `apple-design` as the Warrior AI visual language.
+
+Individual Apple interaction/accessibility principles may only be borrowed when
+they do not conflict with `DESIGN.md`.
+
+### Implementation sequence
+
+For redesign work follow this sequence:
+
+1. Read authoritative project documentation.
+2. Preserve verified existing behavior.
+3. Implement correct structure and functionality.
+4. Run regression/type checks.
+5. Apply Impeccable guidance.
+6. Apply mobile-native guidance where relevant.
+7. Verify responsive behavior and accessibility.
+8. Apply Emil/motion guidance only after structure is stable.
+9. Run regression verification again.
+
+### Phase restrictions
+
+Phase 0:
+Do not use design or animation skills to modify the UI. Phase 0 is regression
+protection only.
+
+Phase 1:
+Use Impeccable for design-system foundations. Use mobile-native where relevant.
+Do not add decorative motion.
+
+Phase 2 onward:
+Use Impeccable for screen implementation and review. Use mobile-native for
+mobile/PWA behavior.
+
+Motion phases:
+Use Emil and animation-specific skills only after each relevant screen's
+structure and core interactions are stable.
+
+Final QA:
+Use Impeccable for UI/UX review and review-animations for motion review.
