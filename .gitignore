@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Installed project-local AI skills
+.agents/
+
+# Local Aider Desk state / machine-specific junctions
+.aider-desk/

@@ -232,3 +232,34 @@ structure and core interactions are stable.
 
 Final QA:
 Use Impeccable for UI/UX review and review-animations for motion review.
+
+## Project-local design tooling setup
+
+This repository uses two project-local skill systems.
+
+### Impeccable
+
+Install Impeccable using its dedicated installer:
+
+```bash
+npx impeccable install -y --providers=codex --scope=project
+```
+
+This creates the project-local Impeccable skill and Codex hook configuration.
+
+Do not install Impeccable through the generic `skills` CLI solely to add it to
+`skills-lock.json`. Impeccable is intentionally managed by its dedicated
+installer.
+
+### Emil Kowalski skills
+
+The remaining project-local design skills are managed through the `skills` CLI
+and recorded in `skills-lock.json`.
+
+Restore them using the compatible `skills` CLI install command:
+
+```bash
+npx skills install
+```
+
+Installed skill contents under `.agents/` are not version-controlled.
