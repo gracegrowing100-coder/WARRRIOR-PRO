@@ -29,6 +29,7 @@ import { EmergencyButton } from './components/EmergencyButton';
 import { AuthFlow } from './components/AuthFlow';
 import { OfflineWarriorAI } from './components/OfflineWarriorAI';
 import { SyntheticDemo } from './components/SyntheticDemo';
+import { AppHeader, AppShell, PageContainer } from './components/layout';
 import { SupportedLanguage, APP_TRANSLATIONS } from './services/offlineKnowledgeBase';
 
 export type Page = 'home' | 'games' | 'chat' | 'telemedicine' | 'community' | 'advocacy';
@@ -198,93 +199,86 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-300">
+    <>
       <AnimatePresence>
         {showProfile && <UserProfile onClose={() => setShowProfile(false)} />}
       </AnimatePresence>
 
-      {/* Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 px-4 py-2 flex justify-around items-center z-50 md:top-0 md:bottom-auto md:flex-col md:w-20 md:h-screen md:py-8">
-        <NavItem onClick={() => navigate('home')} icon={<Home size={24} />} label={t.home} active={currentPage === 'home'} />
-        <NavItem onClick={() => navigate('games')} icon={<Gamepad2 size={24} />} label={t.play} active={currentPage === 'games'} />
-        <NavItem onClick={() => navigate('chat')} icon={<MessageSquare size={24} />} label={t.chat} active={currentPage === 'chat'} />
-        <NavItem onClick={() => navigate('telemedicine')} icon={<Video size={24} />} label={t.care} active={currentPage === 'telemedicine'} />
-        <NavItem onClick={() => navigate('community')} icon={<Users size={24} />} label={t.group} active={currentPage === 'community'} />
-        <NavItem onClick={() => navigate('advocacy')} icon={<Megaphone size={24} />} label={t.act} active={currentPage === 'advocacy'} />
-      </nav>
+      <AppShell
+        navigation={(
+          <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 px-4 py-2 flex justify-around items-center z-50 md:top-0 md:bottom-auto md:flex-col md:w-20 md:h-screen md:py-8">
+            <NavItem onClick={() => navigate('home')} icon={<Home size={24} />} label={t.home} active={currentPage === 'home'} />
+            <NavItem onClick={() => navigate('games')} icon={<Gamepad2 size={24} />} label={t.play} active={currentPage === 'games'} />
+            <NavItem onClick={() => navigate('chat')} icon={<MessageSquare size={24} />} label={t.chat} active={currentPage === 'chat'} />
+            <NavItem onClick={() => navigate('telemedicine')} icon={<Video size={24} />} label={t.care} active={currentPage === 'telemedicine'} />
+            <NavItem onClick={() => navigate('community')} icon={<Users size={24} />} label={t.group} active={currentPage === 'community'} />
+            <NavItem onClick={() => navigate('advocacy')} icon={<Megaphone size={24} />} label={t.act} active={currentPage === 'advocacy'} />
+          </nav>
+        )}
+        header={(
+          <AppHeader
+            appName={t.appName}
+            connectivityLabel={isOffline ? 'Offline Mode (Local Knowledge)' : 'Live & Offline Protected'}
+            isOffline={isOffline}
+            onHome={() => navigate('home')}
+            actions={(
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* Multilingual Selector */}
+                <div className="flex items-center bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-2 py-1">
+                  <Globe size={14} className="text-indigo-600 dark:text-indigo-400 mr-1.5 shrink-0" />
+                  <select
+                    value={language}
+                    onChange={(e) => handleLanguageChange(e.target.value as SupportedLanguage)}
+                    className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+                    aria-label="Select Language"
+                  >
+                    <option value="en">English</option>
+                    <option value="yo">Yorùbá</option>
+                    <option value="ha">Hausa</option>
+                    <option value="ig">Igbo</option>
+                  </select>
+                </div>
+                
+                {/* Real-time High Contrast Mode Toggle */}
+                <button
+                  onClick={toggleHighContrast}
+                  title="Toggle High Contrast Mode"
+                  aria-label="Toggle High Contrast Mode"
+                  className={`p-2 rounded-xl transition-all cursor-pointer border ${
+                    highContrast 
+                      ? 'bg-yellow-400 text-black border-black font-black ring-2 ring-yellow-300' 
+                      : 'bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-300 border-transparent'
+                  }`}
+                >
+                  <Eye size={18} />
+                </button>
 
-      <main className="flex-1 pb-20 md:pb-0 md:ml-20 overflow-y-auto">
-        <header className="sticky top-0 bg-white dark:bg-slate-900 shadow-sm border-b border-gray-100 dark:border-slate-800 px-4 py-3 flex items-center justify-between z-40">
-          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate('home')}>
-            <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg shadow-red-200 dark:shadow-red-950/40">W</div>
-            <div>
-              <h1 className="text-lg md:text-xl font-black text-gray-800 dark:text-white tracking-tight">{t.appName}</h1>
-              <div className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${isOffline ? 'bg-amber-400' : 'bg-emerald-500 animate-pulse'}`}></span>
-                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                  {isOffline ? 'Offline Mode (Local Knowledge)' : 'Live & Offline Protected'}
-                </span>
+                {/* Real-time Theme Toggle */}
+                <button
+                  onClick={toggleTheme}
+                  aria-label="Toggle layout theme"
+                  className="p-2 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-300 transition-all cursor-pointer"
+                >
+                  {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
+
+                <div 
+                  className={`p-2 rounded-xl cursor-pointer transition-all ${showProfile ? 'bg-red-50 text-red-600 dark:bg-red-950/35 dark:text-red-400' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-800 dark:text-slate-300'}`}
+                  onClick={() => setShowProfile(true)}
+                >
+                  {user?.photoURL ? (
+                    <img src={user.photoURL} alt="User" className="w-6 h-6 rounded-lg object-cover" />
+                  ) : (
+                    <User size={18} />
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Multilingual Selector */}
-            <div className="flex items-center bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-2 py-1">
-              <Globe size={14} className="text-indigo-600 dark:text-indigo-400 mr-1.5 shrink-0" />
-              <select
-                value={language}
-                onChange={(e) => handleLanguageChange(e.target.value as SupportedLanguage)}
-                className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
-                aria-label="Select Language"
-              >
-                <option value="en">English</option>
-                <option value="yo">Yorùbá</option>
-                <option value="ha">Hausa</option>
-                <option value="ig">Igbo</option>
-              </select>
-            </div>
-            
-            {/* Real-time High Contrast Mode Toggle */}
-            <button
-              onClick={toggleHighContrast}
-              title="Toggle High Contrast Mode"
-              aria-label="Toggle High Contrast Mode"
-              className={`p-2 rounded-xl transition-all cursor-pointer border ${
-                highContrast 
-                  ? 'bg-yellow-400 text-black border-black font-black ring-2 ring-yellow-300' 
-                  : 'bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-300 border-transparent'
-              }`}
-            >
-              <Eye size={18} />
-            </button>
-
-            {/* Real-time Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              aria-label="Toggle layout theme"
-              className="p-2 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-300 transition-all cursor-pointer"
-            >
-              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-
-            <div 
-              className={`p-2 rounded-xl cursor-pointer transition-all ${showProfile ? 'bg-red-50 text-red-600 dark:bg-red-950/35 dark:text-red-400' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-800 dark:text-slate-300'}`}
-              onClick={() => setShowProfile(true)}
-            >
-              {user?.photoURL ? (
-                <img src={user.photoURL} alt="User" className="w-6 h-6 rounded-lg object-cover" />
-              ) : (
-                <User size={18} />
-              )}
-            </div>
-          </div>
-        </header>
-
-        <div className="p-4 max-w-5xl mx-auto">
-          {renderPage()}
-        </div>
-      </main>
+            )}
+          />
+        )}
+      >
+        <PageContainer>{renderPage()}</PageContainer>
+      </AppShell>
 
       {/* Emergency Action & Offline Multilingual AI Companion */}
       <EmergencyButton userId={user?.uid || ''} />
@@ -293,7 +287,7 @@ const App: React.FC = () => {
         onLanguageChange={handleLanguageChange}
         onNavigateToTool={handleToolNavigation}
       />
-    </div>
+    </>
   );
 };
 
