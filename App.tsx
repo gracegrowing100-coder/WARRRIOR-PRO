@@ -1,12 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Home, 
-  Gamepad2, 
-  MessageSquare, 
-  Video, 
-  Users, 
-  Megaphone, 
   User,
   Activity,
   Sun,
@@ -29,10 +23,17 @@ import { EmergencyButton } from './components/EmergencyButton';
 import { AuthFlow } from './components/AuthFlow';
 import { OfflineWarriorAI } from './components/OfflineWarriorAI';
 import { SyntheticDemo } from './components/SyntheticDemo';
-import { AppHeader, AppShell, PageContainer } from './components/layout';
+import {
+  AppHeader,
+  AppShell,
+  MoreMenu,
+  PageContainer,
+  PatientNavigation,
+  type PatientNavigationDestination,
+} from './components/layout';
 import { SupportedLanguage, APP_TRANSLATIONS } from './services/offlineKnowledgeBase';
 
-export type Page = 'home' | 'games' | 'chat' | 'telemedicine' | 'community' | 'advocacy';
+export type Page = 'home' | 'games' | 'chat' | 'care' | 'telemedicine' | 'community' | 'more' | 'advocacy';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -122,7 +123,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#/', '') as Page;
-      const validPages: Page[] = ['home', 'games', 'chat', 'telemedicine', 'community', 'advocacy'];
+      const validPages: Page[] = ['home', 'games', 'chat', 'care', 'telemedicine', 'community', 'more', 'advocacy'];
       if (validPages.includes(hash)) {
         setCurrentPage(hash);
       }
@@ -166,13 +167,22 @@ const App: React.FC = () => {
 
   const t = APP_TRANSLATIONS[language] || APP_TRANSLATIONS.en;
 
+  const currentNavigationDestination: PatientNavigationDestination =
+    currentPage === 'telemedicine' || currentPage === 'care'
+      ? 'care'
+      : currentPage === 'games' || currentPage === 'advocacy' || currentPage === 'more'
+        ? 'more'
+        : currentPage;
+
   const renderPage = () => {
     switch (currentPage) {
       case 'home': return <Dashboard onNavigate={navigate} userId={user?.uid || ''} />;
       case 'games': return <GamesHub />;
       case 'chat': return <ChatSystem />;
+      case 'care': return <Telemedicine />;
       case 'telemedicine': return <Telemedicine />;
       case 'community': return <Community />;
+      case 'more': return <MoreMenu onNavigate={navigate} />;
       case 'advocacy': return <Advocacy />;
       default: return <Dashboard onNavigate={navigate} userId={user?.uid || ''} />;
     }
@@ -206,14 +216,17 @@ const App: React.FC = () => {
 
       <AppShell
         navigation={(
-          <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 px-4 py-2 flex justify-around items-center z-50 md:top-0 md:bottom-auto md:flex-col md:w-20 md:h-screen md:py-8">
-            <NavItem onClick={() => navigate('home')} icon={<Home size={24} />} label={t.home} active={currentPage === 'home'} />
-            <NavItem onClick={() => navigate('games')} icon={<Gamepad2 size={24} />} label={t.play} active={currentPage === 'games'} />
-            <NavItem onClick={() => navigate('chat')} icon={<MessageSquare size={24} />} label={t.chat} active={currentPage === 'chat'} />
-            <NavItem onClick={() => navigate('telemedicine')} icon={<Video size={24} />} label={t.care} active={currentPage === 'telemedicine'} />
-            <NavItem onClick={() => navigate('community')} icon={<Users size={24} />} label={t.group} active={currentPage === 'community'} />
-            <NavItem onClick={() => navigate('advocacy')} icon={<Megaphone size={24} />} label={t.act} active={currentPage === 'advocacy'} />
-          </nav>
+          <PatientNavigation
+            currentDestination={currentNavigationDestination}
+            onNavigate={navigate}
+            labels={{
+              home: t.home,
+              chat: t.chat,
+              care: t.care,
+              community: language === 'en' ? 'Community' : t.group,
+              more: 'More',
+            }}
+          />
         )}
         header={(
           <AppHeader
@@ -262,8 +275,11 @@ const App: React.FC = () => {
                   {darkMode ? <Sun size={18} /> : <Moon size={18} />}
                 </button>
 
-                <div 
-                  className={`p-2 rounded-xl cursor-pointer transition-all ${showProfile ? 'bg-red-50 text-red-600 dark:bg-red-950/35 dark:text-red-400' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-800 dark:text-slate-300'}`}
+                <button
+                  type="button"
+                  aria-label="Open profile"
+                  aria-expanded={showProfile}
+                  className={`flex h-11 w-11 items-center justify-center rounded-xl cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 ${showProfile ? 'bg-red-50 text-red-600 dark:bg-red-950/35 dark:text-red-400' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-800 dark:text-slate-300'}`}
                   onClick={() => setShowProfile(true)}
                 >
                   {user?.photoURL ? (
@@ -271,7 +287,7 @@ const App: React.FC = () => {
                   ) : (
                     <User size={18} />
                   )}
-                </div>
+                </button>
               </div>
             )}
           />
@@ -290,17 +306,5 @@ const App: React.FC = () => {
     </>
   );
 };
-
-const NavItem = ({ onClick, icon, label, active }: { onClick: () => void, icon: React.ReactNode, label: string, active: boolean }) => (
-  <button 
-    onClick={onClick}
-    className={`flex flex-col items-center gap-1 transition-all group ${active ? 'text-red-600 dark:text-red-400' : 'text-gray-400 hover:text-red-400'}`}
-  >
-    <div className={`p-2 rounded-xl transition-all ${active ? 'bg-red-50 dark:bg-red-950/20' : 'group-hover:bg-gray-50 dark:group-hover:bg-slate-800/60'}`}>
-      {icon}
-    </div>
-    <span className="text-[10px] font-black uppercase tracking-widest md:hidden">{label}</span>
-  </button>
-);
 
 export default App;

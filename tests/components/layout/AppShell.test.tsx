@@ -29,6 +29,10 @@ describe('AppShell', () => {
       </AppShell>,
     );
 
-    expect(screen.getByRole('main')).toHaveClass('pb-20', 'md:pb-0', 'md:ml-20');
+    expect(screen.getByRole('main')).toHaveClass(
+      'pb-[calc(5rem+var(--safe-area-bottom))]',
+      'md:pb-0',
+      'md:ml-20',
+    );
   });
 });

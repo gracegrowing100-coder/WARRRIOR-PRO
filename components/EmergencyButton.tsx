@@ -58,7 +58,7 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({ userId }) => {
       <button
         id="emergency-fab"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-24 right-4 md:bottom-8 md:right-8 z-50 flex items-center justify-center gap-2 px-4 py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-2xl shadow-red-500/50 hover:shadow-red-600/60 transition-all active:scale-95 border-2 border-white focus:outline-none group cursor-pointer"
+        className="fixed bottom-[calc(6rem+var(--safe-area-bottom))] right-4 md:bottom-8 md:right-8 z-50 flex items-center justify-center gap-2 px-4 py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-2xl shadow-red-500/50 hover:shadow-red-600/60 transition-all active:scale-95 border-2 border-white focus:outline-none group cursor-pointer"
       >
         <div className="relative">
           <ShieldAlert className="w-5 h-5 animate-pulse" />

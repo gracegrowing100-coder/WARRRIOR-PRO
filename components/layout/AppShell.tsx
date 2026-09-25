@@ -21,7 +21,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     )}
   >
     {navigation}
-    <main className="flex-1 overflow-y-auto pb-20 md:ml-20 md:pb-0">
+    <main className="flex-1 overflow-y-auto pb-[calc(5rem+var(--safe-area-bottom))] md:ml-20 md:pb-0">
       {header}
       {children}
     </main>
