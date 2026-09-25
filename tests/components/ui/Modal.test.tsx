@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { describe, expect, it } from 'vitest';
 import { Button, Modal } from '../../../components/ui';
 
 const ModalHarness: React.FC<{ initiallyOpen?: boolean }> = ({ initiallyOpen = false }) => {

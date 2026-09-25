@@ -4,7 +4,7 @@ import { cn } from './utils';
 
 export type AlertTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 
-export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface AlertProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   tone?: AlertTone;
   title?: React.ReactNode;
   icon?: React.ReactNode;

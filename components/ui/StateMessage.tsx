@@ -4,7 +4,7 @@ import { cn } from './utils';
 
 export type StateMessageState = 'empty' | 'error' | 'success';
 
-export interface StateMessageProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface StateMessageProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   state: StateMessageState;
   title: React.ReactNode;
   description?: React.ReactNode;
