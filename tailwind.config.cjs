@@ -1,5 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   content: [
     './index.html',
     './App.tsx',
@@ -10,6 +13,57 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        navy: {
+          950: 'rgb(var(--navy-950) / <alpha-value>)',
+          900: 'rgb(var(--navy-900) / <alpha-value>)',
+          800: 'rgb(var(--navy-800) / <alpha-value>)',
+          700: 'rgb(var(--navy-700) / <alpha-value>)',
+          600: 'rgb(var(--navy-600) / <alpha-value>)',
+        },
+        medical: {
+          700: 'rgb(var(--medical-red-700) / <alpha-value>)',
+          600: 'rgb(var(--medical-red-600) / <alpha-value>)',
+          500: 'rgb(var(--medical-red-500) / <alpha-value>)',
+          400: 'rgb(var(--medical-red-400) / <alpha-value>)',
+          100: 'rgb(var(--medical-red-100) / <alpha-value>)',
+          50: 'rgb(var(--medical-red-50) / <alpha-value>)',
+        },
+        canvas: 'rgb(var(--color-canvas) / <alpha-value>)',
+        surface: {
+          DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',
+          elevated: 'rgb(var(--color-surface-elevated) / <alpha-value>)',
+          subtle: 'rgb(var(--color-surface-subtle) / <alpha-value>)',
+        },
+        foreground: {
+          DEFAULT: 'rgb(var(--color-text-primary) / <alpha-value>)',
+          secondary: 'rgb(var(--color-text-secondary) / <alpha-value>)',
+          inverse: 'rgb(var(--color-text-inverse) / <alpha-value>)',
+        },
+        line: {
+          DEFAULT: 'rgb(var(--color-border) / <alpha-value>)',
+          strong: 'rgb(var(--color-border-strong) / <alpha-value>)',
+        },
+        action: {
+          DEFAULT: 'rgb(var(--color-action-primary) / <alpha-value>)',
+          hover: 'rgb(var(--color-action-primary-hover) / <alpha-value>)',
+          accent: 'rgb(var(--color-action-accent) / <alpha-value>)',
+          'accent-hover': 'rgb(var(--color-action-accent-hover) / <alpha-value>)',
+        },
+        focus: 'rgb(var(--color-focus) / <alpha-value>)',
+        disabled: {
+          DEFAULT: 'rgb(var(--color-disabled-background) / <alpha-value>)',
+          foreground: 'rgb(var(--color-disabled-text) / <alpha-value>)',
+        },
+        status: {
+          success: 'rgb(var(--color-success) / <alpha-value>)',
+          'success-soft': 'rgb(var(--color-success-soft) / <alpha-value>)',
+          warning: 'rgb(var(--color-warning) / <alpha-value>)',
+          'warning-soft': 'rgb(var(--color-warning-soft) / <alpha-value>)',
+          danger: 'rgb(var(--color-danger) / <alpha-value>)',
+          'danger-soft': 'rgb(var(--color-danger-soft) / <alpha-value>)',
+          info: 'rgb(var(--color-info) / <alpha-value>)',
+          'info-soft': 'rgb(var(--color-info-soft) / <alpha-value>)',
+        },
         red: { 650: '#dc2626' },
         slate: {
           150: '#e9eef5',
@@ -23,6 +77,29 @@ module.exports = {
       },
       borderRadius: {
         '2.5xl': '1.25rem',
+        control: 'var(--radius-md)',
+        card: 'var(--radius-lg)',
+        panel: 'var(--radius-xl)',
+        dialog: 'var(--radius-2xl)',
+        pill: 'var(--radius-pill)',
+      },
+      boxShadow: {
+        surface: 'var(--shadow-standard)',
+        elevated: 'var(--shadow-elevated)',
+        overlay: 'var(--shadow-overlay)',
+      },
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+      },
+      fontSize: {
+        display: ['2rem', { lineHeight: '2.5rem', fontWeight: '700' }],
+        'heading-1': ['1.75rem', { lineHeight: '2.25rem', fontWeight: '700' }],
+        'heading-2': ['1.5rem', { lineHeight: '2rem', fontWeight: '700' }],
+        'heading-3': ['1.25rem', { lineHeight: '1.75rem', fontWeight: '600' }],
+        'body-lg': ['1.125rem', { lineHeight: '1.75rem' }],
+        body: ['1rem', { lineHeight: '1.5rem' }],
+        small: ['0.875rem', { lineHeight: '1.25rem' }],
+        caption: ['0.75rem', { lineHeight: '1rem', fontWeight: '500' }],
       },
     },
   },

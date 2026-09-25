@@ -4,6 +4,146 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Warrior AI design foundation. Values are RGB channels so Tailwind opacity
+   modifiers can consume the same runtime theme tokens. */
+:root {
+  --navy-950: 7 20 38;
+  --navy-900: 11 31 58;
+  --navy-800: 16 42 76;
+  --navy-700: 23 59 104;
+  --navy-600: 33 81 139;
+
+  --medical-red-700: 185 28 50;
+  --medical-red-600: 209 34 62;
+  --medical-red-500: 230 57 80;
+  --medical-red-400: 240 90 110;
+  --medical-red-100: 253 232 236;
+  --medical-red-50: 255 244 246;
+
+  --color-canvas: 247 249 252;
+  --color-surface: 255 255 255;
+  --color-surface-elevated: 255 255 255;
+  --color-surface-subtle: 248 250 252;
+  --color-text-primary: 11 31 58;
+  --color-text-secondary: 100 116 139;
+  --color-text-inverse: 255 255 255;
+  --color-border: 226 232 240;
+  --color-border-strong: 203 213 225;
+  --color-action-primary: 11 31 58;
+  --color-action-primary-hover: 16 42 76;
+  --color-action-accent: 209 34 62;
+  --color-action-accent-hover: 185 28 50;
+  --color-focus: 33 81 139;
+  --color-disabled-background: 241 245 249;
+  --color-disabled-text: 100 116 139;
+
+  --color-success: 22 138 91;
+  --color-success-soft: 234 248 241;
+  --color-warning: 217 140 16;
+  --color-warning-soft: 255 246 223;
+  --color-danger: 209 34 62;
+  --color-danger-soft: 253 232 236;
+  --color-info: 37 99 235;
+  --color-info-soft: 234 242 255;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-pill: 9999px;
+
+  --shadow-standard: 0 1px 2px rgb(15 23 42 / 0.03), 0 4px 12px rgb(15 23 42 / 0.05);
+  --shadow-elevated: 0 8px 24px rgb(15 23 42 / 0.08);
+  --shadow-overlay: 0 20px 48px rgb(7 20 38 / 0.18);
+
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+}
+
+.dark {
+  color-scheme: dark;
+  --color-canvas: 7 20 38;
+  --color-surface: 11 31 58;
+  --color-surface-elevated: 16 42 76;
+  --color-surface-subtle: 15 23 42;
+  --color-text-primary: 248 250 252;
+  --color-text-secondary: 203 213 225;
+  --color-text-inverse: 7 20 38;
+  --color-border: 40 56 78;
+  --color-border-strong: 71 85 105;
+  --color-action-primary: 248 250 252;
+  --color-action-primary-hover: 226 232 240;
+  --color-disabled-background: 30 41 59;
+  --color-disabled-text: 148 163 184;
+  --color-success-soft: 12 54 40;
+  --color-warning-soft: 66 45 11;
+  --color-danger-soft: 73 24 36;
+  --color-info-soft: 20 45 91;
+}
+
+.high-contrast {
+  --color-canvas: 255 255 255;
+  --color-surface: 255 255 255;
+  --color-surface-elevated: 255 255 255;
+  --color-surface-subtle: 255 255 255;
+  --color-text-primary: 0 0 0;
+  --color-text-secondary: 0 0 0;
+  --color-text-inverse: 255 255 255;
+  --color-border: 0 0 0;
+  --color-border-strong: 0 0 0;
+  --color-action-primary: 0 0 0;
+  --color-action-primary-hover: 0 0 0;
+  --color-focus: 180 83 9;
+}
+
+.dark.high-contrast {
+  --color-canvas: 0 0 0;
+  --color-surface: 0 0 0;
+  --color-surface-elevated: 0 0 0;
+  --color-surface-subtle: 0 0 0;
+  --color-text-primary: 255 255 255;
+  --color-text-secondary: 255 255 255;
+  --color-text-inverse: 0 0 0;
+  --color-border: 255 255 255;
+  --color-border-strong: 255 255 255;
+  --color-action-primary: 255 255 255;
+  --color-action-primary-hover: 255 255 255;
+  --color-focus: 250 204 21;
+}
+
+[data-ui-control] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+[data-ui]:focus-visible,
+[data-ui-control]:focus-visible {
+  outline: 3px solid rgb(var(--color-focus));
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  [data-ui-field] {
+    font-size: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-ui],
+  [data-ui]::before,
+  [data-ui]::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Fallback base styles */
 html,
 body,
