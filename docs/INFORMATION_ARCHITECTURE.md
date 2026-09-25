@@ -1,8 +1,8 @@
 # Information architecture
 
 The current product’s main UX problem is not its color palette. Home owns too
-many unrelated jobs, while six persistent destinations compete for limited
-mobile space. This document defines the target navigation model for the
+many unrelated jobs, and the current navigation labels do not clearly express
+feature ownership. This document defines the target navigation model for the
 incremental redesign.
 
 ## Current structure
@@ -44,13 +44,14 @@ Problems:
 
 ## Target primary navigation
 
-The target patient shell has five persistent destinations:
+The target patient information architecture has six top-level destinations:
 
 ```text
-HOME        TRACK        CARE        CONNECT        MORE
+HOME        CHAT        CARE        COMMUNITY        MORE        PROFILE
 ```
 
-The emergency action is a global safety action, not a sixth navigation
+Whether all six appear in persistent mobile navigation is deferred to Phase
+2.2B. The emergency action is a global safety action, not another navigation
 destination.
 
 ### Home
@@ -67,59 +68,67 @@ Purpose: answer “How am I today, and what should I do next?”
 Home must link to deeper workflows instead of embedding their full history and
 administration interfaces.
 
-### Track
+### Chat
 
-Purpose: record health and review personal history.
+Purpose: answer “I want to ask Warrior AI something.”
 
-- Daily check-in.
-- Pain.
-- Symptoms and triggers.
-- Hydration.
-- Medication and adherence.
-- Mood/wellness where retained in the MVP.
-- Trends and history.
+- Existing Chat experience.
+- AI assistant interaction.
+- Existing compatible chat functionality.
 
-Track should use task-level tabs or a short menu. It must not render all trackers
-simultaneously on mobile.
+Preserve the current Chat feature and route during migration.
 
 ### Care
 
 Purpose: manage planned human care and share useful summaries.
 
 - Appointments.
+- Health records and Care Vault.
+- Health history.
 - Care team/contact information when real data exists.
-- Reports and export.
+- Trends, reports, and export where appropriate.
+- Medication management beyond today's Home summary.
 - Approved clinic messages or callbacks when implemented.
 - Telemedicine surfaces that have real operational support.
 
 Seeded clinicians and simulated calls must be visibly labelled or removed from
 the clinical MVP surface.
 
-### Connect
+### Community
 
-Purpose: access social support and education without competing with daily health
-tasks.
+Purpose: answer “I want to connect with other warriors.”
 
-- Chat.
+- Existing Community experience.
 - Community circles and support centres.
 - Peer-support concepts.
-- Sickle-cell education and academy.
-- Games and learning experiences.
+- Related social and support functionality.
 
-On desktop, Chat, Community, and Learn may appear as secondary items under the
-Connect section. Their existing routes remain valid during migration.
+Community remains a first-class destination.
 
 ### More
 
-Purpose: house important but non-daily destinations.
+Purpose: answer “Show me the other things Warrior AI offers.”
 
-- Notifications and reminders.
-- Care Vault and clinical passport.
-- Emergency information settings.
+- Games and learning experiences.
+- Sickle-cell education and academy.
 - Advocacy and research.
-- Profile.
-- Accessibility, language, and appearance settings.
-- About, privacy, and sign-out.
+- Research and updates where applicable.
+- Other secondary tools that do not justify persistent navigation.
+
+Games and education must remain reachable through More unless later usability
+work establishes an approved alternative.
+
+### Profile
+
+Purpose: answer “My account and preferences.”
+
+- Personal profile and account information.
+- Language, theme, high contrast, and accessibility settings.
+- Caregiver and profile-related settings where appropriate.
+- Sign out.
+
+The existing Profile overlay may remain temporarily. A dedicated Profile screen
+can be introduced in its scheduled redesign phase.
 
 ## Global actions
 
@@ -140,28 +149,35 @@ The first shell refactor should preserve existing hashes:
 | Existing hash | Target ownership |
 |---|---|
 | `#/home` | Home |
-| `#/games` | Connect > Learn |
-| `#/chat` | Connect > Chat |
+| `#/games` | More > Games/Education |
+| `#/chat` | Chat |
 | `#/telemedicine` | Care > Appointments/Care |
-| `#/community` | Connect > Community |
+| `#/community` | Community |
 | `#/advocacy` | More > Advocacy |
 
-New Track, More, and nested destinations should be introduced through one
-central route table. Existing hashes may redirect to their new destinations,
-but bookmarks must not silently open the wrong screen.
+New destinations and nested destinations should be introduced through one
+central route table. Existing hashes must remain available during migration
+unless a later approved phase explicitly removes them; bookmarks must not
+silently open the wrong screen.
 
 ## Mobile behavior
 
-- Show icon and short text label for all five persistent destinations.
+- Validate the six top-level destinations at 360px, 375px, 390px, and 430px.
+- Phase 2.2B must determine whether all six appear persistently or whether Home,
+  Chat, Care, Community, and More appear in bottom navigation while Profile
+  remains persistently accessible through the header.
+- Show an icon and short text label for every bottom-navigation destination.
 - Keep every destination’s target approximately 44px or larger.
 - Keep active state visible without relying only on color.
 - Use a bottom sheet or full screen for secondary actions, not hover-only menus.
 - Keep emergency/help reachable but visually separate from normal navigation.
 - Avoid horizontally scrolling primary navigation.
+- Do not shrink labels or controls below accessibility requirements to fit six
+  items.
 
 ## Desktop behavior
 
-- Convert the same five-destination model to a labelled left sidebar.
+- Present the same six top-level destinations in a labelled left sidebar.
 - Do not create a second competing navigation tree.
 - Show section context and page title in the header.
 - Constrain patient content according to `../../DESIGN.md`; do not stretch
@@ -185,11 +201,15 @@ alert ownership, escalation, and permissions are specified.
 
 ## Content ownership rules
 
-- Home owns summaries, not full histories.
-- Track owns patient-entered health data.
-- Care owns human clinical interaction and appointments.
-- Connect owns social and educational experiences.
-- More owns records, settings, advocacy, and infrequent administration.
+- Home owns today's health summary and prominent links to daily health actions.
+- Chat owns the existing Warrior AI conversation experience.
+- Care owns human clinical interaction, appointments, records, Care Vault,
+  longitudinal history, appropriate trends/reports, and deeper medication
+  management.
+- Community owns community interaction and peer support.
+- More owns games, education, advocacy, research, updates, and other secondary
+  tools.
+- Profile owns account information, preferences, accessibility, and sign-out.
 - One task should have one primary entry flow. Other surfaces link to it.
 
 ## Related documents
@@ -197,4 +217,3 @@ alert ownership, escalation, and permissions are specified.
 - [User flows](./USER_FLOWS.md)
 - [Screen specifications](./SCREEN_SPECIFICATIONS.md)
 - [Requirements](./REQUIREMENTS.md)
-

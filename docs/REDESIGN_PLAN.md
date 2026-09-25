@@ -63,13 +63,16 @@ keyboard, target-size, and mobile checks.
 
 ### Goal
 
-Introduce the five-destination information architecture while preserving every
+Introduce the six-destination information architecture while preserving every
 existing destination.
 
 ### Work
 
 - Central route map and initial-hash handling.
-- Mobile navigation: Home, Track, Care, Connect, More.
+- Target destinations: Home, Chat, Care, Community, More, and Profile.
+- Phase 2.2B mobile validation at 360px, 375px, 390px, and 430px to decide
+  between six persistent items or five activity items plus persistent Profile
+  access in the header.
 - Labelled desktop sidebar.
 - Simplified responsive header.
 - Notification, account, connectivity, and emergency placement.
@@ -262,4 +265,3 @@ Crisis prediction, eye-based PCV estimation, multilingual clinical assistance,
 and research summarisation require separate data, validation, governance, and
 human-review plans. They must not block the patient monitoring redesign or be
 smuggled into it as ordinary UI components.
-

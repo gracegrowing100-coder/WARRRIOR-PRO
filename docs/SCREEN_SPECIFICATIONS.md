@@ -39,20 +39,25 @@ state, and emergency access without competing with page content.
 2. Notification indicator where supported.
 3. Account/profile action.
 4. Main content.
-5. Five-item primary navigation.
+5. Six top-level destinations, with mobile presentation validated in Phase 2.2B.
 6. Emergency/help action.
 
 ### Mobile
 
-- Bottom navigation: Home, Track, Care, Connect, More.
+- Target destinations: Home, Chat, Care, Community, More, and Profile.
+- Phase 2.2B must determine whether all six appear in bottom navigation or
+  whether the five activity destinations appear there while Profile remains
+  persistently accessible through the application header.
 - Icon and visible short label for every destination.
+- Validate at 360px, 375px, 390px, and 430px without reducing accessible target
+  sizes or shrinking labels merely to fit six items.
 - Global actions must not overlap form submit buttons or the bottom bar.
 - Connectivity state uses a short label; detailed explanation belongs in a
   disclosure or status sheet.
 
 ### Desktop
 
-- Labelled left sidebar based on the same five destinations.
+- Labelled left sidebar based on the same six top-level destinations.
 - Page header and constrained content column.
 - No icon-only primary navigation.
 
@@ -358,12 +363,14 @@ daily tracking flow.
 Decompose its current tabs into separately maintainable feature sections. Keep
 the existing Firestore document compatible until a deliberate migration exists.
 
-## P2: Connect and secondary experiences
+## P2: Community and secondary experiences
 
-Chat, Community, Education/Games, Advocacy/Research, genotype education, and
-peer support should inherit the stable design primitives after the patient MVP
-screens are complete. Their content and data behavior remain preserved, but
-they must not determine the primary health-navigation structure.
+Chat and Community remain first-class destinations. Education/Games,
+Advocacy/Research, genotype education, and other secondary tools are reached
+through More unless a later approved usability decision establishes another
+location. All of these surfaces should inherit the stable design primitives
+after the patient MVP screens are complete, and their content and data behavior
+remain preserved.
 
 ## Deferred clinician screens
 

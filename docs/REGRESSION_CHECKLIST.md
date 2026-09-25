@@ -19,7 +19,9 @@ has current evidence. Record skipped or blocked items with a reason; do not trea
 - [ ] Home, Games, Chat, Telemedicine, Community, and Advocacy remain reachable during migration.
 - [ ] Browser back/forward follows the visible screen state.
 - [ ] Unknown hashes produce a safe fallback or not-found state.
-- [ ] Mobile primary navigation has no more than five persistent destinations after Phase 2.
+- [ ] The six top-level destinations remain reachable after Phase 2; the mobile
+      presentation matches the approved Phase 2.2B outcome without shrinking
+      labels or interaction targets below accessibility requirements.
 - [ ] Desktop navigation has visible labels and a clear active state.
 - [ ] Emergency/help remains reachable from primary patient screens.
 

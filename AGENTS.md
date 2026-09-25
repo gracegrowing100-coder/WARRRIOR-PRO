@@ -29,7 +29,10 @@ contracts to make a redesign easier.
 - Complete one phase in [`docs/REDESIGN_PLAN.md`](./docs/REDESIGN_PLAN.md) at a
   time.
 - Build shared design primitives before restyling individual feature screens.
-- Keep mobile navigation to no more than five persistent destinations.
+- Use the six approved top-level destinations: Home, Chat, Care, Community,
+  More, and Profile. Defer whether mobile shows all six persistently or five
+  activity destinations plus persistent Profile access in the header to Phase
+  2.2B usability validation.
 - Keep the emergency action available without making ordinary screens visually
   alarming.
 - Use Lucide icons for production controls. Do not introduce new emoji-based

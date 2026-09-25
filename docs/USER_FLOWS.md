@@ -59,7 +59,7 @@ itself.
 ## UF-03: Complete the daily check-in
 
 ```text
-Home or Track
+Home
   -> choose current feeling
   -> add optional note
   -> Save
@@ -81,7 +81,7 @@ steps, even though both local mood records have already been written.
 ## UF-04: Log pain
 
 ```text
-Home or Track
+Home
   -> open Pain check-in
   -> select 0-10 value
   -> select optional triggers
@@ -100,7 +100,7 @@ must not claim that a crisis has been diagnosed or that help was contacted.
 ## UF-05: Log symptoms
 
 ```text
-Home or Track
+Home
   -> open Symptom check-in
   -> choose symptoms
   -> choose pain and triggers
@@ -121,7 +121,7 @@ approved contract change.
 ## UF-06: Add hydration
 
 ```text
-Home or Track
+Home
   -> open Hydration
   -> add an amount
   -> local date record updates
@@ -181,7 +181,7 @@ can therefore replace the cache and remove a failed provisional booking.
 ## UF-09: Configure reminders and notifications
 
 ```text
-More or Medication
+More or Care
   -> Notifications/Reminders
   -> request browser permission when user asks
   -> add or toggle reminder
@@ -198,7 +198,7 @@ so the local fallback may be the only successful write.
 ## UF-10: Review trends
 
 ```text
-Current chart surfaces on Home/Care Vault; proposed Track destination
+Current chart surfaces on Home/Care Vault; proposed Care destination
   -> Trends
   -> choose metric/time period (proposed unified control)
   -> load existing logs
@@ -229,7 +229,7 @@ Current UI navigation and prefilled messages are not emergency dispatch.
 ## UF-12: Change accessibility and account settings
 
 ```text
-Current header/Profile controls; proposed More destination
+Current header/Profile controls; proposed Profile destination
   -> Profile/Settings
   -> change language, theme, high contrast, or profile
   -> save

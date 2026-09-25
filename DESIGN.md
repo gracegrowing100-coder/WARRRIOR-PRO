@@ -623,25 +623,35 @@ Recommended patient navigation:
 
 ```text
 Home
-Health
-Check-in
-Meds
+Chat
+Care
+Community
+More
 Profile
 ```
 
 Conceptually:
 
 ```text
-Home      Health      Check-in      Meds      Profile
+Home      Chat      Care      Community      More      Profile
 ```
 
 Use a consistent outline icon library rather than emoji in production.
 
-The central Check-in action may receive stronger visual emphasis.
-
-Do NOT create more than five persistent mobile navigation destinations.
-
 Secondary functionality belongs inside those sections.
+
+The target information architecture contains six top-level destinations: Home,
+Chat, Care, Community, More, and Profile. The final mobile navigation
+presentation remains subject to Phase 2.2B usability validation at 360px,
+375px, 390px, and 430px widths.
+
+Phase 2.2B will determine whether all six destinations can safely appear in the
+persistent mobile navigation, or whether Home, Chat, Care, Community, and More
+appear in bottom navigation while Profile remains persistently accessible
+through the application header.
+
+Do not shrink labels, controls, or touch targets below these design and
+accessibility requirements merely to fit six bottom-navigation items.
 
 ---
 
@@ -655,6 +665,9 @@ Bottom navigation should:
 - Maintain sufficient touch target
 - Avoid excessive visual decoration
 
+The number and placement of bottom-navigation items remains deferred to Phase
+2.2B as described above.
+
 Selected item:
 
 Navy or brand accent.
@@ -662,10 +675,6 @@ Navy or brand accent.
 Inactive:
 
 Gray.
-
-Check-in may use a slightly elevated circular or rounded-square action if appropriate.
-
-Do not make it oversized.
 
 ---
 
@@ -679,16 +688,14 @@ Example:
 Logo
 
 Home
-Health
-Check-in
-Medication
-Appointments
-Notifications
+Chat
+Care
+Community
+More
 
 ────────
 
 Profile
-Settings
 ```
 
 Do not create duplicate navigation systems unnecessarily.
