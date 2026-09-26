@@ -16,14 +16,14 @@ export const AppShell: React.FC<AppShellProps> = ({
 }) => (
   <div
     className={cn(
-      'min-h-screen bg-gray-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-300',
+      'h-[100dvh] overflow-hidden bg-canvas text-foreground flex flex-col md:flex-row',
       className,
     )}
   >
-    {navigation}
-    <main className="flex-1 overflow-y-auto pb-[calc(5rem+var(--safe-area-bottom))] md:ml-20 md:pb-0">
+    <main className="min-h-0 min-w-0 flex-1 overflow-y-auto mb-[calc(8rem+var(--safe-area-bottom))] md:ml-20 md:mb-[calc(4rem+var(--safe-area-bottom))]">
       {header}
       {children}
     </main>
+    {navigation}
   </div>
 );

@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Smile, Sparkles, Check, Clock, Edit3, Heart, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { firebaseService } from '../services/firebaseService';
+import { Button, Card } from './ui';
 
 interface DailyMoodCheckInProps {
   userId: string;
   onCheckInSaved?: () => void;
+  compact?: boolean;
 }
 
 interface MoodOption {
@@ -93,7 +95,7 @@ const MOOD_OPTIONS: MoodOption[] = [
   },
 ];
 
-export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCheckInSaved }) => {
+export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCheckInSaved, compact = false }) => {
   const todayStr = new Date().toLocaleDateString('sv'); // YYYY-MM-DD
   const [selectedOption, setSelectedOption] = useState<MoodOption | null>(null);
   const [note, setNote] = useState('');
@@ -170,6 +172,48 @@ export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCh
   const formattedSavedTime = savedEntry?.timestamp 
     ? new Date(savedEntry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : 'Earlier today';
+
+  if (compact) {
+    return (
+      <Card data-semantic>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-heading-3">Daily check-in</h2>
+          {savedEntry && !isEditing && <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)}>Edit Check-In</Button>}
+        </div>
+        {savedEntry && !isEditing ? (
+          <div className="mt-3 space-y-1">
+            <p className="flex items-center gap-2 font-semibold"><Check size={18} aria-hidden="true" />{savedEntry.emotion}</p>
+            <p className="text-small text-foreground-secondary">Logged today at {formattedSavedTime}</p>
+            {savedEntry.note && <p className="text-small text-foreground-secondary">{savedEntry.note}</p>}
+          </div>
+        ) : (
+          <div className="mt-3 space-y-3">
+            <p className="text-small text-foreground-secondary">How are you feeling today?</p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {MOOD_OPTIONS.map(option => (
+                <Button key={option.label} variant={selectedOption?.label === option.label ? 'primary' : 'secondary'} size="sm"
+                  aria-pressed={selectedOption?.label === option.label} title={option.description}
+                  disabled={isSaving} onClick={() => handleSelectMood(option)}>
+                  {option.label}
+                </Button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setShowNoteInput(!showNoteInput)} aria-expanded={showNoteInput}>
+                {showNoteInput ? 'Hide Reflection Note' : '+ Add Quick Reflection Note'}
+              </Button>
+              {isEditing && <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>}
+            </div>
+            {showNoteInput && <label className="block text-small font-medium">Reflection note
+              <textarea value={note} onChange={e => setNote(e.target.value)} rows={2} data-ui-field data-ui
+                className="mt-2 w-full rounded-control border border-line-strong bg-surface p-3 text-body text-foreground" />
+            </label>}
+            {(showNoteInput || isEditing) && selectedOption && <Button loading={isSaving} onClick={() => executeSave(selectedOption, note)}>Save Check-In ({selectedOption.label})</Button>}
+          </div>
+        )}
+      </Card>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-sm border border-gray-100 dark:border-slate-800/85 relative overflow-hidden transition-all duration-300">

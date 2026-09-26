@@ -21,6 +21,8 @@ describe('PatientNavigation', () => {
       'aria-current',
       'page',
     );
+    expect(within(navigation).getByText('Community')).toHaveClass('whitespace-nowrap');
+    expect(within(navigation).getByText('Community')).not.toHaveClass('truncate');
     expect(within(navigation).queryByRole('button', { name: /profile/i })).not.toBeInTheDocument();
   });
 

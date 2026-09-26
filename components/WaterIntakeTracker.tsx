@@ -5,12 +5,14 @@ import {
   ResponsiveContainer, Cell, ReferenceLine 
 } from 'recharts';
 import { firebaseService } from '../services/firebaseService';
+import { Button, Card, ProgressBar } from './ui';
 
 interface WaterTrackerProps {
   userId: string;
+  compact?: boolean;
 }
 
-export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId }) => {
+export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId, compact = false }) => {
   const [amount, setAmount] = useState(0); // in Liters
   const [goal, setGoal] = useState(3.0);   // in Liters
   const [loading, setLoading] = useState(true);
@@ -84,6 +86,23 @@ export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId }) => {
   };
 
   const percent = Math.min(100, Math.round((amount / goal) * 100));
+
+  if (compact) {
+    return (
+      <Card data-semantic>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-heading-3">Hydration</h2>
+          {amount > 0 && <Button variant="ghost" size="sm" onClick={resetWater} aria-label="Reset hydration logs"><RotateCcw size={18} aria-hidden="true" /></Button>}
+        </div>
+        {loading ? <p role="status" className="mt-3 text-small text-foreground-secondary">Loading hydration…</p> : (
+          <ProgressBar className="mt-3" value={amount} max={goal} label="Today's water" valueText={`${amount.toFixed(2)} L of ${goal.toFixed(2)} L`} />
+        )}
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          {[0.25, 0.5, 0.75, 1].map(liters => <Button key={liters} variant="secondary" size="sm" onClick={() => addWater(liters)}>+{liters === 1 ? '1.0 Liter Bottle' : `${liters * 1000}ml`}</Button>)}
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-sm border border-gray-100 dark:border-slate-800/85 flex flex-col justify-between relative overflow-hidden transition-all duration-300">

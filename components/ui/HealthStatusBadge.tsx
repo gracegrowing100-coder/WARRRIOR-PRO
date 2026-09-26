@@ -19,10 +19,10 @@ const toneClasses: Record<HealthStatusTone, string> = {
 
 const iconClasses: Record<HealthStatusTone, string> = {
   neutral: 'text-foreground-secondary',
-  success: 'text-status-success',
-  warning: 'text-status-warning',
-  danger: 'text-status-danger',
-  info: 'text-status-info',
+  success: 'text-status-success-text',
+  warning: 'text-status-warning-text',
+  danger: 'text-status-danger-text',
+  info: 'text-status-info-text',
 };
 
 const defaultIcons: Record<HealthStatusTone, React.ReactNode> = {

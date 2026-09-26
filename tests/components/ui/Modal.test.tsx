@@ -59,4 +59,21 @@ describe('Modal', () => {
     expect(trigger).toHaveFocus();
     expect(document.body.style.overflow).toBe('');
   });
+
+  it('makes background content inert while open and keeps actions outside the scroll region', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<ModalHarness />);
+
+    await user.click(screen.getByRole('button', { name: 'Open details' }));
+
+    expect(container).toHaveAttribute('aria-hidden', 'true');
+    expect(container.inert).toBe(true);
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveClass('overflow-hidden');
+    expect(screen.getByRole('button', { name: 'Done' }).parentElement).toHaveClass('shrink-0');
+
+    await user.keyboard('{Escape}');
+    expect(container).not.toHaveAttribute('aria-hidden');
+    expect(container.inert).toBeFalsy();
+  });
 });

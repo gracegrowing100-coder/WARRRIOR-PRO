@@ -69,7 +69,7 @@ export const PatientNavigation: React.FC<PatientNavigationProps> = ({
             aria-current={isCurrent ? 'page' : undefined}
             onClick={() => onNavigate(id)}
             className={cn(
-              'flex min-h-14 min-w-0 touch-manipulation select-none flex-col items-center justify-center gap-0.5 rounded-control px-1',
+              'flex min-h-14 min-w-0 touch-manipulation select-none flex-col items-center justify-center gap-0.5 rounded-control px-0',
               'text-[11px] leading-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2',
               'md:min-h-16 md:w-full',
               isCurrent
@@ -78,7 +78,7 @@ export const PatientNavigation: React.FC<PatientNavigationProps> = ({
             )}
           >
             <Icon aria-hidden="true" size={22} strokeWidth={isCurrent ? 2.5 : 2} />
-            <span className="block max-w-full truncate">{labels[id]}</span>
+            <span className="block whitespace-nowrap">{labels[id]}</span>
             <span
               aria-hidden="true"
               className={cn(

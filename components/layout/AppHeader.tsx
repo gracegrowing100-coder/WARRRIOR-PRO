@@ -15,25 +15,25 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onHome,
   actions,
 }) => (
-  <header className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-100 bg-white px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-    <div className="flex cursor-pointer items-center gap-2.5" onClick={onHome}>
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-600 font-bold text-white shadow-lg shadow-red-200 dark:shadow-red-950/40">
+  <header data-semantic className="sticky top-0 z-40 flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface px-4 py-3 text-foreground sm:flex-nowrap">
+    <button type="button" data-ui-control className="flex min-h-11 items-center gap-2.5 rounded-control text-left" onClick={onHome} aria-label={`${appName} Home`}>
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-action-accent font-bold text-white">
         W
-      </div>
-      <div>
-        <h1 className="text-lg font-black tracking-tight text-gray-800 dark:text-white md:text-xl">
+      </span>
+      <span>
+        <span className="block text-lg font-bold tracking-tight md:text-xl">
           {appName}
-        </h1>
-        <div className="flex items-center gap-1.5">
+        </span>
+        <span className="flex items-center gap-1.5">
           <span
-            className={`h-2 w-2 rounded-full ${isOffline ? 'bg-amber-400' : 'animate-pulse bg-emerald-500'}`}
+            className={`h-2 w-2 shrink-0 rounded-full ${isOffline ? 'bg-status-warning' : 'bg-status-success'}`}
           />
-          <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+          <span className="text-caption text-foreground-secondary">
             {connectivityLabel}
           </span>
-        </div>
-      </div>
-    </div>
-    {actions}
+        </span>
+      </span>
+    </button>
+    <div className="w-full sm:w-auto">{actions}</div>
   </header>
 );

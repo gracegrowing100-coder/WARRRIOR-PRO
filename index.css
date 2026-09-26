@@ -27,6 +27,8 @@
   --color-text-primary: 11 31 58;
   --color-text-secondary: 100 116 139;
   --color-text-inverse: 255 255 255;
+  --color-brand-surface: 11 31 58;
+  --color-brand-foreground: 255 255 255;
   --color-border: 226 232 240;
   --color-border-strong: 203 213 225;
   --color-action-primary: 11 31 58;
@@ -35,7 +37,7 @@
   --color-action-accent-hover: 185 28 50;
   --color-focus: 33 81 139;
   --color-disabled-background: 241 245 249;
-  --color-disabled-text: 100 116 139;
+  --color-disabled-text: 71 85 105;
 
   --color-success: 22 138 91;
   --color-success-soft: 234 248 241;
@@ -45,6 +47,10 @@
   --color-danger-soft: 253 232 236;
   --color-info: 37 99 235;
   --color-info-soft: 234 242 255;
+  --color-success-text: 18 110 73;
+  --color-warning-text: 133 77 14;
+  --color-danger-text: 185 28 50;
+  --color-info-text: 29 78 216;
 
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
@@ -72,6 +78,8 @@
   --color-text-primary: 248 250 252;
   --color-text-secondary: 203 213 225;
   --color-text-inverse: 7 20 38;
+  --color-brand-surface: 16 42 76;
+  --color-brand-foreground: 255 255 255;
   --color-border: 40 56 78;
   --color-border-strong: 71 85 105;
   --color-action-primary: 248 250 252;
@@ -82,9 +90,23 @@
   --color-warning-soft: 66 45 11;
   --color-danger-soft: 73 24 36;
   --color-info-soft: 20 45 91;
+  --color-success-text: 134 239 172;
+  --color-warning-text: 253 230 138;
+  --color-danger-text: 253 164 175;
+  --color-info-text: 191 219 254;
 }
 
 .high-contrast {
+  --color-brand-surface: 0 0 0;
+  --color-brand-foreground: 255 255 255;
+  --color-success-text: 0 0 0;
+  --color-warning-text: 0 0 0;
+  --color-danger-text: 0 0 0;
+  --color-info-text: 0 0 0;
+  --color-success-soft: 255 255 255;
+  --color-warning-soft: 255 255 255;
+  --color-danger-soft: 255 255 255;
+  --color-info-soft: 255 255 255;
   --color-canvas: 255 255 255;
   --color-surface: 255 255 255;
   --color-surface-elevated: 255 255 255;
@@ -100,6 +122,16 @@
 }
 
 .dark.high-contrast {
+  --color-brand-surface: 255 255 255;
+  --color-brand-foreground: 0 0 0;
+  --color-success-text: 255 255 255;
+  --color-warning-text: 255 255 255;
+  --color-danger-text: 255 255 255;
+  --color-info-text: 255 255 255;
+  --color-success-soft: 0 0 0;
+  --color-warning-soft: 0 0 0;
+  --color-danger-soft: 0 0 0;
+  --color-info-soft: 0 0 0;
   --color-canvas: 0 0 0;
   --color-surface: 0 0 0;
   --color-surface-elevated: 0 0 0;
@@ -230,27 +262,11 @@ html.high-contrast h6 {
   letter-spacing: 0.02em !important;
 }
 
-html.high-contrast:not(.dark) p,
-html.high-contrast:not(.dark) span,
-html.high-contrast:not(.dark) label,
-html.high-contrast:not(.dark) h1,
-html.high-contrast:not(.dark) h2,
-html.high-contrast:not(.dark) h3,
-html.high-contrast:not(.dark) h4,
-html.high-contrast:not(.dark) h5,
-html.high-contrast:not(.dark) h6 {
+html.high-contrast:not(.dark) :is(p, span, label, h1, h2, h3, h4, h5, h6):not([data-semantic], [data-semantic] *, [data-ui], [data-ui] *) {
   color: #000000 !important;
 }
 
-html.high-contrast.dark p,
-html.high-contrast.dark span,
-html.high-contrast.dark label,
-html.high-contrast.dark h1,
-html.high-contrast.dark h2,
-html.high-contrast.dark h3,
-html.high-contrast.dark h4,
-html.high-contrast.dark h5,
-html.high-contrast.dark h6 {
+html.high-contrast.dark :is(p, span, label, h1, h2, h3, h4, h5, h6):not([data-semantic], [data-semantic] *, [data-ui], [data-ui] *) {
   color: #ffffff !important;
 }
 
@@ -280,7 +296,7 @@ html.high-contrast select:focus,
 html.high-contrast textarea:focus,
 html.high-contrast button:hover,
 html.high-contrast a:hover {
-  outline: 3px solid #facc15 !important;
+  outline: 3px solid rgb(var(--color-focus)) !important;
   outline-offset: 2px !important;
 }
 

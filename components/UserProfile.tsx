@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, Shield, Award, Edit2, Check, X, Camera, LogOut, Eye, Sun, Moon } from 'lucide-react';
+import { User, Shield, Award, Edit2, Check, Camera, LogOut, Eye } from 'lucide-react';
 import { auth, logout } from '../firebase-init';
 import { firebaseService } from '../services/firebaseService';
-import { motion, AnimatePresence } from 'motion/react';
+import { Modal } from './ui';
 
 interface UserProfileProps {
   onClose: () => void;
@@ -85,22 +85,26 @@ const UserProfile: React.FC<UserProfileProps> = ({ onClose }) => {
   if (!auth.currentUser) return null;
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, x: 100 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 100 }}
-      className="fixed inset-0 z-[100] flex justify-end"
+    <Modal
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title="Warrior Profile"
+      closeLabel="Close profile"
+      presentation="side-panel"
+      contentClassName="flex-1 space-y-10 p-8"
+      footerClassName="bg-surface-subtle p-8"
+      footer={(
+        <button
+          type="button"
+          onClick={logout}
+          className="flex min-h-12 w-full items-center justify-center gap-3 rounded-control border border-line bg-surface text-small font-bold text-foreground-secondary shadow-xs hover:border-danger-soft hover:text-status-danger"
+        >
+          <LogOut size={20} aria-hidden="true" /> Logout
+        </button>
+      )}
     >
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose}></div>
-      <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col">
-        <header className="p-6 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-2xl font-black text-gray-800 tracking-tight">Warrior Profile</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-50 rounded-xl transition-all">
-            <X size={24} className="text-gray-400" />
-          </button>
-        </header>
-
-        <div className="flex-1 overflow-y-auto p-8 space-y-10">
           {/* Avatar Section */}
           <div className="flex flex-col items-center text-center">
             <div className="relative">
@@ -111,8 +115,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ onClose }) => {
                   <User size={64} />
                 )}
               </div>
-              <button className="absolute -bottom-2 -right-2 p-2.5 bg-red-600 text-white rounded-2xl shadow-lg border-4 border-white hover:scale-110 active:scale-90 transition-all">
-                <Camera size={18} />
+              <button
+                type="button"
+                aria-label="Change profile photo"
+                className="absolute -bottom-2 -right-2 flex min-h-11 min-w-11 items-center justify-center rounded-control border-4 border-white bg-red-600 text-white shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+              >
+                <Camera size={18} aria-hidden="true" />
               </button>
             </div>
             <div className="mt-6">
@@ -183,6 +191,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ onClose }) => {
                   <button
                     type="button"
                     onClick={toggleHighContrast}
+                    aria-label="Toggle profile high contrast mode"
+                    aria-pressed={highContrast}
                     className={`w-14 h-8 rounded-full p-1 transition-all cursor-pointer flex items-center ${
                       highContrast ? 'bg-yellow-400 justify-end' : 'bg-gray-300 dark:bg-slate-600 justify-start'
                     }`}
@@ -214,18 +224,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ onClose }) => {
                 )}
              </div>
           </div>
-        </div>
-
-        <footer className="p-8 border-t border-gray-100 bg-gray-50/50">
-          <button 
-            onClick={logout}
-            className="w-full py-4 bg-white border border-gray-100 text-gray-400 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
-          >
-            <LogOut size={20} /> Logout
-          </button>
-        </footer>
-      </div>
-    </motion.div>
+    </Modal>
   );
 };
 

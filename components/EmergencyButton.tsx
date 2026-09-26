@@ -58,16 +58,12 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({ userId }) => {
       <button
         id="emergency-fab"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-[calc(6rem+var(--safe-area-bottom))] right-4 md:bottom-8 md:right-8 z-50 flex items-center justify-center gap-2 px-4 py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-2xl shadow-red-500/50 hover:shadow-red-600/60 transition-all active:scale-95 border-2 border-white focus:outline-none group cursor-pointer"
+        type="button"
+        data-ui-control
+        className="flex min-h-11 items-center justify-center gap-2 rounded-control bg-action-accent px-3 text-small font-semibold text-white hover:bg-action-accent-hover"
       >
-        <div className="relative">
-          <ShieldAlert className="w-5 h-5 animate-pulse" />
-          <span className="absolute -top-1 -right-1 flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-          </span>
-        </div>
-        <span className="font-black text-xs uppercase tracking-widest">Emergency HUD</span>
+        <ShieldAlert className="h-5 w-5" aria-hidden="true" />
+        <span>Emergency HUD</span>
       </button>
 
       {/* Modal Overlay */}

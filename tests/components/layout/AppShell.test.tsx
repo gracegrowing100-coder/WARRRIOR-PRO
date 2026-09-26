@@ -20,9 +20,14 @@ describe('AppShell', () => {
     expect(navigation).toBeInTheDocument();
     expect(main).toContainElement(screen.getByTestId('shell-header'));
     expect(main).toHaveTextContent('Feature content');
+    expect(main.compareDocumentPosition(navigation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      screen.getByTestId('shell-header').compareDocumentPosition(screen.getByText('Feature content')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
-  it('preserves the current mobile clearance and desktop navigation offset', () => {
+  it('reserves support and navigation space outside the scrollable content', () => {
     render(
       <AppShell navigation={<nav>Navigation</nav>} header={<div>Header</div>}>
         Content
@@ -30,8 +35,9 @@ describe('AppShell', () => {
     );
 
     expect(screen.getByRole('main')).toHaveClass(
-      'pb-[calc(5rem+var(--safe-area-bottom))]',
-      'md:pb-0',
+      'mb-[calc(8rem+var(--safe-area-bottom))]',
+      'md:mb-[calc(4rem+var(--safe-area-bottom))]',
+      'overflow-y-auto',
       'md:ml-20',
     );
   });

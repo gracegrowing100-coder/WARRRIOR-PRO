@@ -235,14 +235,14 @@ const App: React.FC = () => {
             isOffline={isOffline}
             onHome={() => navigate('home')}
             actions={(
-              <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center justify-end gap-2 sm:gap-3">
                 {/* Multilingual Selector */}
-                <div className="flex items-center bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-2 py-1">
-                  <Globe size={14} className="text-indigo-600 dark:text-indigo-400 mr-1.5 shrink-0" />
+                <div className="flex min-h-11 items-center rounded-control border border-line bg-surface-subtle px-2">
+                  <Globe size={18} className="mr-1.5 shrink-0 text-foreground-secondary" />
                   <select
                     value={language}
                     onChange={(e) => handleLanguageChange(e.target.value as SupportedLanguage)}
-                    className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+                    className="min-h-11 bg-transparent text-body font-medium text-foreground focus-visible:outline-focus"
                     aria-label="Select Language"
                   >
                     <option value="en">English</option>
@@ -257,11 +257,9 @@ const App: React.FC = () => {
                   onClick={toggleHighContrast}
                   title="Toggle High Contrast Mode"
                   aria-label="Toggle High Contrast Mode"
-                  className={`p-2 rounded-xl transition-all cursor-pointer border ${
-                    highContrast 
-                      ? 'bg-yellow-400 text-black border-black font-black ring-2 ring-yellow-300' 
-                      : 'bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-300 border-transparent'
-                  }`}
+                  data-ui-control
+                  aria-pressed={highContrast}
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-control border border-line ${highContrast ? 'bg-action text-foreground-inverse' : 'bg-surface-subtle text-foreground'}`}
                 >
                   <Eye size={18} />
                 </button>
@@ -270,7 +268,8 @@ const App: React.FC = () => {
                 <button
                   onClick={toggleTheme}
                   aria-label="Toggle layout theme"
-                  className="p-2 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-300 transition-all cursor-pointer"
+                  data-ui-control
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-surface-subtle text-foreground"
                 >
                   {darkMode ? <Sun size={18} /> : <Moon size={18} />}
                 </button>
@@ -279,7 +278,8 @@ const App: React.FC = () => {
                   type="button"
                   aria-label="Open profile"
                   aria-expanded={showProfile}
-                  className={`flex h-11 w-11 items-center justify-center rounded-xl cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 ${showProfile ? 'bg-red-50 text-red-600 dark:bg-red-950/35 dark:text-red-400' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-800 dark:text-slate-300'}`}
+                  data-ui-control
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-control ${showProfile ? 'bg-action text-foreground-inverse' : 'bg-surface-subtle text-foreground'}`}
                   onClick={() => setShowProfile(true)}
                 >
                   {user?.photoURL ? (
@@ -297,12 +297,14 @@ const App: React.FC = () => {
       </AppShell>
 
       {/* Emergency Action & Offline Multilingual AI Companion */}
+      <div data-semantic className="fixed inset-x-0 bottom-[calc(4rem+var(--safe-area-bottom))] z-50 flex h-16 items-center justify-end gap-3 border-t border-line bg-surface px-4 md:left-20 md:bottom-0 md:h-[calc(4rem+var(--safe-area-bottom))] md:pb-[var(--safe-area-bottom)]" aria-label="Patient support">
       <EmergencyButton userId={user?.uid || ''} />
       <OfflineWarriorAI 
         currentLanguage={language} 
         onLanguageChange={handleLanguageChange}
         onNavigateToTool={handleToolNavigation}
       />
+      </div>
     </>
   );
 };

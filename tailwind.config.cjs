@@ -29,6 +29,10 @@ module.exports = {
           50: 'rgb(var(--medical-red-50) / <alpha-value>)',
         },
         canvas: 'rgb(var(--color-canvas) / <alpha-value>)',
+        brand: {
+          DEFAULT: 'rgb(var(--color-brand-surface) / <alpha-value>)',
+          foreground: 'rgb(var(--color-brand-foreground) / <alpha-value>)',
+        },
         surface: {
           DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',
           elevated: 'rgb(var(--color-surface-elevated) / <alpha-value>)',
@@ -57,12 +61,16 @@ module.exports = {
         status: {
           success: 'rgb(var(--color-success) / <alpha-value>)',
           'success-soft': 'rgb(var(--color-success-soft) / <alpha-value>)',
+          'success-text': 'rgb(var(--color-success-text) / <alpha-value>)',
           warning: 'rgb(var(--color-warning) / <alpha-value>)',
           'warning-soft': 'rgb(var(--color-warning-soft) / <alpha-value>)',
+          'warning-text': 'rgb(var(--color-warning-text) / <alpha-value>)',
           danger: 'rgb(var(--color-danger) / <alpha-value>)',
           'danger-soft': 'rgb(var(--color-danger-soft) / <alpha-value>)',
+          'danger-text': 'rgb(var(--color-danger-text) / <alpha-value>)',
           info: 'rgb(var(--color-info) / <alpha-value>)',
           'info-soft': 'rgb(var(--color-info-soft) / <alpha-value>)',
+          'info-text': 'rgb(var(--color-info-text) / <alpha-value>)',
         },
         red: { 650: '#dc2626' },
         slate: {
