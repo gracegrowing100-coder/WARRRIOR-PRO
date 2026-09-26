@@ -12,12 +12,38 @@ describe('AppHeader', () => {
         connectivityLabel="Offline"
         isOffline
         onHome={() => undefined}
-        actions={<button type="button">Profile action</button>}
+        actions={<button type="button">Language action</button>}
+        accountAction={<button type="button">Profile action</button>}
       />,
     );
 
     expect(screen.getByText('Offline')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Language action' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Profile action' })).toBeInTheDocument();
+  });
+
+  it('provides a keyboard-dismissable mobile settings disclosure', async () => {
+    const user = userEvent.setup();
+    render(
+      <AppHeader
+        appName="Warrior AI"
+        connectivityLabel="Online"
+        isOffline={false}
+        onHome={() => undefined}
+        actions={<button type="button">Theme action</button>}
+        accountAction={<button type="button">Profile action</button>}
+      />,
+    );
+
+    const trigger = screen.getByRole('button', { name: 'Display and language settings' });
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+
+    await user.keyboard('{Escape}');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(trigger).toHaveFocus();
   });
 
   it('calls the Home callback from the app identity control', async () => {

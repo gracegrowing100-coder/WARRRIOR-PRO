@@ -35,7 +35,7 @@ describe('AppShell', () => {
     );
 
     expect(screen.getByRole('main')).toHaveClass(
-      'mb-[calc(8rem+var(--safe-area-bottom))]',
+      'mb-[calc(7.5rem+var(--safe-area-bottom))]',
       'md:mb-[calc(4rem+var(--safe-area-bottom))]',
       'overflow-y-auto',
       'md:ml-20',

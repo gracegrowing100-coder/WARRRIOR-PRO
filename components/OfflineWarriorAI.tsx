@@ -213,11 +213,12 @@ export const OfflineWarriorAI: React.FC<{
         onClick={() => setIsOpen(true)}
         type="button"
         data-ui-control
+        aria-label="Open Offline AI"
         className="flex min-h-11 items-center gap-2 rounded-control border border-line-strong bg-surface px-3 text-small font-semibold text-foreground hover:bg-surface-subtle"
         title="Open Offline Multilingual AI Companion"
       >
         <Bot size={20} aria-hidden="true" />
-        <span>Offline AI</span>
+        <span className="hidden sm:inline">Offline AI</span>
       </button>
 
       {/* Main Drawer / Modal */}
@@ -282,13 +283,15 @@ export const OfflineWarriorAI: React.FC<{
                   </button>
 
                   <button
+                    type="button"
+                    aria-label="Close Offline AI"
                     onClick={() => {
                       if (isSpeaking) window.speechSynthesis.cancel();
                       setIsOpen(false);
                     }}
-                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition cursor-pointer"
+                    className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-xl p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
                   >
-                    <X size={18} />
+                    <X size={18} aria-hidden="true" />
                   </button>
                 </div>
               </div>

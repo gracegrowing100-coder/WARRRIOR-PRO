@@ -104,7 +104,7 @@ export const RecentHealthSummary: React.FC<RecentHealthSummaryProps> = ({ userId
   const hasRecords = summary.checkInDays > 0 || summary.hydrationDays > 0 || summary.painEntries > 0;
 
   return (
-    <Card as="section" aria-labelledby="recent-health-title" padding="lg">
+    <Card as="section" aria-labelledby="recent-health-title" className="border-line/70 shadow-none" padding="lg">
       <h2 id="recent-health-title" className="text-heading-2">Recent health summary</h2>
       <p className="mt-1 text-small text-foreground-secondary">Recorded entries from the last seven days only.</p>
 

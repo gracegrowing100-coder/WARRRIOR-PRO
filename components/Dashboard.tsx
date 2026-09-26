@@ -166,7 +166,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
   };
 
   return (
-    <div data-semantic className="space-y-5 pb-4">
+    <div data-semantic className="space-y-6 pb-4">
       <header className="space-y-1 px-1">
         <p className="text-small font-medium text-foreground-secondary">
           {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
@@ -181,7 +181,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
         <DailyMoodCheckIn compact userId={userId} onCheckInSaved={() => setRefreshPain(prev => prev + 1)} />
       </section>
 
-      <Card as="section" aria-labelledby="pain-symptoms-title" padding="lg">
+      <Card as="section" aria-labelledby="pain-symptoms-title" className="border-line/70 shadow-none" padding="lg">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 id="pain-symptoms-title" className="text-heading-2">Pain &amp; symptoms</h2>
@@ -199,7 +199,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start">
         <section id="water-intake-tracker-module" aria-label="Hydration">
           <WaterIntakeTracker compact userId={userId} />
         </section>
@@ -208,12 +208,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
         </section>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start">
         <RecentHealthSummary userId={userId} refreshKey={refreshPain} />
         <UpcomingAppointmentCard userId={userId} onOpenCare={() => onNavigate('care')} />
       </div>
 
-      <Card as="section" aria-labelledby="crisis-help-title" padding="lg">
+      <Card as="section" aria-labelledby="crisis-help-title" className="border-line/70 shadow-none" padding="lg">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 id="crisis-help-title" className="text-heading-2">Need urgent help?</h2>

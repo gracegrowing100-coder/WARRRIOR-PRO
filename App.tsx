@@ -274,21 +274,23 @@ const App: React.FC = () => {
                   {darkMode ? <Sun size={18} /> : <Moon size={18} />}
                 </button>
 
-                <button
-                  type="button"
-                  aria-label="Open profile"
-                  aria-expanded={showProfile}
-                  data-ui-control
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-control ${showProfile ? 'bg-action text-foreground-inverse' : 'bg-surface-subtle text-foreground'}`}
-                  onClick={() => setShowProfile(true)}
-                >
-                  {user?.photoURL ? (
-                    <img src={user.photoURL} alt="User" className="w-6 h-6 rounded-lg object-cover" />
-                  ) : (
-                    <User size={18} />
-                  )}
-                </button>
               </div>
+            )}
+            accountAction={(
+              <button
+                type="button"
+                aria-label="Open profile"
+                aria-expanded={showProfile}
+                data-ui-control
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-control ${showProfile ? 'bg-action text-foreground-inverse' : 'bg-surface-subtle text-foreground'}`}
+                onClick={() => setShowProfile(true)}
+              >
+                {user?.photoURL ? (
+                  <img src={user.photoURL} alt="User" className="h-6 w-6 rounded-lg object-cover" />
+                ) : (
+                  <User size={18} />
+                )}
+              </button>
             )}
           />
         )}
@@ -297,13 +299,13 @@ const App: React.FC = () => {
       </AppShell>
 
       {/* Emergency Action & Offline Multilingual AI Companion */}
-      <div data-semantic className="fixed inset-x-0 bottom-[calc(4rem+var(--safe-area-bottom))] z-50 flex h-16 items-center justify-end gap-3 border-t border-line bg-surface px-4 md:left-20 md:bottom-0 md:h-[calc(4rem+var(--safe-area-bottom))] md:pb-[var(--safe-area-bottom)]" aria-label="Patient support">
-      <EmergencyButton userId={user?.uid || ''} />
-      <OfflineWarriorAI 
-        currentLanguage={language} 
-        onLanguageChange={handleLanguageChange}
-        onNavigateToTool={handleToolNavigation}
-      />
+      <div data-semantic className="fixed bottom-[calc(4rem+var(--safe-area-bottom)+0.5rem)] right-3 z-50 flex h-11 items-center justify-end gap-2 md:inset-x-0 md:left-20 md:bottom-0 md:h-[calc(4rem+var(--safe-area-bottom))] md:gap-3 md:border-t md:border-line md:bg-surface md:px-4 md:pb-[var(--safe-area-bottom)]" aria-label="Patient support">
+        <EmergencyButton userId={user?.uid || ''} />
+        <OfflineWarriorAI
+          currentLanguage={language}
+          onLanguageChange={handleLanguageChange}
+          onNavigateToTool={handleToolNavigation}
+        />
       </div>
     </>
   );

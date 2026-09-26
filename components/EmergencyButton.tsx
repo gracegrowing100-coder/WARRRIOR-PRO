@@ -91,13 +91,15 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({ userId }) => {
                 </div>
                 <button
                   id="close-emergency-modal"
+                  type="button"
+                  aria-label="Close emergency information"
                   onClick={() => {
                     setIsOpen(false);
                     setIsEditing(false);
                   }}
-                  className="bg-black/20 hover:bg-black/30 p-2 rounded-full text-white transition-all outline-none"
+                  className="flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/20 p-2 text-white outline-none transition-all hover:bg-black/30"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="h-5 w-5" aria-hidden="true" />
                 </button>
               </div>
 

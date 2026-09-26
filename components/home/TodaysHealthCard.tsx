@@ -101,36 +101,27 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
       id="home-header-stats"
       aria-labelledby="todays-health-title"
       data-semantic
-      className="bg-brand text-brand-foreground"
+      className="border-transparent bg-brand text-brand-foreground shadow-none"
       padding="lg"
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2 id="todays-health-title" className="text-heading-2">Today&apos;s Health</h2>
-          <p className="mt-1 text-small">A factual summary of what you have recorded today.</p>
-        </div>
-        <HealthStatusBadge
-          tone="neutral"
-          icon={snapshot.hasCheckIn ? <CheckCircle2 size={16} /> : <CircleDashed size={16} />}
-          className="w-fit border-current bg-transparent text-inherit [&_span]:text-inherit"
-        >
-          {snapshot.hasCheckIn ? 'Check-in recorded' : 'Check-in not recorded'}
-        </HealthStatusBadge>
+      <div>
+        <h2 id="todays-health-title" className="text-heading-2">Today&apos;s Health</h2>
+        <p className="mt-1 text-small text-brand-foreground/85">What you have recorded today.</p>
       </div>
 
       {hasTodayData ? (
-        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
-            <div className="flex items-center gap-2 text-small">
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-control border border-brand-foreground/20 bg-brand-foreground/10 p-3 sm:p-4">
+            <div className="flex items-center gap-2 text-small text-brand-foreground/85">
               <HeartPulse size={18} aria-hidden="true" />
               <span>Recorded pain</span>
             </div>
-            <p className="mt-2 text-heading-2 tabular-nums">
+            <p className="mt-1.5 text-heading-2 tabular-nums">
               {snapshot.painLevel === null ? 'Not recorded' : `${snapshot.painLevel} / 10`}
             </p>
           </div>
-          <div>
-            <div className="flex items-center gap-2 text-small">
+          <div className="rounded-control border border-brand-foreground/20 bg-brand-foreground/10 p-3 sm:p-4">
+            <div className="flex items-center gap-2 text-small text-brand-foreground/85">
               <Droplets size={18} aria-hidden="true" />
               <span>Hydration</span>
             </div>
@@ -141,6 +132,19 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
               valueText={waterValueText}
               className="mt-2 [&_span]:text-brand-foreground [&_[role=progressbar]]:bg-brand-foreground/20 [&_[role=progressbar]>div]:bg-brand-foreground"
             />
+          </div>
+          <div className="rounded-control border border-brand-foreground/20 bg-brand-foreground/10 p-3 sm:p-4">
+            <div className="flex items-center gap-2 text-small text-brand-foreground/85">
+              {snapshot.hasCheckIn ? <CheckCircle2 size={18} aria-hidden="true" /> : <CircleDashed size={18} aria-hidden="true" />}
+              <span>Daily check-in</span>
+            </div>
+            <HealthStatusBadge
+              tone="neutral"
+              icon={snapshot.hasCheckIn ? <CheckCircle2 size={16} /> : <CircleDashed size={16} />}
+              className="mt-2 w-fit border-current bg-transparent text-inherit [&_span]:text-inherit"
+            >
+              {snapshot.hasCheckIn ? 'Check-in recorded' : 'Check-in not recorded'}
+            </HealthStatusBadge>
           </div>
         </div>
       ) : (

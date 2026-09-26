@@ -75,7 +75,7 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
   }
 
   return (
-    <Card as="section" aria-labelledby="appointment-title" padding="lg">
+    <Card as="section" aria-labelledby="appointment-title" className="border-line/70 shadow-none" padding="lg">
       <h2 id="appointment-title" className="text-heading-2">Appointment</h2>
       <p className="mt-1 text-small text-foreground-secondary">A current active booking from your appointment records.</p>
 

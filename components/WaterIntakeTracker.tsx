@@ -89,7 +89,7 @@ export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId, compac
 
   if (compact) {
     return (
-      <Card data-semantic>
+      <Card data-semantic className="border-line/70 shadow-none">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-heading-3">Hydration</h2>
           {amount > 0 && <Button variant="ghost" size="sm" onClick={resetWater} aria-label="Reset hydration logs"><RotateCcw size={18} aria-hidden="true" /></Button>}

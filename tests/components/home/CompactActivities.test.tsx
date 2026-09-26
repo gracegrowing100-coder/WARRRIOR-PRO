@@ -52,9 +52,13 @@ describe('Compact Home activities preserve their workflows', () => {
     confirm.mockRestore();
   });
 
-  it('keeps full-list actions accessible and uses the existing taken update', async () => {
+  it('limits the Home preview to two records and keeps full-list actions accessible', async () => {
     render(<MedicationReminder compact userId="test-patient" />);
     await screen.findByRole('button', {name: 'View full schedule (4)'});
+    expect(screen.getByText('0 taken · 4 pending today')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Mark Medication 0 5mg at 08:00 as taken'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Mark Medication 1 5mg at 08:00 as taken'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /Mark Medication 2/})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /Mark Medication 3/})).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'View full schedule (4)'}));
     await userEvent.click(screen.getByRole('button', {name: 'Mark Medication 3 5mg at 12:00 as taken'}));

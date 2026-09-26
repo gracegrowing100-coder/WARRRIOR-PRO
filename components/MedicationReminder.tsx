@@ -258,14 +258,22 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
     }
   };
 
+  const takenTodayCount = meds.filter((med) => med.lastTakenDate === todayStr).length;
+  const pendingTodayCount = meds.length - takenTodayCount;
+  const compactMedications = meds
+    .filter((med) => med.lastTakenDate !== todayStr)
+    .slice(0, 2);
+
   return (
     <div className={compact ? 'relative' : 'bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-sm border border-gray-100 dark:border-slate-800/80 flex flex-col relative overflow-hidden transition-all duration-300'}>
-      {compact && <Card data-semantic>
+      {compact && <Card data-semantic className="border-line/70 shadow-none">
         <h2 className="text-heading-3">Medication</h2>
-        <p className="mt-1 text-small text-foreground-secondary">{meds.filter(m => m.lastTakenDate === todayStr).length} of {meds.length} taken today</p>
+        <p className="mt-1 text-small text-foreground-secondary">
+          {takenTodayCount} taken · {pendingTodayCount} pending today
+        </p>
         {loading ? <p role="status" className="mt-3 text-small">Loading medication…</p> : (
           <ul className="mt-3 divide-y divide-line">
-            {(showFullSchedule ? meds : meds.filter(m => m.lastTakenDate !== todayStr).slice(0, 3)).map(med => {
+            {(showFullSchedule ? meds : compactMedications).map(med => {
               const taken = med.lastTakenDate === todayStr;
               return <li key={med.id} className="flex items-start gap-3 py-3">
                 <Button variant={taken ? 'primary' : 'secondary'} size="sm" aria-label={`Mark ${med.name} ${med.dosage} at ${med.time} as ${taken ? 'not taken' : 'taken'}`} aria-pressed={taken}
@@ -273,7 +281,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
                 <div className="min-w-0 flex-1">
                   <p className="break-words text-small font-semibold">{med.name}</p>
                   <p className="text-small text-foreground-secondary">{med.dosage} · {med.time}</p>
-                  <p className={`text-caption ${taken ? 'text-status-success-text' : 'text-foreground-secondary'}`}>{taken ? 'Taken' : 'Pending'}</p>
+                  <p className={`text-small ${taken ? 'text-status-success-text' : 'text-foreground-secondary'}`}>{taken ? 'Taken' : 'Pending'}</p>
                 </div>
                 {showFullSchedule && <Button variant="ghost" size="sm" aria-label={`Delete ${med.name} ${med.dosage} at ${med.time}`} onClick={() => handleDeleteMed(med.id)}><Trash2 size={18} aria-hidden="true" /></Button>}
               </li>;

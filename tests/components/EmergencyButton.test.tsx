@@ -38,5 +38,8 @@ describe('Emergency entry point', () => {
     expect(screen.getByRole('link', { name: /Dr. Test/i })).toHaveAttribute('href', 'tel:+2348000000001');
     expect(screen.getByRole('link', { name: /Caregiver Test/i })).toHaveAttribute('href', 'tel:+2348000000002');
     expect(screen.queryByText(/dispatched|message sent/i)).not.toBeInTheDocument();
+
+    const closeButton = screen.getByRole('button', { name: 'Close emergency information' });
+    expect(closeButton).toHaveClass('min-h-11', 'min-w-11');
   });
 });
