@@ -87,6 +87,23 @@ describe('firebaseService current persistence contracts', () => {
     expect(water).not.toHaveBeenCalled();
   });
 
+  it('upserts a guest symptom entry by date instead of duplicating it', async () => {
+    vi.spyOn(firebaseService, 'updateStreak').mockResolvedValue(1);
+
+    await firebaseService.addSymptomLog('', 2, ['Fatigue'], [], 1, '2026-09-25');
+    await firebaseService.addSymptomLog('', 7, ['Fever'], ['Infection'], 2, '2026-09-25');
+
+    expect(JSON.parse(localStorage.getItem('warrior_symptom_logs') || '[]')).toEqual([
+      expect.objectContaining({
+        dateStr: '2026-09-25',
+        painLevel: 7,
+        symptoms: ['Fever'],
+        triggers: ['Infection'],
+        waterIntake: 2,
+      }),
+    ]);
+  });
+
   it('writes an authenticated symptom before invoking linked pain and hydration writes', async () => {
     const pain = vi.spyOn(firebaseService, 'addPainLog').mockResolvedValue(undefined);
     const water = vi.spyOn(firebaseService, 'saveWaterLog').mockResolvedValue(undefined);

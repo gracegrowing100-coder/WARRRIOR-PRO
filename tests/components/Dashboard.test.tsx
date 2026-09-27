@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const service = vi.hoisted(() => ({
   addSymptomLog: vi.fn(),
+  getWaterLog: vi.fn(),
   getUserProfile: vi.fn(),
   updateStreak: vi.fn(),
 }));
@@ -36,6 +37,7 @@ describe('Patient Home critical rendering', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service.addSymptomLog.mockResolvedValue(undefined);
+    service.getWaterLog.mockResolvedValue({ amount: 1, goal: 3 });
     service.updateStreak.mockResolvedValue(4);
     service.getUserProfile.mockResolvedValue({
       displayName: 'Tayo',
@@ -81,7 +83,8 @@ describe('Patient Home critical rendering', () => {
     render(<Dashboard userId="patient-1" onNavigate={vi.fn()} />);
 
     await user.click(screen.getByRole('button', { name: /Log symptoms and pain/i }));
-    await user.click(screen.getByRole('button', { name: 'Save Log Entries' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save health entry' })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: 'Save health entry' }));
 
     await waitFor(() => {
       expect(service.addSymptomLog).toHaveBeenCalledWith(
@@ -104,11 +107,11 @@ describe('Patient Home critical rendering', () => {
 
     const dialog = screen.getByRole('dialog', { name: 'Log symptoms and pain' });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(dialog).toHaveAccessibleDescription(/Record pain, symptoms/i);
+    expect(dialog).toHaveAccessibleDescription(/Record how you feel today/i);
     expect(screen.getByRole('slider', { name: 'Pain score' })).toHaveFocus();
     expect(dialog.parentElement).toHaveClass('z-[200]');
     expect(screen.getByRole('button', { name: 'Close symptom and pain log' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save Log Entries' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Save health entry' })).toBeVisible();
 
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('dialog', { name: 'Log symptoms and pain' })).not.toBeInTheDocument();
