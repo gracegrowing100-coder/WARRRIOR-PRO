@@ -51,9 +51,9 @@ The mobile shell renders all six destinations in a fixed bottom bar. At the
 Tailwind `md` breakpoint it becomes an 80px-wide left rail. The header remains
 sticky and the main content is constrained to `max-w-5xl`.
 
-Known routing defect: `App.tsx` registers a `hashchange` listener but does not
-apply the existing hash when the app first mounts. Opening a deep link can show
-Home until another navigation action occurs.
+Phase 4G: `App.tsx` initializes from the existing hash and handles subsequent
+hash changes without adding history entries. Direct Care and appointment links
+open their requested destination. Unknown hashes fall back to Home.
 
 ## Existing screens and feature surfaces
 
@@ -300,3 +300,16 @@ synthetic data until validation and governance requirements are met.
 - [Information architecture](./INFORMATION_ARCHITECTURE.md)
 - [Data contracts](./DATA_CONTRACTS.md)
 - [Redesign plan](./REDESIGN_PLAN.md)
+
+## Phase 4G targeted Care audit (28 September 2026)
+
+Care provides recorded Health History, appointment requests, and Medical Records.
+Medical Records wraps the existing Care Vault with Back to Care and a warning
+about setup/sample information. Vault internals remain legacy scope for Phase 8.
+Health History and appointment back controls remain available outside loading
+and error content. Telemedicine now wraps Appointments, with explicit review,
+submit, persistent result, details, and cancellation confirmation. initialReason
+is editable form state only; review does not save it. Cloud permission failures
+after a local appointment write now report device-only recording. Cancellation
+reports whether the cloud or only this device was updated. A later successful
+cloud read can still replace device-only changes; no replay queue was added.

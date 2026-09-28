@@ -36,8 +36,15 @@ import { SupportedLanguage, APP_TRANSLATIONS } from './services/offlineKnowledge
 
 export type Page = 'home' | 'games' | 'chat' | 'care' | 'telemedicine' | 'community' | 'more' | 'advocacy';
 
+const pageFromHash = (): Page => {
+  const page = window.location.hash.replace('#/', '') as Page;
+  return (['home', 'games', 'chat', 'care', 'telemedicine', 'community', 'more', 'advocacy'] as Page[]).includes(page)
+    ? page
+    : 'home';
+};
+
 const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<Page>('home');
+  const [currentPage, setCurrentPage] = useState<Page>(pageFromHash);
   const [user, setUser] = useState(auth.currentUser);
   const [authResolved, setAuthResolved] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
@@ -123,11 +130,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.replace('#/', '') as Page;
-      const validPages: Page[] = ['home', 'games', 'chat', 'care', 'telemedicine', 'community', 'more', 'advocacy'];
-      if (validPages.includes(hash)) {
-        setCurrentPage(hash);
-      }
+      setCurrentPage(pageFromHash());
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);

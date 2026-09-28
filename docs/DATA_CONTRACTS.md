@@ -124,8 +124,8 @@ historical mood records already exist.
 | Medication update/delete | Existing local cache is changed first. | Permission errors can reject after the local change. |
 | Hydration, pain, emergency, Care Vault | Local value is written first. | Firestore is attempted afterward; no replay ledger exists. |
 | Symptom | Local symptom is written first. | Linked pain/water calls are conditional as described above. |
-| Appointment create | Local provisional item is written first. | The Telemedicine component immediately reloads; a successful cloud list can overwrite the cache and drop a failed provisional item. |
-| Appointment cancel | Local status changes first. | Cloud update is attempted afterward. |
+| Appointment create | Local provisional item is written first into the UID-scoped cache. | Returns a record after cloud success, or undefined after cloud failure (including permission denial) once local saving succeeded. The result remains visible until Done; a later successful cloud list can still replace provisional items. |
+| Appointment cancel | Existing local status changes first. | Returns `{ state: "recorded" }` after cloud success or `{ state: "device-only" }` after a local-only update. Throws when neither destination saved the cancellation. No clinic notification is implied. |
 | Mood/daily check-in | Local records are written first. | Missing rules and rethrown permission errors can stop later steps. |
 | Reminders | Local settings are written first. | Firestore errors are logged but not surfaced as a delivery/sync state. |
 | Chat/posts | Local cache is updated first for sends/creates and several mutations. | This is optimistic fallback, not queued synchronization. |
@@ -169,7 +169,8 @@ refactoring.
 | `warrior_pain` | Cached pain logs. Not currently UID-scoped. |
 | `warrior_symptom_logs` | Cached symptom logs. Not currently UID-scoped. |
 | `warrior_emergency` | Emergency summary. Not currently UID-scoped. |
-| `warrior_appointments` | Appointment list. Not currently UID-scoped. |
+| `warrior_appointments` | Guest-only legacy appointment list; never read for authenticated users. |
+| `warrior_appointments_{uid}` | Authenticated appointment cache; cloud success replaces this cache. |
 | `warrior_carevault` | Care Vault document. Not currently UID-scoped. |
 | `warrior_carevault_unlocked` | Local unlock UI state. |
 | `warrior_mood_logs_{uid|guest}` | Mood history. |

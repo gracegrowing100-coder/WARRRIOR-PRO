@@ -198,3 +198,30 @@ Known exceptions:
 Evidence links/screenshots:
 Decision: PASS / PASS WITH EXCEPTIONS / FAIL
 ```
+
+## Phase 4G completion record — 28 September 2026
+
+- Scope: Care navigation and appointment flow integrity; no visual redesign.
+- Typecheck: npm run lint passed.
+- Focused regression: 64 tests passed across 8 files.
+- Full regression: npm test passed once, 126 tests across 31 files.
+- Production build: npm run build passed once; large-bundle warning remains.
+- Browser: localhost:3000, existing authenticated session; no request submitted
+  or cancelled against the account. Keyboard entry/return verified for Medical
+  Records, Health History, and Appointments. Required date/time validation,
+  optional reason, review, edit, and return verified without saving.
+- Direct Care and Appointments reloads and browser back/forward verified.
+- Widths: 360px, 375px, 768px, 1200px; no horizontal overflow in Medical Records
+  entry, loaded Health History, appointment preferences, or review.
+- Console: no errors observed; existing daily-check-in Firestore permission
+  warnings remain, with unavailable state and reachable Back to Care.
+- Mocked contract coverage: cloud success, offline/permission failure, local-only
+  creation/cancellation, cancellation without a stored record, UID isolation,
+  duplicate-submit prevention, retained cancelled history, and editable handoff
+  reason with no persistence during review. Real network-offline mutation was
+  not exercised; tests simulate failures without writing account data.
+- Preserved limitations: successful cloud reads can replace device-only changes;
+  no replay queue. Vault internals, sample defaults, security wording, and legacy
+  tools remain deferred to the separate Care Vault phase. No screenshots added.
+- Decision: Phase 4G navigation and request architecture ready to freeze within
+  this scope; this is not clinical validation or a full Care Vault safety audit.

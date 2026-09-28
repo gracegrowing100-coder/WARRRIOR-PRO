@@ -1332,7 +1332,8 @@ export const firebaseService = {
       localStorage.setItem(cacheKey, JSON.stringify(updatedApps));
       return { id: docRef.id, ...data };
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
+      // The local write already succeeded, including when cloud permission is denied.
+      console.warn('Appointment request saved on this device; cloud recording failed:', error);
     }
   },
 
@@ -1346,12 +1347,19 @@ export const firebaseService = {
       localStorage.setItem(cacheKey, JSON.stringify(apps));
     }
 
-    if (!userId) return;
+    const savedLocally = Boolean(cached?.some((appointment) => appointment.id === appId));
+    if (!userId) {
+      if (!savedLocally) throw new Error('Appointment request not found on this device');
+      return { state: 'device-only' as const };
+    }
     const path = `users/${userId}/appointments/${appId}`;
     try {
       await updateDoc(doc(db, path), { status: 'Cancelled' });
+      return { state: 'recorded' as const };
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
+      if (!savedLocally) throw error;
+      console.warn('Appointment cancellation saved on this device; cloud update failed:', error);
+      return { state: 'device-only' as const };
     }
   },
 

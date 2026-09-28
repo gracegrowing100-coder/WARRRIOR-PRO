@@ -32,3 +32,6 @@ dist-ssr
 
 # Generated visual QA evidence
 artifacts/
+
+
+*.txt

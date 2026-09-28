@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CalendarDays, Clock3, FileText } from 'lucide-react';
 import type { AppointmentRecord } from '../../services/firebaseService';
-import { Button, Card, HealthStatusBadge, Modal } from '../ui';
+import { Alert, Button, Card, HealthStatusBadge, Modal } from '../ui';
 
 export interface AppointmentDetailsProps {
   appointment: AppointmentRecord;
   cancelling: boolean;
   cancellationError?: string;
+  cancellationNotice?: string;
   onBack: () => void;
   onCancel: (appointment: AppointmentRecord) => Promise<boolean>;
 }
@@ -25,6 +26,7 @@ export const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
   appointment,
   cancelling,
   cancellationError,
+  cancellationNotice,
   onBack,
   onCancel,
 }) => {
@@ -89,6 +91,7 @@ export const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
       </p>
 
       {cancellationError && <p role="alert" className="text-small font-semibold text-status-danger">{cancellationError}</p>}
+      {cancellationNotice && <Alert tone="warning" title="Device-only cancellation">{cancellationNotice}</Alert>}
       {!isCancelled && (
         <Button variant="danger" onClick={() => setConfirmOpen(true)}>Cancel request</Button>
       )}

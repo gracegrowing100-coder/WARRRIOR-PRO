@@ -90,6 +90,7 @@ export const Appointments: React.FC<AppointmentsProps> = ({
   const [selected, setSelected] = useState<AppointmentRecord | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [cancellationError, setCancellationError] = useState('');
+  const [cancellationNotice, setCancellationNotice] = useState('');
 
   const loadAppointments = useCallback(async () => {
     setLoading(true);
@@ -120,7 +121,10 @@ export const Appointments: React.FC<AppointmentsProps> = ({
     setCancelling(true);
     setCancellationError('');
     try {
-      await firebaseService.cancelAppointment(userId, appointment.id);
+      const result = await firebaseService.cancelAppointment(userId, appointment.id);
+      setCancellationNotice(result?.state === 'device-only'
+        ? 'Cancellation saved only on this device. The cloud record has not been updated. No clinic notification is confirmed.'
+        : '');
       const cancelled = { ...appointment, status: 'Cancelled' };
       setSelected(cancelled);
       setAppointments((current) => current.map((item) => item.id === appointment.id ? cancelled : item));
@@ -153,6 +157,7 @@ export const Appointments: React.FC<AppointmentsProps> = ({
         appointment={selected}
         cancelling={cancelling}
         cancellationError={cancellationError}
+        cancellationNotice={cancellationNotice}
         onBack={() => setView('landing')}
         onCancel={cancelRequest}
       />
@@ -179,6 +184,7 @@ export const Appointments: React.FC<AppointmentsProps> = ({
       <Alert tone="neutral" title="For non-emergency care">
         Appointment requests are separate from urgent help. Use the global Emergency action if you may need immediate assistance.
       </Alert>
+      {cancellationNotice && <Alert tone="warning" title="Device-only cancellation">{cancellationNotice}</Alert>}
 
       <section aria-labelledby="appointment-requests-title" className="space-y-6">
         <h2 id="appointment-requests-title" className="sr-only">Your appointment requests</h2>

@@ -71,7 +71,7 @@ describe('App startup, auth state, navigation, and settings', () => {
     expect(screen.getByRole('button', { name: 'Emergency HUD' })).toBeInTheDocument();
   });
 
-  it('characterizes hash changes after mount without asserting the known initial-hash defect as desired', async () => {
+  it('handles hash changes after mount', async () => {
     render(<App />);
     act(() => authHarness.callback?.({ uid: 'patient-1' }));
     await screen.findByText('Patient Home for patient-1');
@@ -111,5 +111,4 @@ describe('App startup, auth state, navigation, and settings', () => {
     expect(authHarness.auth.currentUser).toBeNull();
   });
 
-  it.todo('known limitation: an existing valid hash is not applied during initial App mount');
 });
