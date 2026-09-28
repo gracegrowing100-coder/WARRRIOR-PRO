@@ -23,6 +23,7 @@ import { EmergencyButton } from './components/EmergencyButton';
 import { AuthFlow } from './components/AuthFlow';
 import { OfflineWarriorAI } from './components/OfflineWarriorAI';
 import { SyntheticDemo } from './components/SyntheticDemo';
+import { CareHub } from './components/care';
 import {
   AppHeader,
   AppShell,
@@ -179,7 +180,7 @@ const App: React.FC = () => {
       case 'home': return <Dashboard onNavigate={navigate} userId={user?.uid || ''} />;
       case 'games': return <GamesHub />;
       case 'chat': return <ChatSystem />;
-      case 'care': return <Telemedicine />;
+      case 'care': return <CareHub userId={user?.uid || ''} onOpenAppointments={() => navigate('telemedicine')} />;
       case 'telemedicine': return <Telemedicine />;
       case 'community': return <Community />;
       case 'more': return <MoreMenu onNavigate={navigate} />;

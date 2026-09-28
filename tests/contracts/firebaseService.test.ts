@@ -139,6 +139,86 @@ describe('firebaseService current persistence contracts', () => {
     expect(firestore.setDoc).not.toHaveBeenCalled();
   });
 
+  it('classifies a stored hydration amount of zero as recorded history', async () => {
+    firestore.getDoc.mockResolvedValueOnce({
+      exists: () => true,
+      data: () => ({ amount: 0, goal: 3 }),
+    });
+
+    await expect(firebaseService.getHydrationHistory('user-1', ['2026-09-25'])).resolves.toEqual([
+      { dateStr: '2026-09-25', state: 'recorded', data: { amount: 0, goal: 3 } },
+    ]);
+  });
+
+  it('distinguishes missing hydration from zero and unavailable hydration', async () => {
+    firestore.getDoc
+      .mockResolvedValueOnce({ exists: () => false })
+      .mockRejectedValueOnce(new Error('offline'));
+
+    await expect(firebaseService.getHydrationHistory('user-1', ['2026-09-25', '2026-09-24'])).resolves.toEqual([
+      { dateStr: '2026-09-25', state: 'missing', data: null },
+      { dateStr: '2026-09-24', state: 'unavailable', data: null },
+    ]);
+  });
+
+  it('labels a local hydration record as cached when cloud confirmation fails', async () => {
+    localStorage.setItem('health_history_water_user-1_2026-09-25', JSON.stringify({ amount: 1.5, goal: 3 }));
+    firestore.getDoc.mockRejectedValueOnce(new Error('offline'));
+
+    await expect(firebaseService.getHydrationHistory('user-1', ['2026-09-25'])).resolves.toEqual([
+      { dateStr: '2026-09-25', state: 'cached', data: { amount: 1.5, goal: 3 } },
+    ]);
+  });
+
+  it('does not use stale hydration cache when cloud confirms the record is missing', async () => {
+    localStorage.setItem('health_history_water_user-1_2026-09-25', JSON.stringify({ amount: 1.5, goal: 3 }));
+    firestore.getDoc.mockResolvedValueOnce({ exists: () => false });
+
+    await expect(firebaseService.getHydrationHistory('user-1', ['2026-09-25'])).resolves.toEqual([
+      { dateStr: '2026-09-25', state: 'missing', data: null },
+    ]);
+  });
+
+  it('does not expose the unscoped hydration cache to an authenticated history read', async () => {
+    localStorage.setItem('water_2026-09-25', JSON.stringify({ amount: 2.5, goal: 3 }));
+    firestore.getDoc.mockRejectedValueOnce(new Error('offline'));
+
+    await expect(firebaseService.getHydrationHistory('user-1', ['2026-09-25'])).resolves.toEqual([
+      { dateStr: '2026-09-25', state: 'unavailable', data: null },
+    ]);
+  });
+
+  it('preserves presence for daily check-in history without exposing a synthetic default', async () => {
+    firestore.getDoc
+      .mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ emotion: 'Managing / OK', score: 6, note: 'Resting' }),
+      })
+      .mockResolvedValueOnce({ exists: () => false });
+
+    await expect(firebaseService.getDailyCheckInHistory('user-1', ['2026-09-25', '2026-09-24'])).resolves.toEqual([
+      {
+        dateStr: '2026-09-25',
+        state: 'recorded',
+        data: { emotion: 'Managing / OK', score: 6, note: 'Resting' },
+      },
+      { dateStr: '2026-09-24', state: 'missing', data: null },
+    ]);
+  });
+
+  it('returns only matching cached symptom history when Firestore is unavailable', async () => {
+    localStorage.setItem('warrior_symptom_logs', JSON.stringify([
+      { id: 'mine', userId: 'user-1', dateStr: '2026-09-25', painLevel: 0 },
+      { id: 'other', userId: 'user-2', dateStr: '2026-09-25', painLevel: 8 },
+    ]));
+    firestore.getDocs.mockRejectedValueOnce(new Error('offline'));
+
+    await expect(firebaseService.getSymptomHistory('user-1')).resolves.toEqual({
+      state: 'cached',
+      data: [{ id: 'mine', userId: 'user-1', dateStr: '2026-09-25', painLevel: 0 }],
+    });
+  });
+
   it('preserves guest medication add, taken update, and delete behavior', async () => {
     const medication = await firebaseService.addMedication('', {
       name: 'Hydroxyurea',

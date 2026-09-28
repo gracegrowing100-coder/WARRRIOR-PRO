@@ -62,6 +62,46 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   }
 }
 
+export type HealthHistoryReadState = 'recorded' | 'cached' | 'missing' | 'unavailable';
+
+export interface HealthHistoryRecord<T> {
+  dateStr: string;
+  state: HealthHistoryReadState;
+  data: T | null;
+}
+
+export interface HealthHistoryCollection<T> {
+  state: HealthHistoryReadState;
+  data: T[];
+}
+
+export interface HydrationHistoryData {
+  amount: number;
+  goal: number;
+}
+
+export interface DailyCheckInHistoryData {
+  emoji?: string;
+  emotion?: string;
+  note?: string;
+  dateStr?: string;
+  timestamp?: string;
+  updatedAt?: string;
+  score?: number;
+}
+
+export interface SymptomHistoryData {
+  id?: string;
+  userId?: string;
+  painLevel: number;
+  symptoms?: string[];
+  triggers?: string[];
+  waterIntake?: number;
+  dateStr: string;
+  timestamp?: unknown;
+  updatedAt?: unknown;
+}
+
 export const firebaseService = {
   // --- User Profiles ---
   async getUserProfile(userId: string) {
@@ -840,6 +880,47 @@ export const firebaseService = {
     return Promise.all(promises);
   },
 
+  async getHydrationHistory(userId: string, dateStrs: string[]): Promise<Array<HealthHistoryRecord<HydrationHistoryData>>> {
+    return Promise.all(dateStrs.map(async (dateStr) => {
+      const cacheKey = `water_${dateStr}`;
+      const historyCacheKey = userId ? `health_history_water_${userId}_${dateStr}` : cacheKey;
+      let cached: HydrationHistoryData | null = null;
+      try {
+        const cachedValue = localStorage.getItem(historyCacheKey);
+        cached = cachedValue ? JSON.parse(cachedValue) : null;
+      } catch {
+        cached = null;
+      }
+
+      if (!userId) {
+        return cached
+          ? { dateStr, state: 'recorded' as const, data: cached }
+          : { dateStr, state: 'missing' as const, data: null };
+      }
+
+      const path = `users/${userId}/waterLogs/${dateStr}`;
+      try {
+        const snapshot = await getDoc(doc(db, path));
+        if (snapshot.exists()) {
+          const value = snapshot.data();
+          const data = {
+            amount: typeof value.amount === 'number' ? value.amount : 0,
+            goal: typeof value.goal === 'number' ? value.goal : 3.0,
+          };
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          localStorage.setItem(historyCacheKey, JSON.stringify(data));
+          return { dateStr, state: 'recorded' as const, data };
+        }
+        return { dateStr, state: 'missing' as const, data: null };
+      } catch (error) {
+        console.warn(`Firestore hydration history failed for ${dateStr}:`, error);
+        return cached
+          ? { dateStr, state: 'cached' as const, data: cached }
+          : { dateStr, state: 'unavailable' as const, data: null };
+      }
+    }));
+  },
+
   // --- Pain Logs (Trends) ---
   async getPainLogs(userId: string) {
     if (!userId) {
@@ -912,6 +993,41 @@ export const firebaseService = {
       console.warn("Firestore symptom logs failed, using cache:", error);
       const cached = localStorage.getItem('warrior_symptom_logs');
       return cached ? JSON.parse(cached) : [];
+    }
+  },
+
+  async getSymptomHistory(userId: string): Promise<HealthHistoryCollection<SymptomHistoryData>> {
+    let cached: SymptomHistoryData[] = [];
+    try {
+      const cachedValue = localStorage.getItem('warrior_symptom_logs');
+      const parsed = cachedValue ? JSON.parse(cachedValue) : [];
+      cached = Array.isArray(parsed)
+        ? parsed.filter((entry) => !userId || entry?.userId === userId)
+        : [];
+    } catch {
+      cached = [];
+    }
+
+    if (!userId) {
+      return cached.length > 0
+        ? { state: 'recorded', data: cached }
+        : { state: 'missing', data: [] };
+    }
+
+    const path = `users/${userId}/symptomLogs`;
+    try {
+      const q = query(collection(db, path), orderBy('dateStr', 'asc'));
+      const snapshot = await getDocs(q);
+      const logs = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() } as SymptomHistoryData));
+      localStorage.setItem('warrior_symptom_logs', JSON.stringify(logs));
+      return logs.length > 0
+        ? { state: 'recorded', data: logs }
+        : { state: 'missing', data: [] };
+    } catch (error) {
+      console.warn('Firestore symptom history failed, using matching cache:', error);
+      return cached.length > 0
+        ? { state: 'cached', data: cached }
+        : { state: 'unavailable', data: [] };
     }
   },
 
@@ -1357,6 +1473,41 @@ export const firebaseService = {
     }
   },
 
+  async getDailyCheckInHistory(userId: string, dateStrs: string[]): Promise<Array<HealthHistoryRecord<DailyCheckInHistoryData>>> {
+    return Promise.all(dateStrs.map(async (dateStr) => {
+      const cacheKey = `warrior_daily_mood_${userId || 'guest'}_${dateStr}`;
+      let cached: DailyCheckInHistoryData | null = null;
+      try {
+        const cachedValue = localStorage.getItem(cacheKey);
+        cached = cachedValue ? JSON.parse(cachedValue) : null;
+      } catch {
+        cached = null;
+      }
+
+      if (!userId) {
+        return cached
+          ? { dateStr, state: 'recorded' as const, data: cached }
+          : { dateStr, state: 'missing' as const, data: null };
+      }
+
+      const path = `users/${userId}/dailyMoodCheckIns/${dateStr}`;
+      try {
+        const snapshot = await getDoc(doc(db, path));
+        if (snapshot.exists()) {
+          const data = snapshot.data() as DailyCheckInHistoryData;
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          return { dateStr, state: 'recorded' as const, data };
+        }
+        return { dateStr, state: 'missing' as const, data: null };
+      } catch (error) {
+        console.warn(`Firestore daily check-in history failed for ${dateStr}:`, error);
+        return cached
+          ? { dateStr, state: 'cached' as const, data: cached }
+          : { dateStr, state: 'unavailable' as const, data: null };
+      }
+    }));
+  },
+
   // --- 7-Day Mood & Hydration Trends Aggregator ---
   async getMoodAndHydrationTrends7Days(userId: string) {
     const results = [];
@@ -1453,4 +1604,3 @@ export const firebaseService = {
     }
   }
 };
-

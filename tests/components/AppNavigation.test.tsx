@@ -20,6 +20,14 @@ vi.mock('../../components/Dashboard', () => ({
 vi.mock('../../components/GamesHub', () => ({ default: () => <div>Games screen</div> }));
 vi.mock('../../components/ChatSystem', () => ({ default: () => <div>Chat screen</div> }));
 vi.mock('../../components/Telemedicine', () => ({ default: () => <div>Telemedicine screen</div> }));
+vi.mock('../../components/care', () => ({
+  CareHub: ({ userId, onOpenAppointments }: { userId: string; onOpenAppointments: () => void }) => (
+    <div>
+      <span>Care hub for {userId}</span>
+      <button type="button" onClick={onOpenAppointments}>Open appointments</button>
+    </div>
+  ),
+}));
 vi.mock('../../components/Community', () => ({ default: () => <div>Community screen</div> }));
 vi.mock('../../components/Advocacy', () => ({ default: () => <div>Advocacy screen</div> }));
 vi.mock('../../components/UserProfile', () => ({ default: () => <div>User profile</div> }));
@@ -79,15 +87,19 @@ describe('App patient navigation integration', () => {
     expect(profile).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('routes Care to the existing Telemedicine experience', async () => {
+  it('routes Care to the patient Care hub and keeps appointments reachable', async () => {
     const user = userEvent.setup();
     await renderAuthenticatedApp();
 
     await user.click(screen.getByRole('button', { name: 'Care' }));
 
-    expect(await screen.findByText('Telemedicine screen')).toBeInTheDocument();
+    expect(await screen.findByText('Care hub for patient-1')).toBeInTheDocument();
     expect(window.location.hash).toBe('#/care');
     expect(screen.getByRole('button', { name: 'Care' })).toHaveAttribute('aria-current', 'page');
+
+    await user.click(screen.getByRole('button', { name: 'Open appointments' }));
+    expect(await screen.findByText('Telemedicine screen')).toBeInTheDocument();
+    expect(window.location.hash).toBe('#/telemedicine');
   });
 
   it('uses More as a launcher for existing Games/Education and Advocacy screens', async () => {
