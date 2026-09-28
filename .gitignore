@@ -28,3 +28,7 @@ dist-ssr
 
 # Local Aider Desk state / machine-specific junctions
 .aider-desk/
+
+
+# Generated visual QA evidence
+artifacts/
