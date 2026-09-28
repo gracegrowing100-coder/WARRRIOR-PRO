@@ -260,24 +260,70 @@ describe('firebaseService current persistence contracts', () => {
     });
 
     expect(result).toEqual(expect.objectContaining({ id: 'appointment-cloud-id', doctorName: 'Dr. Amina' }));
-    expect(JSON.parse(localStorage.getItem('warrior_appointments') || '[]')[0].id).toBe('appointment-cloud-id');
+    expect(JSON.parse(localStorage.getItem('warrior_appointments_user-1') || '[]')[0].id).toBe('appointment-cloud-id');
   });
 
   it('marks an appointment cancelled locally before attempting its cloud update', async () => {
-    localStorage.setItem('warrior_appointments', JSON.stringify([{ id: 'appointment-1', status: 'Confirmed' }]));
+    localStorage.setItem('warrior_appointments_user-1', JSON.stringify([{ id: 'appointment-1', status: 'Confirmed' }]));
     firestore.updateDoc.mockRejectedValueOnce(new Error('offline'));
 
     await firebaseService.cancelAppointment('user-1', 'appointment-1');
 
-    expect(JSON.parse(localStorage.getItem('warrior_appointments') || '[]')[0].status).toBe('Cancelled');
+    expect(JSON.parse(localStorage.getItem('warrior_appointments_user-1') || '[]')[0].status).toBe('Cancelled');
   });
 
   it('loads cached appointments when Firestore is unavailable', async () => {
     const cached = [{ id: 'appointment-1', doctorName: 'Dr. Amina', status: 'Confirmed' }];
-    localStorage.setItem('warrior_appointments', JSON.stringify(cached));
+    localStorage.setItem('warrior_appointments_user-1', JSON.stringify(cached));
     firestore.getDocs.mockRejectedValueOnce(new Error('offline'));
 
     await expect(firebaseService.getAppointments('user-1')).resolves.toEqual(cached);
+  });
+
+  it('never returns the legacy global appointment cache to an authenticated user', async () => {
+    localStorage.setItem('warrior_appointments', JSON.stringify([
+      { id: 'legacy-global', patientNote: 'Another patient record' },
+    ]));
+    firestore.getDocs.mockRejectedValueOnce(new Error('offline'));
+
+    await expect(firebaseService.getAppointmentRequests('user-1')).resolves.toEqual({
+      state: 'unavailable',
+      data: [],
+    });
+  });
+
+  it('isolates authenticated appointment caches by UID', async () => {
+    localStorage.setItem('warrior_appointments_user-1', JSON.stringify([
+      { id: 'user-1-request', bookedDate: '2026-10-12' },
+    ]));
+    localStorage.setItem('warrior_appointments_user-2', JSON.stringify([
+      { id: 'user-2-request', bookedDate: '2026-10-13' },
+    ]));
+    firestore.getDocs.mockRejectedValue(new Error('offline'));
+
+    await expect(firebaseService.getAppointments('user-1')).resolves.toEqual([
+      expect.objectContaining({ id: 'user-1-request' }),
+    ]);
+    await expect(firebaseService.getAppointments('user-2')).resolves.toEqual([
+      expect.objectContaining({ id: 'user-2-request' }),
+    ]);
+  });
+
+  it('reports successful empty and cached appointment reads truthfully', async () => {
+    await expect(firebaseService.getAppointmentRequests('user-1')).resolves.toEqual({
+      state: 'empty',
+      data: [],
+    });
+
+    localStorage.setItem('warrior_appointments_user-1', JSON.stringify([
+      { id: 'cached-request', status: 'Requested' },
+    ]));
+    firestore.getDocs.mockRejectedValueOnce(new Error('offline'));
+
+    await expect(firebaseService.getAppointmentRequests('user-1')).resolves.toEqual({
+      state: 'cached',
+      data: [expect.objectContaining({ id: 'cached-request' })],
+    });
   });
 
   it('preserves unknown profile fields locally and omits createdAt from the cloud update', async () => {

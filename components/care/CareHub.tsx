@@ -89,7 +89,7 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
             />
             <CareDestination
               title="Appointments"
-              description="Book, review, or cancel appointments through the existing care experience."
+              description="Request hematology care, review recorded requests, or cancel a request."
               actionLabel="Manage appointments"
               icon={<CalendarDays size={22} />}
               onClick={onOpenAppointments}

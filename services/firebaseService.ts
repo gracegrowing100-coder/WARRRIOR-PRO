@@ -102,6 +102,88 @@ export interface SymptomHistoryData {
   updatedAt?: unknown;
 }
 
+export type AppointmentReadState = 'recorded' | 'cached' | 'empty' | 'unavailable';
+
+export interface AppointmentRecord {
+  id: string;
+  bookedDate?: string;
+  bookedTime?: string;
+  patientNote?: string;
+  status?: string;
+  doctorName?: string;
+  doctorSpecialty?: string;
+  formattedCreatedAt?: string;
+  createdAt?: unknown;
+  [key: string]: unknown;
+}
+
+export interface AppointmentCollectionResult {
+  state: AppointmentReadState;
+  data: AppointmentRecord[];
+}
+
+const LEGACY_APPOINTMENT_CACHE_KEY = 'warrior_appointments';
+
+function getAppointmentCacheKey(userId: string) {
+  return userId ? `${LEGACY_APPOINTMENT_CACHE_KEY}_${userId}` : LEGACY_APPOINTMENT_CACHE_KEY;
+}
+
+function readAppointmentCache(cacheKey: string): AppointmentRecord[] | null {
+  const cached = localStorage.getItem(cacheKey);
+  if (cached === null) return null;
+
+  try {
+    const parsed: unknown = JSON.parse(cached);
+    return Array.isArray(parsed) ? parsed as AppointmentRecord[] : null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadAppointments(userId: string): Promise<AppointmentCollectionResult> {
+  const cacheKey = getAppointmentCacheKey(userId);
+
+  if (!userId) {
+    const cached = readAppointmentCache(cacheKey) ?? [];
+    return { state: cached.length > 0 ? 'recorded' : 'empty', data: cached };
+  }
+
+  const path = `users/${userId}/appointments`;
+  try {
+    const q = query(collection(db, path), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    const appointments = snapshot.docs.map((appointmentDocument) => {
+      const data = appointmentDocument.data();
+      let bookedAtStr = '';
+      if (data.createdAt) {
+        if (typeof data.createdAt.toDate === 'function') {
+          bookedAtStr = data.createdAt.toDate().toLocaleDateString();
+        } else if (data.createdAt.seconds) {
+          bookedAtStr = new Date(data.createdAt.seconds * 1000).toLocaleDateString();
+        } else {
+          bookedAtStr = String(data.createdAt);
+        }
+      }
+      return {
+        id: appointmentDocument.id,
+        ...data,
+        formattedCreatedAt: bookedAtStr,
+      } as AppointmentRecord;
+    });
+    localStorage.setItem(cacheKey, JSON.stringify(appointments));
+    return {
+      state: appointments.length > 0 ? 'recorded' : 'empty',
+      data: appointments,
+    };
+  } catch (error) {
+    console.warn('Firestore appointments list failed, using UID-scoped cache:', error);
+    const cached = readAppointmentCache(cacheKey);
+    return cached === null
+      ? { state: 'unavailable', data: [] }
+      : { state: 'cached', data: cached };
+  }
+}
+
 export const firebaseService = {
   // --- User Profiles ---
   async getUserProfile(userId: string) {
@@ -1218,39 +1300,12 @@ export const firebaseService = {
 
   // --- Doctor Appointments ---
   async getAppointments(userId: string) {
-    if (!userId) {
-      const cached = localStorage.getItem('warrior_appointments');
-      return cached ? JSON.parse(cached) : [];
-    }
-    const path = `users/${userId}/appointments`;
-    try {
-      const q = query(collection(db, path), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-      const apps = snapshot.docs.map(doc => {
-        const data = doc.data();
-        let bookedAtStr = '';
-        if (data.createdAt) {
-          if (typeof data.createdAt.toDate === 'function') {
-            bookedAtStr = data.createdAt.toDate().toLocaleDateString();
-          } else if (data.createdAt.seconds) {
-            bookedAtStr = new Date(data.createdAt.seconds * 1000).toLocaleDateString();
-          } else {
-            bookedAtStr = String(data.createdAt);
-          }
-        }
-        return { 
-          id: doc.id, 
-          ...data,
-          formattedCreatedAt: bookedAtStr
-        };
-      });
-      localStorage.setItem('warrior_appointments', JSON.stringify(apps));
-      return apps;
-    } catch (error) {
-      console.warn("Firestore appointments list failed, using cache:", error);
-      const cached = localStorage.getItem('warrior_appointments');
-      return cached ? JSON.parse(cached) : [];
-    }
+    const result = await loadAppointments(userId);
+    return result.data;
+  },
+
+  async getAppointmentRequests(userId: string) {
+    return loadAppointments(userId);
   },
 
   async addAppointment(userId: string, data: any) {
@@ -1260,10 +1315,10 @@ export const firebaseService = {
       createdAt: new Date().toISOString()
     };
 
-    const cached = localStorage.getItem('warrior_appointments');
-    const apps = cached ? JSON.parse(cached) : [];
+    const cacheKey = getAppointmentCacheKey(userId);
+    const apps = readAppointmentCache(cacheKey) ?? [];
     apps.unshift({ id: localId, ...appointmentObj });
-    localStorage.setItem('warrior_appointments', JSON.stringify(apps));
+    localStorage.setItem(cacheKey, JSON.stringify(apps));
 
     if (!userId) return { id: localId, ...appointmentObj };
 
@@ -1274,7 +1329,7 @@ export const firebaseService = {
         createdAt: serverTimestamp()
       });
       const updatedApps = apps.map((a: any) => a.id === localId ? { ...a, id: docRef.id } : a);
-      localStorage.setItem('warrior_appointments', JSON.stringify(updatedApps));
+      localStorage.setItem(cacheKey, JSON.stringify(updatedApps));
       return { id: docRef.id, ...data };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
@@ -1282,11 +1337,13 @@ export const firebaseService = {
   },
 
   async cancelAppointment(userId: string, appId: string) {
-    const cached = localStorage.getItem('warrior_appointments');
+    const cacheKey = getAppointmentCacheKey(userId);
+    const cached = readAppointmentCache(cacheKey);
     if (cached) {
-      let apps = JSON.parse(cached);
-      apps = apps.map((a: any) => a.id === appId ? { ...a, status: 'Cancelled' } : a);
-      localStorage.setItem('warrior_appointments', JSON.stringify(apps));
+      const apps = cached.map((appointment) => appointment.id === appId
+        ? { ...appointment, status: 'Cancelled' }
+        : appointment);
+      localStorage.setItem(cacheKey, JSON.stringify(apps));
     }
 
     if (!userId) return;

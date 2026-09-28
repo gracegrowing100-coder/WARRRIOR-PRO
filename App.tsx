@@ -181,7 +181,7 @@ const App: React.FC = () => {
       case 'games': return <GamesHub />;
       case 'chat': return <ChatSystem />;
       case 'care': return <CareHub userId={user?.uid || ''} onOpenAppointments={() => navigate('telemedicine')} />;
-      case 'telemedicine': return <Telemedicine />;
+      case 'telemedicine': return <Telemedicine userId={user?.uid || ''} onBackToCare={() => navigate('care')} />;
       case 'community': return <Community />;
       case 'more': return <MoreMenu onNavigate={navigate} />;
       case 'advocacy': return <Advocacy />;
