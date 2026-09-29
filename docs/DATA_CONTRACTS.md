@@ -328,3 +328,11 @@ authorship or verification is established.
   and processing, real reauthentication/biometrics, encryption/key management,
   and validated prediction infrastructure as applicable. Local cache remains
   browser-readable storage; UID isolation is not encryption.
+
+## Future role/provenance planning (Phase 4I)
+
+[Role & Access Model](./ROLE_ACCESS_MODEL.md) defines conceptual future ownership,
+authorship and verification requirements. Its HealthRecord fields are not the
+current persisted schema and must not be assumed present or backfilled from
+profile roles. Adoption requires a separately approved migration/security phase.
+Current paths, fields, rules and fallback contracts above remain unchanged.

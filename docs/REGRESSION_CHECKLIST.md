@@ -254,3 +254,17 @@ Decision: PASS / PASS WITH EXCEPTIONS / FAIL
 - git diff --check passed. No dependency or lockfile changes.
 - Decision: architecture ready to freeze with the full-run test exception above;
   this does not certify clinical correctness or production security.
+
+## Role and provenance boundary (Phase 4I planning)
+
+See [Role & Access Model](./ROLE_ACCESS_MODEL.md) before future role work.
+
+- [ ] Patient-entered Medical Records are never presented as clinician-verified.
+- [ ] Health History remains distinct from manually maintained Medical Records.
+- [ ] Generated/synthetic information is never promoted to recorded clinical facts.
+- [ ] Profile roles and chat moderation do not imply clinical or delegated access.
+- [ ] Appointment prefills/requests imply neither acceptance nor automatic submission/notification.
+- [ ] Future roles obtain approved access/provenance/consent rules and protect Patient V1.
+
+Phase 4I is documentation-only; these are future gates, not newly executed checks.
+No application behavior, persistence, rules or schemas changed.

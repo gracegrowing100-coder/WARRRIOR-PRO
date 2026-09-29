@@ -334,3 +334,11 @@ Authenticated fallback is UID-scoped; global legacy data stays guest-only and
 is never silently imported. Device-only saves have no eventual-sync promise.
 Health History, Home medication workflow, Appointments, auth, navigation,
 Emergency HUD and Offline AI were not redesigned. See DATA_CONTRACTS for limits.
+
+## Phase 4I role planning boundary
+
+Patient V1 remains the current implementation priority. Future Caregiver,
+Clinician and distinct Administrator boundaries are documented in
+[Role & Access Model](./ROLE_ACCESS_MODEL.md). Existing profile role labels,
+caregiver contacts and chat moderators do not establish delegated patient access
+or clinician verification. Phase 4I changes documentation only.
