@@ -3,7 +3,9 @@
 These flows combine the observed brownfield path with the approved redesign
 target. Lines labelled **Current** describe code that exists now. Lines labelled
 **Proposed** are future navigation, state, or UX decisions and must not be used
-as evidence of current behavior.
+as evidence of current behavior. Product/architecture authority:
+[WARRIOR_AI_MASTER_PLAN.md](./WARRIOR_AI_MASTER_PLAN.md); current delivery
+status: [PATIENT_V1_ROADMAP.md](./PATIENT_V1_ROADMAP.md).
 
 ## Flow conventions
 

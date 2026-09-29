@@ -1,5 +1,8 @@
 # Warrior AI
 
+> Product/architecture authority: [docs/WARRIOR_AI_MASTER_PLAN.md](./docs/WARRIOR_AI_MASTER_PLAN.md).
+> Current delivery status: [docs/PATIENT_V1_ROADMAP.md](./docs/PATIENT_V1_ROADMAP.md).
+
 ## Product purpose
 
 Warrior AI helps people living with sickle cell disease record daily health

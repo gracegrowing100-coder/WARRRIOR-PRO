@@ -1,7 +1,7 @@
 # Brownfield redesign requirements
 
 These requirements are derived from the current source, `PRODUCT.md`, the
-canonical `../../DESIGN.md`, and the UI/UX audit. They distinguish existing
+canonical [`../DESIGN.md`](../DESIGN.md), and the UI/UX audit. They distinguish existing
 behavior from genuinely new work.
 
 ## Requirement classes
@@ -63,7 +63,7 @@ behavior from genuinely new work.
 
 | ID | Requirement |
 |---|---|
-| NFR-01 | The UI must follow `../../DESIGN.md`: dark navy, white, restrained medical red, calm surfaces, and restrained motion. |
+| NFR-01 | The UI must follow [`../DESIGN.md`](../DESIGN.md): dark navy, white, restrained medical red, calm surfaces, and restrained motion. |
 | NFR-02 | Primary workflows must work from 360px upward; validate at 360, 375, 768, 1200, and 1440px. |
 | NFR-03 | Interaction targets should be approximately 44px or larger. |
 | NFR-04 | Controls require programmatic names, visible focus, keyboard operation, and understandable validation. |

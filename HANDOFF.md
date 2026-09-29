@@ -1,5 +1,10 @@
 # Warrior AI implementation handoff
 
+> **Status: HISTORICAL** (last updated 2026-09-20). Retained for setup
+> history and environment notes. Current planning lives in
+> [docs/WARRIOR_AI_MASTER_PLAN.md](./docs/WARRIOR_AI_MASTER_PLAN.md) and
+> [docs/PATIENT_V1_ROADMAP.md](./docs/PATIENT_V1_ROADMAP.md).
+
 Last updated: 2026-09-20  
 Status: Local synthetic-demo work unit completed  
 Application root: `warrior-cell/`

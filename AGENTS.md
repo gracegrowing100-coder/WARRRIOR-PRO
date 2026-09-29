@@ -7,15 +7,19 @@ instructions in `../AGENTS.md`; it does not replace them.
 
 Read these before changing product behavior or UI:
 
-1. [`PRODUCT.md`](./PRODUCT.md) defines the product, users, MVP boundary, and
+1. [`docs/WARRIOR_AI_MASTER_PLAN.md`](./docs/WARRIOR_AI_MASTER_PLAN.md) is
+   the canonical product and architecture reference.
+2. [`docs/PATIENT_V1_ROADMAP.md`](./docs/PATIENT_V1_ROADMAP.md) holds
+   current Patient V1 delivery status and remaining work.
+3. [`PRODUCT.md`](./PRODUCT.md) defines the product, users, MVP boundary, and
    safety limits.
-2. [`../DESIGN.md`](../DESIGN.md) is the canonical visual and UX specification.
-3. [`docs/CURRENT_STATE.md`](./docs/CURRENT_STATE.md) records what exists now.
-4. [`docs/REQUIREMENTS.md`](./docs/REQUIREMENTS.md) classifies behavior as
+4. [`DESIGN.md`](./DESIGN.md) is the canonical visual and UX specification.
+5. [`docs/CURRENT_STATE.md`](./docs/CURRENT_STATE.md) records what exists now.
+6. [`docs/REQUIREMENTS.md`](./docs/REQUIREMENTS.md) classifies behavior as
    preserve, improve, refactor, add, or defer.
-5. [`docs/DATA_CONTRACTS.md`](./docs/DATA_CONTRACTS.md) protects Firebase,
+7. [`docs/DATA_CONTRACTS.md`](./docs/DATA_CONTRACTS.md) protects Firebase,
    local-storage, authentication, and API contracts.
-6. [`docs/REGRESSION_CHECKLIST.md`](./docs/REGRESSION_CHECKLIST.md) is the
+8. [`docs/REGRESSION_CHECKLIST.md`](./docs/REGRESSION_CHECKLIST.md) is the
    acceptance gate for every redesign phase.
 
 If these documents disagree with the implementation, verify the code and update

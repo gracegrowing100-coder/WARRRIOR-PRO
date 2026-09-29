@@ -59,8 +59,10 @@ Start with these documents before changing application behavior or UI:
 
 | Document | Purpose |
 |---|---|
+| [docs/WARRIOR_AI_MASTER_PLAN.md](./docs/WARRIOR_AI_MASTER_PLAN.md) | Canonical product and architecture direction. |
+| [docs/PATIENT_V1_ROADMAP.md](./docs/PATIENT_V1_ROADMAP.md) | Current Patient V1 delivery status and remaining work. |
 | [PRODUCT.md](./PRODUCT.md) | Product users, MVP, safety boundary, experimental features, and success criteria. |
-| [../DESIGN.md](../DESIGN.md) | Canonical visual and UX design system. |
+| [DESIGN.md](./DESIGN.md) | Canonical visual and UX design system. |
 | [docs/CURRENT_STATE.md](./docs/CURRENT_STATE.md) | Source-backed record of what exists today. |
 | [docs/REQUIREMENTS.md](./docs/REQUIREMENTS.md) | Preserve, improve, refactor, add, and defer requirements. |
 | [docs/INFORMATION_ARCHITECTURE.md](./docs/INFORMATION_ARCHITECTURE.md) | Target five-destination navigation and feature ownership. |

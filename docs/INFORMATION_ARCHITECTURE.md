@@ -180,7 +180,7 @@ silently open the wrong screen.
 - Present the same six top-level destinations in a labelled left sidebar.
 - Do not create a second competing navigation tree.
 - Show section context and page title in the header.
-- Constrain patient content according to `../../DESIGN.md`; do not stretch
+- Constrain patient content according to [`../DESIGN.md`](../DESIGN.md); do not stretch
   tracking forms across the full viewport.
 
 ## Clinician information architecture

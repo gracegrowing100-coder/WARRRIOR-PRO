@@ -169,10 +169,10 @@ application shell. All authenticated roles currently reach the same main app.
 
 ## Styling and responsive behavior
 
-Tailwind uses class-based dark mode. The configuration extends a small number of
-red and slate values and one radius, but does not yet contain the semantic navy,
+Tailwind uses class-based dark mode. The configuration extends a small number
+of red and slate values and one radius, but does not yet contain the semantic navy,
 medical-red, spacing, shadow, typography, or health-state tokens required by
-`../../DESIGN.md`.
+[`../DESIGN.md`](../DESIGN.md).
 
 Global CSS imports Inter, Bangers, and JetBrains Mono from Google Fonts. Fonts
 are also requested in `index.html`, which duplicates the network dependency.
@@ -295,6 +295,8 @@ synthetic data until validation and governance requirements are met.
 
 ## Related documents
 
+- [Master plan](./WARRIOR_AI_MASTER_PLAN.md)
+- [Patient V1 roadmap](./PATIENT_V1_ROADMAP.md)
 - [Product definition](../PRODUCT.md)
 - [Requirements](./REQUIREMENTS.md)
 - [Information architecture](./INFORMATION_ARCHITECTURE.md)

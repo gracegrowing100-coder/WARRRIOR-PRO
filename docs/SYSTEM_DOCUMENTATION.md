@@ -15,6 +15,8 @@ Use the source-backed documentation set instead:
 - [Data contracts](./DATA_CONTRACTS.md)
 - [Redesign plan](./REDESIGN_PLAN.md)
 - [Regression checklist](./REGRESSION_CHECKLIST.md)
+- [Master plan](./WARRIOR_AI_MASTER_PLAN.md)
+- [Patient V1 roadmap](./PATIENT_V1_ROADMAP.md)
 
 The canonical visual and UX specification remains
-[`../../DESIGN.md`](../../DESIGN.md).
+[`../DESIGN.md`](../DESIGN.md).

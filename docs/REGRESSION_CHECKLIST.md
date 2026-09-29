@@ -2,7 +2,8 @@
 
 Use this checklist at the end of every redesign phase. Mark an item only when it
 has current evidence. Record skipped or blocked items with a reason; do not treat
-“not tested” as “passed”.
+“not tested” as “passed”. Acceptance status for Patient V1 freeze is tracked in
+[PATIENT_V1_ROADMAP.md](./PATIENT_V1_ROADMAP.md).
 
 ## Build and baseline
 
