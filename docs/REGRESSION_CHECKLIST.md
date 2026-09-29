@@ -225,3 +225,32 @@ Decision: PASS / PASS WITH EXCEPTIONS / FAIL
   tools remain deferred to the separate Care Vault phase. No screenshots added.
 - Decision: Phase 4G navigation and request architecture ready to freeze within
   this scope; this is not clinical validation or a full Care Vault safety audit.
+
+## Phase 4H Medical Records verification — 29 September 2026
+
+- Focused: 26 tests across five files passed (Medical Records, CareHub, App Care
+  routing, UID/persistence contracts and PDF content).
+- TypeScript: npm run lint (tsc --noEmit) passed.
+- Browser subset: live authenticated empty state at 390px and 1200px; opens
+  from Care, Back to Care works, keyboard return works, no horizontal overflow.
+- Recorded-state browser checks used a temporary read-only service fixture at
+  both widths, including recorded zero and missing optional laboratory values.
+  No real account mutation, screenshot matrix, or fixture remains. No console
+  errors/warnings observed in checked tabs. Layout inspected via rendered DOM
+  and geometry; consolidated visual polish remains deferred.
+- Mocked coverage verifies UID A/B isolation, ignored global cache, preserved
+  unknown fields, zero/false, empty defaults, Firestore merge path, cloud/device
+  outcomes, total save failure, retry, add/edit/remove and focus restoration.
+- Limits: stored legacy samples lack provenance; no heuristic purge. Browser
+  local data is not encrypted, no replay queue or conflict resolution was added.
+  Future clinician verification, secure documents/OCR, biometrics and validated
+  prediction infrastructure remain deferred.
+- Final full suite ran once: 145 passed, 2 failed across 34 files (147 tests).
+  Both failures were in unchanged SymptomPainCheckIn: a 5-second timeout, then
+  a hydration assertion mismatch. Targeted rerun of that unchanged file passed
+  all 6 tests in 9 seconds. This is a full-run flakiness exception, not a claim
+  that the single full run was green. No timeout or product code was changed.
+- Production build ran once and passed; existing >500 kB chunk warning remains.
+- git diff --check passed. No dependency or lockfile changes.
+- Decision: architecture ready to freeze with the full-run test exception above;
+  this does not certify clinical correctness or production security.

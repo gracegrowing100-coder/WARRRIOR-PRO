@@ -313,3 +313,24 @@ is editable form state only; review does not save it. Cloud permission failures
 after a local appointment write now report device-only recording. Cancellation
 reports whether the cloud or only this device was updated. A later successful
 cloud read can still replace device-only changes; no replay queue was added.
+
+## Phase 4H Medical Records (29 September 2026)
+
+Supersedes the Phase 4G Vault deferral above. CareVault is now a compatibility
+wrapper around MedicalRecords, including its existing Home entry. Seven areas:
+health background; medications and therapies; procedures and hospital care;
+laboratory records; immunizations; care information; factual health summary PDF.
+All are patient-maintained, not clinician-verified. Add/edit/remove use existing
+fields and persistence paths; missing information stays empty. Loading, retry,
+empty, cached, save-success and save-failure states are explicit. Back to Care
+remains outside those states.
+
+Fake PIN/biometrics, security claims, filename OCR, synthetic charts, prediction,
+and seeded fallback profiles no longer appear in Medical Records. Old stored
+fields remain intact, including excluded crisis/attachment metadata. Persisted
+legacy samples have no reliable provenance; a review warning remains in screen
+and export. No heuristic purge, backend migration or new demo UI was added.
+Authenticated fallback is UID-scoped; global legacy data stays guest-only and
+is never silently imported. Device-only saves have no eventual-sync promise.
+Health History, Home medication workflow, Appointments, auth, navigation,
+Emergency HUD and Offline AI were not redesigned. See DATA_CONTRACTS for limits.

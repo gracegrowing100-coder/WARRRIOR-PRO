@@ -24,7 +24,7 @@ persist an operation ledger or resolve later conflicts.
 Reads do not generally merge cloud and local records. For medications, pain,
 symptoms, and appointments, a successful Firestore list (including an empty
 list) becomes the returned value and cached value. Hydration, emergency, and
-Care Vault similarly prefer a successful cloud result or their defaults rather
+Care Vault similarly prefer a successful cloud result (Vault uses an empty object for a missing document) rather
 than an older local value. Mood history/daily mood and reminders have different,
 more local-first behavior. Preserve these differences until an explicit
 reconciliation policy replaces them.
@@ -171,8 +171,9 @@ refactoring.
 | `warrior_emergency` | Emergency summary. Not currently UID-scoped. |
 | `warrior_appointments` | Guest-only legacy appointment list; never read for authenticated users. |
 | `warrior_appointments_{uid}` | Authenticated appointment cache; cloud success replaces this cache. |
-| `warrior_carevault` | Care Vault document. Not currently UID-scoped. |
-| `warrior_carevault_unlocked` | Local unlock UI state. |
+| `warrior_carevault_<uid>` | Authenticated Medical Records fallback; only the matching account reads it. |
+| `warrior_carevault` | Legacy guest-only fallback; never imported into an authenticated account. |
+| `warrior_carevault_unlocked` | Obsolete prototype key; production Medical Records ignores it. |
 | `warrior_mood_logs_{uid|guest}` | Mood history. |
 | `warrior_daily_mood_{uid|guest}_{dateStr}` | Daily mood check-in. |
 | `warrior_reminders_{uid|guest}` | Scheduled reminder settings. |
@@ -235,7 +236,7 @@ experimental and requires the safety treatment defined in `PRODUCT.md`.
 | `Telemedicine` | Appointment methods and auth observer. |
 | `ScheduledRemindersManager` | Reminder methods plus Browser Notification API. |
 | `EmergencyButton` | Emergency summary methods. |
-| `CareVault` | Care Vault get/save plus health subcomponents. |
+| `CareVault` / `MedicalRecords` | UID-keyed compatibility wrapper; getCareVaultResult and patch-based saveCareVault. |
 | `ChatSystem` | Message subscription, send, media, typing, reactions, and moderation. |
 | `Community` | Post list/create/like. |
 
@@ -250,7 +251,7 @@ experimental and requires the safety treatment defined in `PRODUCT.md`.
   continuity. The current `hasMoodLogged` value is true for inferred pain-based
   scores as well as explicit mood entries.
 - Current Recharts data covers pain, symptom occurrence, hydration,
-  mood/hydration, and Care Vault laboratory history. Medication has no current
+  mood/hydration. Medical Records now lists recorded laboratory values without synthetic charts. Medication has no current
   trend aggregation or Recharts dataset.
 
 ## Type contract limitations
@@ -292,3 +293,38 @@ Before changing a path, field, key, or endpoint:
 3. Test existing Firestore documents and local browser data.
 4. Update this document and the regression checklist.
 5. Keep the old contract until verification shows migration is safe.
+
+## Phase 4H Medical Records contract
+
+Medical Records contains patient-maintained background, conditions, allergies,
+medication/therapy history, procedures, admissions, transfusions, laboratory
+values, immunizations, care contacts and notes. Daily recorded check-ins stay
+in Health History; Home medication scheduling is separate. No clinician
+authorship or verification is established.
+
+- Firestore remains `users/{uid}/careVault/medicalHistory`, using merge writes.
+- Missing documents return `{}`; no clinical defaults are injected. Zero and
+  false remain recorded values. Blank optional numeric/boolean edits use null.
+- `getCareVaultResult` distinguishes recorded, cached, empty and unavailable.
+  Cloud reads win, including empty documents. Cache write failure does not hide
+  a valid cloud read. Offline corrupt/missing cache is unavailable for accounts.
+- Authenticated reads/writes use only `warrior_carevault_<uid>`. Ambiguous global
+  data is neither deleted nor migrated; guest compatibility retains its old key.
+  The component remounts on UID changes to clear prior account screen state.
+- `saveCareVault` merges explicit patches into the scoped local copy and attempts
+  Firestore. Recorded means cloud acknowledgement; device-only means only local
+  storage succeeded. If neither succeeds, it throws and the editor retains input.
+  There is no replay queue; future cloud reads can replace device-only edits.
+- Unknown fields, excluded painCrises/attachedFiles, and untouched nested fields
+  are preserved. Editing/removing an array entry writes that array; concurrent
+  edits can still overwrite each other (no conflict resolution added).
+- PIN/fingerprint simulation, OCR, generated analytics, fabricated verification
+  and seeded fallbacks are excluded from this production boundary. Existing
+  sample values already saved cannot be reliably distinguished from user input;
+  screen and PDF warn users to review them rather than deleting matching values.
+- PDF uses the same recorded-field allowlist, with missing-value labels and no
+  invented treatment advice or verification. No upload pipeline is provided.
+- Future production claims need clinician identity/sign-off, attachment storage
+  and processing, real reauthentication/biometrics, encryption/key management,
+  and validated prediction infrastructure as applicable. Local cache remains
+  browser-readable storage; UID isolation is not encryption.

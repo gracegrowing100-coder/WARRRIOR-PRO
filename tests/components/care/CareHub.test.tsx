@@ -39,7 +39,8 @@ describe('CareHub', () => {
 
     await user.click(screen.getByRole('button', { name: /Open records/i }));
     expect(screen.getByText('Care Vault for patient-1')).toBeInTheDocument();
-    expect(screen.getByText(/setup or sample information/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Back to Care' }));
+    expect(screen.getByRole('heading', { name: 'Care', level: 1 })).toBeInTheDocument();
   });
 });
 

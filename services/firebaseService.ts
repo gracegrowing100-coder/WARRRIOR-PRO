@@ -1,3 +1,4 @@
+import { isRecord, mergeMedicalRecords, type MedicalRecordData } from './medicalRecords';
 
 import { 
   collection, 
@@ -1364,56 +1365,58 @@ export const firebaseService = {
   },
 
   // --- Care Vault Medical History ---
-  async getCareVault(userId: string) {
-    const defaultVault = {
-      primaryDiagnosis: 'Sickle Cell Disease (HbSS)',
-      otherConditions: ['Asthma'],
-      allergies: 'Penicillin, Sulfa drugs',
-      surgeries: [
-        { id: 'surg-1', name: 'Splenectomy', date: '2021-04-12', hospital: 'St. Jude General Hospital' }
-      ],
-      hospitalizations: [
-        { id: 'hosp-1', reason: 'Vaso-occlusive Crisis (VOC)', date: '2024-01-15', durationDays: 5, notes: 'Treated with IV fluids, oxygen, and continuous patient-controlled analgesia.' }
-      ],
-      transfusions: [
-        { id: 'trans-1', date: '2023-11-20', volumeMl: 350, reactionNotes: 'None. Simple red blood cell exchange.' }
-      ],
-      immunizations: ['Pneumococcal Vaccine', 'Meningococcal Vaccine', 'Hepatitis B', 'Annual Influenza Nose Spray']
+  // Authenticated reads NEVER consume the ambiguous legacy global cache.
+  async getCareVaultResult(userId: string): Promise<{
+    data: MedicalRecordData;
+    state: 'recorded' | 'cached' | 'empty' | 'unavailable';
+  }> {
+    const cacheKey = userId ? 'warrior_carevault_' + userId : 'warrior_carevault';
+    const readCache = (): MedicalRecordData | null => {
+      try {
+        const parsed: unknown = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+        return isRecord(parsed) ? parsed : null;
+      } catch { return null; }
     };
-
     if (!userId) {
-      const cached = localStorage.getItem('warrior_carevault');
-      return cached ? JSON.parse(cached) : defaultVault;
+      const cached = readCache();
+      return { data: cached ?? {}, state: cached ? 'cached' : 'empty' };
     }
-    const path = `users/${userId}/careVault/medicalHistory`;
     try {
-      const docRef = doc(db, path);
-      const snapshot = await getDoc(docRef);
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-        localStorage.setItem('warrior_carevault', JSON.stringify(data));
-        return data;
-      }
-      return defaultVault;
-    } catch (error) {
-      console.warn("Firestore care vault failed, fallback:", error);
-      const cached = localStorage.getItem('warrior_carevault');
-      return cached ? JSON.parse(cached) : defaultVault;
+      const snapshot = await getDoc(doc(db, 'users/' + userId + '/careVault/medicalHistory'));
+      const data = snapshot.exists() ? snapshot.data() : {};
+      if (!isRecord(data)) throw new Error('Invalid medical records');
+      try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch { /* Cloud read remains usable. */ }
+      return { data, state: snapshot.exists() ? 'recorded' : 'empty' };
+    } catch {
+      const cached = readCache();
+      return cached ? { data: cached, state: 'cached' } : { data: {}, state: 'unavailable' };
     }
   },
 
-  async saveCareVault(userId: string, data: any) {
-    localStorage.setItem('warrior_carevault', JSON.stringify(data));
-    if (!userId) return;
-    const path = `users/${userId}/careVault/medicalHistory`;
+  async getCareVault(userId: string) {
+    const result = await this.getCareVaultResult(userId);
+    if (result.state === 'unavailable') throw new Error('Medical records unavailable');
+    return result.data;
+  },
+
+  async saveCareVault(userId: string, patch: MedicalRecordData): Promise<{ state: 'recorded' | 'device-only' }> {
+    const cacheKey = userId ? 'warrior_carevault_' + userId : 'warrior_carevault';
+    let savedLocally = false;
     try {
-      await setDoc(doc(db, path), {
-        ...data,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, path);
+      const cached: unknown = JSON.parse(localStorage.getItem(cacheKey) || '{}');
+      localStorage.setItem(cacheKey, JSON.stringify(mergeMedicalRecords(isRecord(cached) ? cached : {}, patch)));
+      savedLocally = true;
+    } catch { /* Still attempt the cloud write if device storage is unavailable. */ }
+    if (userId) {
+      try {
+        await setDoc(doc(db, 'users/' + userId + '/careVault/medicalHistory'), {
+          ...patch, updatedAt: serverTimestamp(),
+        }, { merge: true });
+        return { state: 'recorded' };
+      } catch { /* Return only the storage outcome we can confirm. */ }
     }
+    if (savedLocally) return { state: 'device-only' };
+    throw new Error('Medical records could not be saved');
   },
 
   // --- Mood & Mental Wellness Logs ---

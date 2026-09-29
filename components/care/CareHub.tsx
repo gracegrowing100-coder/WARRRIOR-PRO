@@ -3,7 +3,7 @@ import { ArrowLeft, CalendarDays, ChevronRight, ClipboardList, HeartPulse, Pill 
 import { CareVault } from '../CareVault';
 import { HealthHistory } from '../health';
 import { PageHeader } from '../layout';
-import { Alert, Button, Card } from '../ui';
+import { Button, Card } from '../ui';
 
 type CareView = 'overview' | 'history' | 'records';
 
@@ -61,10 +61,6 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
         <Button variant="ghost" leadingIcon={<ArrowLeft size={18} />} onClick={() => setView('overview')}>
           Back to Care
         </Button>
-        <PageHeader title="Medical records" description="Open the existing Care Vault to review and manage its stored information." />
-        <Alert tone="warning" title="Review existing records carefully">
-          Some existing Care Vault fields may contain setup or sample information. They are kept separate from recorded Health history.
-        </Alert>
         <CareVault userId={userId} />
       </div>
     );
@@ -96,7 +92,7 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
             />
             <CareDestination
               title="Medical records"
-              description="Access the existing Care Vault separately from patient-recorded Health history."
+              description="Manage your patient-maintained background, treatment history, and care information."
               actionLabel="Open records"
               icon={<ClipboardList size={22} />}
               onClick={() => setView('records')}
