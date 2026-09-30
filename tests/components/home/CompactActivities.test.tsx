@@ -18,11 +18,11 @@ describe('Compact Home activities preserve their workflows', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service.getDailyMoodCheckIn.mockResolvedValue(null);
-    service.saveDailyMoodCheckIn.mockImplementation(async (_uid, _day, entry) => entry);
-    service.getWaterLog.mockResolvedValue({ amount: 1, goal: 3 });
+    service.saveDailyMoodCheckIn.mockImplementation(async (_uid, _day, entry) => ({ state: 'recorded', data: entry, historyState: 'recorded' }));
+    service.getWaterLog.mockResolvedValue({ state: 'recorded', data: { amount: 1, goal: 3 } });
     service.getWaterLogs7Days.mockResolvedValue([]);
-    service.saveWaterLog.mockResolvedValue(undefined);
-    service.updateMedication.mockResolvedValue(undefined);
+    service.saveWaterLog.mockImplementation(async (_uid, _day, amount, goal) => ({ state: 'recorded', data: { amount, goal } }));
+    service.updateMedication.mockResolvedValue({ state: 'recorded', data: {} });
     service.updateStreak.mockResolvedValue(1);
     service.getMedications.mockResolvedValue(Array.from({length: 4}, (_, i) => ({id: `med-${i}`, name: `Medication ${i}`, dosage: '5mg', time: i === 3 ? '12:00' : '08:00', frequency: 'Once Daily', lastTakenDate: ''})));
   });
@@ -83,8 +83,8 @@ describe('Compact Home activities preserve their workflows', () => {
 
   it('retains medication create and confirmed delete through the full schedule', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
-    service.addMedication.mockResolvedValue({ id: 'new-med' });
-    service.deleteMedication.mockResolvedValue(undefined);
+    service.addMedication.mockResolvedValue({ state: 'recorded', data: { id: 'new-med' } });
+    service.deleteMedication.mockResolvedValue({ state: 'recorded', data: { id: 'med-0' } });
     render(<MedicationReminder compact userId="test-patient" />);
     await userEvent.click(await screen.findByRole('button', {name: 'View full schedule (4)'}));
     await userEvent.click(screen.getByRole('button', {name: 'Add medication'}));
@@ -96,5 +96,40 @@ describe('Compact Home activities preserve their workflows', () => {
     expect(confirm).toHaveBeenCalledTimes(1);
     expect(service.deleteMedication).toHaveBeenCalledWith('test-patient', 'med-0');
     confirm.mockRestore();
+  });
+
+  it('does not show a successful check-in when persistence fails', async () => {
+    service.saveDailyMoodCheckIn.mockRejectedValueOnce(new Error('save failed'));
+    const onSaved = vi.fn();
+    render(<DailyMoodCheckIn compact userId="test-patient" onCheckInSaved={onSaved} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Good & Steady' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('could not be saved');
+    expect(screen.queryByText('Saved to your account.')).not.toBeInTheDocument();
+    expect(onSaved).not.toHaveBeenCalled();
+  });
+
+  it('keeps missing and unavailable hydration distinct from recorded zero', async () => {
+    service.getWaterLog.mockResolvedValueOnce({ state: 'missing', data: null });
+    const first = render(<WaterIntakeTracker compact userId="test-patient" />);
+    expect(await screen.findByText('No hydration has been recorded today.')).toBeInTheDocument();
+    expect(screen.queryByText('0.00 L of 3.00 L')).not.toBeInTheDocument();
+    first.unmount();
+
+    service.getWaterLog.mockResolvedValueOnce({ state: 'unavailable', data: null });
+    render(<WaterIntakeTracker compact userId="test-patient" />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('could not be loaded');
+  });
+
+  it('does not change medication status when the update fails', async () => {
+    service.updateMedication.mockRejectedValueOnce(new Error('update failed'));
+    render(<MedicationReminder compact userId="test-patient" />);
+    const toggle = await screen.findByRole('button', { name: 'Mark Medication 0 5mg at 08:00 as taken' });
+
+    await userEvent.click(toggle);
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Medication status could not be saved.');
+    expect(screen.getByRole('button', { name: 'Mark Medication 0 5mg at 08:00 as taken' })).toHaveAttribute('aria-pressed', 'false');
   });
 });

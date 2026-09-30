@@ -51,7 +51,7 @@ export const RecentHealthSummary: React.FC<RecentHealthSummaryProps> = ({ userId
 
       setSummary({
         checkInDays: checkIns.filter(Boolean).length,
-        hydrationDays: waterLogs.filter((entry) => Number(entry?.amount || 0) > 0).length,
+        hydrationDays: waterLogs.filter((entry) => entry.data !== null).length,
         painEntries: recentPain.length,
         latestPain: recentPain[0]?.painLevel ?? null,
       });

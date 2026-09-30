@@ -133,9 +133,13 @@ describe('firebaseService current persistence contracts', () => {
   it('persists guest hydration by date and reads it without Firestore', async () => {
     vi.spyOn(firebaseService, 'updateStreak').mockResolvedValue(1);
 
-    await firebaseService.saveWaterLog('', '2026-09-25', 1.75, 3);
+    await expect(firebaseService.saveWaterLog('', '2026-09-25', 1.75, 3)).resolves.toEqual({
+      state: 'device-only', data: { amount: 1.75, goal: 3 },
+    });
 
-    await expect(firebaseService.getWaterLog('', '2026-09-25')).resolves.toEqual({ amount: 1.75, goal: 3 });
+    await expect(firebaseService.getWaterLog('', '2026-09-25')).resolves.toEqual({
+      state: 'recorded', data: { amount: 1.75, goal: 3 },
+    });
     expect(firestore.setDoc).not.toHaveBeenCalled();
   });
 
@@ -225,12 +229,12 @@ describe('firebaseService current persistence contracts', () => {
       time: '08:00',
     });
 
-    await firebaseService.updateMedication('', medication.id, { lastTakenDate: '2026-09-25' });
+    await firebaseService.updateMedication('', medication.data.id, { lastTakenDate: '2026-09-25' });
     expect(JSON.parse(localStorage.getItem('warrior_meds') || '[]')[0]).toEqual(
       expect.objectContaining({ name: 'Hydroxyurea', lastTakenDate: '2026-09-25' }),
     );
 
-    await firebaseService.deleteMedication('', medication.id);
+    await firebaseService.deleteMedication('', medication.data.id);
     expect(JSON.parse(localStorage.getItem('warrior_meds') || '[]')).toEqual([]);
   });
 
@@ -245,9 +249,44 @@ describe('firebaseService current persistence contracts', () => {
   it('does not cache an authenticated medication until its cloud create succeeds', async () => {
     firestore.addDoc.mockRejectedValueOnce(new Error('offline'));
 
-    await firebaseService.addMedication('user-1', { name: 'Folic Acid', dosage: '5mg', time: '12:00' });
+    await expect(firebaseService.addMedication('user-1', { name: 'Folic Acid', dosage: '5mg', time: '12:00' })).rejects.toThrow('offline');
 
     expect(localStorage.getItem('warrior_meds_user-1')).toBeNull();
+  });
+
+  it('distinguishes missing, unavailable, and recorded-zero hydration reads', async () => {
+    firestore.getDoc
+      .mockResolvedValueOnce({ exists: () => false })
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce({ exists: () => true, data: () => ({ amount: 0, goal: 3 }) });
+
+    await expect(firebaseService.getWaterLog('user-1', '2026-09-25')).resolves.toEqual({ state: 'missing', data: null });
+    await expect(firebaseService.getWaterLog('user-1', '2026-09-24')).resolves.toEqual({ state: 'unavailable', data: null });
+    await expect(firebaseService.getWaterLog('user-1', '2026-09-23')).resolves.toEqual({ state: 'recorded', data: { amount: 0, goal: 3 } });
+  });
+
+  it('continues a daily check-in when its optional history copy is device-only', async () => {
+    firestore.addDoc.mockRejectedValueOnce(new Error('permission-denied'));
+
+    await expect(firebaseService.saveDailyMoodCheckIn('user-1', '2026-09-25', {
+      emoji: '😊', emotion: 'Good & Steady', score: 8,
+    })).resolves.toEqual(expect.objectContaining({
+      state: 'recorded',
+      historyState: 'device-only',
+      data: expect.objectContaining({ emotion: 'Good & Steady', dateStr: '2026-09-25' }),
+    }));
+    expect(firestore.setDoc).toHaveBeenCalled();
+  });
+
+  it('reports hydration and medication mutations as device-only after cloud failure when local storage changed', async () => {
+    localStorage.setItem('warrior_meds_user-1', JSON.stringify([{ id: 'med-1', name: 'Existing' }]));
+    firestore.setDoc.mockRejectedValueOnce(new Error('offline'));
+    firestore.updateDoc.mockRejectedValueOnce(new Error('offline'));
+    firestore.deleteDoc.mockRejectedValueOnce(new Error('offline'));
+
+    await expect(firebaseService.saveWaterLog('user-1', '2026-09-25', 1, 3)).resolves.toEqual({ state: 'device-only', data: { amount: 1, goal: 3 } });
+    await expect(firebaseService.updateMedication('user-1', 'med-1', { lastTakenDate: '2026-09-25' })).resolves.toEqual(expect.objectContaining({ state: 'device-only' }));
+    await expect(firebaseService.deleteMedication('user-1', 'med-1')).resolves.toEqual(expect.objectContaining({ state: 'device-only' }));
   });
 
   it('isolates authenticated symptom caches by UID and ignores the legacy global cache', async () => {

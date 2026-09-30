@@ -38,7 +38,7 @@ const WorkflowHarness: React.FC = () => {
 describe('SymptomPainCheckIn', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    service.getWaterLog.mockResolvedValue({ amount: 1.75, goal: 3 });
+    service.getWaterLog.mockResolvedValue({ state: 'recorded', data: { amount: 1.75, goal: 3 } });
     service.addSymptomLog.mockResolvedValue(undefined);
   });
 

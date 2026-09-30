@@ -103,6 +103,8 @@ export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCh
   const [isSaving, setIsSaving] = useState(false);
   const [savedEntry, setSavedEntry] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [saveOutcome, setSaveOutcome] = useState<'recorded' | 'device-only' | 'partial' | null>(null);
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
     const loadTodayMood = async () => {
@@ -127,6 +129,7 @@ export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCh
 
   const executeSave = async (option: MoodOption, userNote: string) => {
     setIsSaving(true);
+    setSaveError('');
     try {
       const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const res = await firebaseService.saveDailyMoodCheckIn(userId, todayStr, {
@@ -156,7 +159,13 @@ export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCh
         }
       } catch (e) {}
 
-      setSavedEntry({ ...res, formattedTime: timeString });
+      const outcome = res.state === 'recorded' && res.historyState === 'recorded'
+        ? 'recorded'
+        : res.state === 'recorded'
+          ? 'partial'
+          : 'device-only';
+      setSavedEntry({ ...res.data, formattedTime: timeString });
+      setSaveOutcome(outcome);
       setIsEditing(false);
 
       // Trigger global event so Recharts trends and stats immediately update
@@ -164,6 +173,7 @@ export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCh
       if (onCheckInSaved) onCheckInSaved();
     } catch (e) {
       console.warn("Failed to save daily mood check-in:", e);
+      setSaveError('Your check-in could not be saved. Your previous entry has not been changed.');
     } finally {
       setIsSaving(false);
     }
@@ -185,6 +195,12 @@ export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCh
             <p className="flex items-center gap-2 font-semibold"><Check size={18} aria-hidden="true" />{savedEntry.emotion}</p>
             <p className="text-small text-foreground-secondary">Logged today at {formattedSavedTime}</p>
             {savedEntry.note && <p className="text-small text-foreground-secondary">{savedEntry.note}</p>}
+            <p role="status" className="text-small text-foreground-secondary">
+              {saveOutcome === 'recorded' && 'Saved to your account.'}
+              {saveOutcome === 'partial' && 'Check-in saved to your account; the history copy is only on this device.'}
+              {saveOutcome === 'device-only' && 'Saved on this device only.'}
+              {saveOutcome === null && 'Previously recorded check-in.'}
+            </p>
           </div>
         ) : (
           <div className="mt-3 space-y-3">
@@ -211,6 +227,7 @@ export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCh
             {(showNoteInput || isEditing) && selectedOption && <Button loading={isSaving} onClick={() => executeSave(selectedOption, note)}>Save Check-In ({selectedOption.label})</Button>}
           </div>
         )}
+        {saveError && <p role="alert" className="mt-3 text-small text-status-danger">{saveError}</p>}
       </Card>
     );
   }
@@ -272,7 +289,11 @@ export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCh
           </div>
           
           <div className="flex items-center gap-1 text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-900/30 px-3 py-1.5 rounded-xl">
-            <Check size={14} /> Synced
+            <Check size={14} />
+            {saveOutcome === 'recorded' && 'Saved to account'}
+            {saveOutcome === 'partial' && 'Partially saved'}
+            {saveOutcome === 'device-only' && 'Device only'}
+            {saveOutcome === null && 'Recorded'}
           </div>
         </div>
       ) : (
@@ -371,6 +392,7 @@ export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCh
           )}
         </div>
       )}
+      {saveError && <p role="alert" className="mt-3 text-xs font-semibold text-red-700 dark:text-red-300">{saveError}</p>}
     </div>
   );
 };

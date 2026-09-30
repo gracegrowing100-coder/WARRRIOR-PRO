@@ -16,14 +16,16 @@ describe('RecentHealthSummary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service.getDailyMoodCheckIn.mockResolvedValue(null);
-    service.getWaterLog.mockResolvedValue({ amount: 0, goal: 3 });
+    service.getWaterLog.mockResolvedValue({ state: 'missing', data: null });
     service.getPainLogs.mockResolvedValue([]);
   });
 
   it('counts only actual persisted entries and ignores pain outside seven days', async () => {
     const today = new Date().toLocaleDateString('sv');
     service.getDailyMoodCheckIn.mockImplementation(async (_userId: string, date: string) => date === today ? { emotion: 'Okay' } : null);
-    service.getWaterLog.mockImplementation(async (_userId: string, date: string) => ({ amount: date === today ? 1.25 : 0, goal: 3 }));
+    service.getWaterLog.mockImplementation(async (_userId: string, date: string) => date === today
+      ? { state: 'recorded', data: { amount: 1.25, goal: 3 } }
+      : { state: 'missing', data: null });
     service.getPainLogs.mockResolvedValue([
       { dateStr: today, painLevel: 3 },
       { dateStr: '2020-01-01', painLevel: 9 },

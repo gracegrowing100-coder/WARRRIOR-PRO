@@ -68,29 +68,30 @@ patient flows.
 
 ### Daily check-in
 
-- [ ] Save/rule failure behavior (currently a `moodLogs` permission denial
-      prevents the daily Firestore write and streak update even though
-      local records exist).
-- [ ] Visible failure outcome (UI must not show success when the method
+- [x] Save/rule failure behavior (`moodLogs` failure no longer prevents the
+      independent daily Firestore write; the returned history result remains explicit).
+- [x] Visible failure outcome (UI must not show success when the method
       rejected).
-- [ ] Coupled-write interruption semantics made explicit.
+- [x] Coupled-write interruption semantics made explicit.
 
 ### Hydration
 
-- [ ] Missing vs zero.
-- [ ] Unavailable vs empty (read failure must not display as recorded
+- [x] Missing vs zero.
+- [x] Unavailable vs empty (read failure must not display as recorded
       zero).
-- [ ] Explicit save result.
-- [ ] Stale/duplicate behavior where applicable.
+- [x] Explicit save result.
+- [x] Stale/duplicate behavior where applicable.
 
 ### Medication
 
-- [ ] Save outcomes.
-- [ ] Empty-state behavior.
-- [ ] Duplicate/stale behavior appropriate to existing contracts.
+- [x] Save outcomes.
+- [x] Empty-state behavior.
+- [x] Duplicate/stale behavior appropriate to existing contracts.
 
-**Status:** OPEN. Coupled-write contracts are documented in
-DATA_CONTRACTS.md; no repair has landed.
+**Status:** COMPLETE IN WORKTREE (2026-09-30), pending human review. Focused
+service and component coverage verifies confirmed/device-only/failure outcomes,
+missing and unavailable hydration, genuine recorded zero, and non-optimistic
+medication mutations. No replay ledger or repository-wide framework was added.
 
 **Freeze gate:** The patient can distinguish successful, device-only,
 failed, unavailable and missing outcomes where those distinctions apply.
@@ -99,33 +100,39 @@ failed, unavailable and missing outcomes where those distinctions apply.
 
 Isolate or remove:
 
-- [ ] Simulated professional identities (seeded named hematology persona).
-- [ ] Scripted professional-looking replies.
-- [ ] Fabricated/fixed clinical-looking confidence and correlation values.
-- [ ] Generated reports filling missing facts with synthetic values.
-- [ ] Generated content appearing as recorded/factual history.
-- [ ] Unnecessary hidden AI side effects / API calls.
+- [x] Simulated professional identities (seeded named hematology persona).
+- [x] Scripted professional-looking replies.
+- [x] Fabricated/fixed clinical-looking confidence and correlation values.
+- [x] Generated reports filling missing facts with synthetic values.
+- [x] Generated content appearing as recorded/factual history.
+- [x] Unnecessary hidden AI side effects / API calls.
 
 **Important:** This phase does NOT commit the roadmap to implementing a
 full new AI assistant. First make the current application truthful.
 
-**Status:** OPEN.
+**Status:** COMPLETE IN WORKTREE (2026-09-30), pending human review. The legacy
+community UI labels seeded conversations as synthetic and exposes no named fake
+clinician or emergency-dispatch channel. Pattern/report failures do not create
+fallback health facts; missing profile/statistical values stay missing; output is
+labelled experimental and generated. Collapsed Home tools mount only when opened.
 
 **Freeze gate:** The patient cannot reasonably mistake synthetic/generated
 information for a real clinician or a recorded health fact.
 
 ## 6. P3 — Appointment semantic repair
 
-- [ ] Request ≠ confirmed booking (Home must not describe a request as an
+- [x] Request ≠ confirmed booking (Home must not describe a request as an
       "active booking" or "upcoming confirmed appointment").
-- [ ] Deterministic Home selection (do not present the first non-cancelled
+- [x] Deterministic Home selection (do not present the first non-cancelled
       request as the next chronological appointment).
-- [ ] Truthful Home wording: "Appointment request — requested for
+- [x] Truthful Home wording: "Appointment request — requested for
       <date/time>".
-- [ ] Consistency across Home / Care / Appointments.
+- [x] Consistency across Home / Care / Appointments.
 
-**Status:** OPEN (request lifecycle itself is substantially implemented;
-the Home presentation defect remains).
+**Status:** COMPLETE IN WORKTREE (2026-09-30), pending human review. Home selects
+the earliest future preferred date, then the most recent past date, with a stable
+fallback for non-ISO legacy dates. Non-cancelled legacy statuses are presented as
+recorded requests; no clinic acceptance or reserved time is implied.
 
 **Freeze gate:** Request-only semantics are consistent across Home, Care
 and Appointments.

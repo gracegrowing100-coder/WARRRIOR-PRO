@@ -154,8 +154,9 @@ describe('Appointments patient experience', () => {
     const user = userEvent.setup();
     renderAppointments();
 
-    expect(await screen.findByText('Tomorrow')).toBeInTheDocument();
-    expect(screen.getByText('Preferred time: 09:00 AM')).toBeInTheDocument();
+    expect(await screen.findByText('Requested for Tomorrow at 09:00 AM')).toBeInTheDocument();
+    expect(screen.getByText('Request recorded')).toBeInTheDocument();
+    expect(screen.queryByText('Confirmed')).not.toBeInTheDocument();
     expect(screen.queryByText(/available slot|doctor is live|waiting room|video consultation/i)).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Open appointment request/i }));
     expect(screen.getByText('Dr. Legacy')).toBeInTheDocument();

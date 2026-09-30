@@ -12,7 +12,7 @@ import { firebaseService } from '../services/firebaseService';
 import { auth } from '../firebase-init';
 import { PeerSupportSection } from './PeerSupportSection';
 
-// Initial preloaded authentic SCD chats and warrior groups
+// Seeded community-preview conversations. These are samples, not verified people or live services.
 const DEFAULT_CHATS = [
   { 
     id: 'lagos-warriors', 
@@ -26,27 +26,10 @@ const DEFAULT_CHATS = [
     category: 'Group Chat',
     pinned: true,
     members: [
-      { id: 'dr-sarah-uid', name: 'Dr. Sarah (Hematology)', role: 'Lead Hematologist', active: true, avatar: '👩‍⚕️', isAdmin: true },
       { id: 'tunde-uid', name: 'Tunde (Warrior)', role: 'SCD Hero (HbSS)', active: true, avatar: '🦸‍♂️', isAdmin: false },
       { id: 'grace-mom-uid', name: 'Grace (Caregiver)', role: 'Support Mother', active: false, avatar: '👩', isAdmin: false },
       { id: 'faith-uid', name: 'Faith (Warrior)', role: 'SCD Advocate', active: true, avatar: '👩‍🎤', isAdmin: false },
       { id: 'current-user-uid', name: 'You (Warrior)', role: 'Group Moderator', active: true, avatar: '🩺', isAdmin: true }
-    ]
-  },
-  { 
-    id: 'hematology-dr-sarah', 
-    name: 'Dr. Sarah (Hematology Consultant)', 
-    avatar: '🩺',
-    desc: 'Direct consultation channel with Dr. Sarah. Ask questions about your hydroxyurea regimen, clinic hours, or pain monitoring metrics.',
-    lastMsg: 'Your haematology panel results are uploaded and stable.', 
-    time: '09:30 AM', 
-    unread: 1, 
-    online: true,
-    category: 'Private Specialist',
-    pinned: true,
-    members: [
-      { id: 'dr-sarah-uid', name: 'Dr. Sarah (Hematology)', role: 'Specialist MD', active: true, avatar: '👩‍⚕️', isAdmin: true },
-      { id: 'current-user-uid', name: 'You', role: 'Patient', active: true, avatar: '🩺', isAdmin: false }
     ]
   },
   { 
@@ -61,7 +44,6 @@ const DEFAULT_CHATS = [
     category: 'Global Alliance',
     pinned: false,
     members: [
-      { id: 'prof-adebayo-uid', name: 'Prof. Adebayo (UK)', role: 'SCD Research Director', active: true, avatar: '👨‍🔬', isAdmin: true },
       { id: 'marie-uid', name: 'Marie (Paris, Warrior)', role: 'Advocate Coordinator', active: true, avatar: '👩‍🎨', isAdmin: true },
       { id: 'nabil-uid', name: 'Nabil (Cairo, Parent)', role: 'Family Pillar', active: false, avatar: '👨', isAdmin: false },
       { id: 'current-user-uid', name: 'You', role: 'Warrior Member', active: true, avatar: '🩺', isAdmin: false }
@@ -84,34 +66,16 @@ const DEFAULT_CHATS = [
       { id: 'amina-uid', name: 'Amina (Caregiver)', role: 'Community Helper', active: true, avatar: '🧕', isAdmin: false },
       { id: 'current-user-uid', name: 'You', role: 'Member', active: true, avatar: '🩺', isAdmin: false }
     ]
-  },
-  { 
-    id: 'crisis-rapid-response', 
-    name: 'Crisis Rapid Response & Blood Dispatch', 
-    avatar: '🚨',
-    desc: 'Emergency coordination group for urgent vaso-occlusive crisis triage, locating donor blood matches, and nearest oxygen-ready hospitals.',
-    lastMsg: 'Emergency dispatch protocol is always active 24/7.', 
-    time: '2 days ago', 
-    unread: 0, 
-    online: true,
-    category: 'Emergency Dispatch',
-    pinned: false,
-    members: [
-      { id: 'system-bot', name: 'Emergency Coordination Bot', role: 'System Dispatcher', active: true, avatar: '🤖', isAdmin: true },
-      { id: 'dr-sarah-uid', name: 'Dr. Sarah (Hematology)', role: 'On-Call Hematologist', active: true, avatar: '👩‍⚕️', isAdmin: true },
-      { id: 'blood-hub-uid', name: 'Blood Bank Hub', role: 'Donor Match System', active: true, avatar: '🩸', isAdmin: false },
-      { id: 'current-user-uid', name: 'You', role: 'Warrior Member', active: true, avatar: '🩺', isAdmin: true }
-    ]
   }
 ];
 
-// Presets for supportive stickers / clinical shortcuts
+// Sample community message shortcuts. They are user-authored text, not clinical instructions.
 const CLINICAL_PRESETS = [
-  { id: 'pres_hydrate', text: '💧 Hydration Check Alert: Drink 500ml warm water now to thin capillary blood and protect your kidneys!', label: '💧 Hydration', emoji: '💧' },
-  { id: 'pres_vaso', text: '❄️ Cold Warning: Keep warm! Cold wind triggers vasoconstriction, trapping rigid sickle cell structures.', label: '❄️ Cold Warn', emoji: '❄️' },
+  { id: 'pres_hydrate', text: '💧 Hydration check: I am taking a moment to drink water and record it.', label: '💧 Hydration', emoji: '💧' },
+  { id: 'pres_vaso', text: '❄️ Cold weather check: I am keeping warm and following my own care plan.', label: '❄️ Cold check', emoji: '❄️' },
   { id: 'pres_support', text: '🤝 Warrior Solidarity: "None of us is as strong as all of us." We carry genomic resilience!', label: '🤝 Solidarity', emoji: '🤝' },
-  { id: 'pres_folic', text: '💊 Medication Reminder: Take your daily Folic Acid & Hydroxyurea to fortify red cell replacement!', label: '💊 Daily Meds', emoji: '💊' },
-  { id: 'pres_pain', text: '⚡ Pain Alert: Experiencing mild joint stiffness. Initiating deep hydration and thermal heating pad.', label: '⚡ Joint Alert', emoji: '⚡' }
+  { id: 'pres_folic', text: '💊 Medication check: Remember the medication plan prescribed for you.', label: '💊 Daily meds', emoji: '💊' },
+  { id: 'pres_pain', text: '⚡ Pain check: I am experiencing discomfort and recording what I notice.', label: '⚡ Pain check', emoji: '⚡' }
 ];
 
 const EMOJI_REACTIONS = ['❤️', '🧬', '💧', '💊', '👏', '🙏', '🔥', '💪'];
@@ -182,7 +146,7 @@ const ChatSystem: React.FC = () => {
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<'All' | 'Group Chat' | 'Private Specialist' | 'Caregivers' | 'Emergency Dispatch'>('All');
+  const [categoryFilter, setCategoryFilter] = useState<'All' | 'Group Chat' | 'Caregivers'>('All');
   const [inChatSearch, setInChatSearch] = useState('');
   const [showInChatSearchBar, setShowInChatSearchBar] = useState(false);
 
@@ -192,7 +156,7 @@ const ChatSystem: React.FC = () => {
 
   // Group Admin & Moderation Settings
   const [groupSettings, setGroupSettings] = useState<{ admins: string[]; mutedUsers: string[] }>({
-    admins: ['dr-sarah-uid', 'current-user-uid'],
+    admins: ['current-user-uid'],
     mutedUsers: []
   });
   const [selectedMessageForMod, setSelectedMessageForMod] = useState<any | null>(null);
@@ -232,7 +196,7 @@ const ChatSystem: React.FC = () => {
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupAvatar, setNewGroupAvatar] = useState('🌟');
   const [newGroupDesc, setNewGroupDesc] = useState('');
-  const [newGroupCategory, setNewGroupCategory] = useState<'Group Chat' | 'Private Specialist' | 'Caregivers' | 'Emergency Dispatch'>('Group Chat');
+  const [newGroupCategory, setNewGroupCategory] = useState<'Group Chat' | 'Caregivers'>('Group Chat');
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -670,20 +634,6 @@ const ChatSystem: React.FC = () => {
         currentReply
       );
 
-      // Simulation replies
-      if (activeChatId === 'hematology-dr-sarah' && textToSend.length > 5) {
-        setTimeout(async () => {
-          firebaseService.setTypingStatus(activeChatId, 'dr-sarah-uid', 'Dr. Sarah (Hematology)', true);
-          setTimeout(async () => {
-            firebaseService.setTypingStatus(activeChatId, 'dr-sarah-uid', 'Dr. Sarah (Hematology)', false);
-            playTone('receive');
-            await firebaseService.sendMessage(
-              'hematology-dr-sarah',
-              'Dr. Sarah: "Noted! Please remember to keep well-hydrated with 3.0L and record any pain flare intensity in your tracker."'
-            );
-          }, 2000);
-        }, 1200);
-      }
     } catch (error) {
       console.error("Failed to dispatch message:", error);
     }
@@ -769,7 +719,6 @@ const ChatSystem: React.FC = () => {
       category: newGroupCategory,
       pinned: false,
       members: [
-        { id: 'dr-sarah-uid', name: 'Dr. Sarah (Hematology)', role: 'Advising Specialist', active: true, avatar: '👩‍⚕️', isAdmin: true },
         { id: currentUserId, name: 'You (Creator)', role: 'Group Admin', active: true, avatar: '👑', isAdmin: true }
       ]
     };
@@ -1154,9 +1103,7 @@ const ChatSystem: React.FC = () => {
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 font-semibold"
                   >
                     <option value="Group Chat">Community Group</option>
-                    <option value="Private Specialist">Specialist Medical Line</option>
                     <option value="Caregivers">Caregivers & Parents</option>
-                    <option value="Emergency Dispatch">Emergency Dispatch</option>
                   </select>
                 </div>
 
@@ -1214,13 +1161,13 @@ const ChatSystem: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                     <span className="text-xs text-emerald-400 font-mono">
-                      {callSession.type === 'video' ? 'Encrypted Video Consultation' : 'Patient Advocate Voice Call'} &bull; 0:{callSession.timer.toString().padStart(2, '0')}
+                      {callSession.type === 'video' ? 'Video preview' : 'Voice preview'} &bull; 0:{callSession.timer.toString().padStart(2, '0')}
                     </span>
                   </div>
                 </div>
               </div>
               <span className="px-3 py-1 bg-slate-900 border border-slate-800 rounded-xl text-[10px] font-mono text-gray-400">
-                HIPAA & E2E Encrypted
+                Local preview — no live service connection
               </span>
             </div>
 
@@ -1230,8 +1177,8 @@ const ChatSystem: React.FC = () => {
                 <div className="relative rounded-3xl bg-slate-900 border border-slate-800 overflow-hidden flex items-center justify-center shadow-2xl">
                   <div className="text-center space-y-2">
                     <span className="text-5xl">{activeChat.avatar}</span>
-                    <h4 className="text-xs font-bold text-gray-300">Dr. Sarah (Consultant Feed)</h4>
-                    <span className="text-[10px] font-mono text-emerald-400">Connection HD 1080p Stable</span>
+                    <h4 className="text-xs font-bold text-gray-300">Participant preview</h4>
+                    <span className="text-[10px] font-mono text-amber-400">No remote participant connected</span>
                   </div>
                 </div>
                 <div className="relative rounded-3xl bg-black border border-slate-800 overflow-hidden flex items-center justify-center shadow-2xl">
@@ -1253,7 +1200,7 @@ const ChatSystem: React.FC = () => {
                   {activeChat.avatar}
                 </div>
                 <h4 className="text-sm font-black text-white">{activeChat.name}</h4>
-                <p className="text-xs text-gray-400 font-mono">Specialist Voice Line Connected</p>
+                <p className="text-xs text-gray-400 font-mono">Preview only — no call connected</p>
               </div>
             )}
 
@@ -1306,7 +1253,7 @@ const ChatSystem: React.FC = () => {
               <div>
                 <h2 className="text-sm font-black text-white tracking-tight">Warrior Channels</h2>
                 <span className="text-[9px] font-black text-emerald-400 font-mono uppercase tracking-widest">
-                  WhatsApp Live Hub
+                   Community preview
                 </span>
               </div>
             </div>
@@ -1326,7 +1273,7 @@ const ChatSystem: React.FC = () => {
             <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
             <input 
               type="text" 
-              placeholder="Search chats, doctors, warriors..." 
+              placeholder="Search community chats..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-slate-950 text-xs text-white pl-9 pr-3 py-2 rounded-xl border border-slate-800 focus:outline-none focus:border-red-500 font-semibold placeholder:text-gray-500 transition"
@@ -1335,7 +1282,7 @@ const ChatSystem: React.FC = () => {
 
           {/* Categories Pill Filters */}
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-0.5">
-            {(['All', 'Group Chat', 'Private Specialist', 'Caregivers', 'Emergency Dispatch'] as const).map((cat) => (
+            {(['All', 'Group Chat', 'Caregivers'] as const).map((cat) => (
               <button
                 key={cat}
                 onClick={() => setCategoryFilter(cat)}
@@ -1544,14 +1491,14 @@ const ChatSystem: React.FC = () => {
               backgroundPosition: '0 0, 12px 12px'
             }}
           >
-            {/* Clinical HIPAA Encryption notice */}
+            {/* Seeded preview notice */}
             <div className="flex flex-col items-center select-none pt-1">
               <div className="flex items-center gap-1.5 bg-[#182229] border border-slate-800 px-3.5 py-1 rounded-2xl shadow-sm text-center">
                 <Shield size={11} className="text-red-500" />
-                <span className="text-[9px] font-black text-gray-400 tracking-wider uppercase">END-TO-END CLINICAL ENCRYPTION</span>
+                <span className="text-[9px] font-black text-gray-400 tracking-wider uppercase">SAMPLE COMMUNITY PREVIEW</span>
               </div>
               <p className="text-[9px] text-gray-500 text-center max-w-xs mt-1 font-semibold">
-                Messages, camera snapshots, voice notes, and clinical charts are protected within this channel.
+                Seeded conversations and members are synthetic. No clinician, emergency dispatcher, or live service is connected.
               </p>
             </div>
 
@@ -1559,7 +1506,7 @@ const ChatSystem: React.FC = () => {
             <div className="bg-[#111b21]/90 rounded-2xl p-2.5 border border-slate-800/80 space-y-1.5 select-none">
               <span className="text-[8px] font-black uppercase text-red-500 tracking-widest block font-mono flex items-center gap-1">
                 <Sparkles size={10} />
-                QUICK CLINICAL BROADCASTS
+                SAMPLE QUICK MESSAGES
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {CLINICAL_PRESETS.map((p) => (
@@ -1892,7 +1839,7 @@ const ChatSystem: React.FC = () => {
 
                   <button 
                     onClick={() => {
-                      setInputText('📍 Emergency Clinic Pin: St. Nicholas Hospital Emergency Room, Lagos (Equipped with oxygen & pediatric hematologist on duty).');
+                      setInputText('📍 Suggested place to verify: St. Nicholas Hospital, Lagos. Confirm current services and availability directly before relying on this location.');
                       setShowAttachmentMenu(false);
                     }}
                     className="w-full flex items-center gap-3 p-2 hover:bg-slate-800 rounded-xl transition text-left cursor-pointer"
@@ -2036,7 +1983,7 @@ const ChatSystem: React.FC = () => {
           </div>
           <h3 className="text-lg font-black text-gray-100 mb-1">Warrior Group Chat Hub</h3>
           <p className="text-xs font-semibold max-w-xs leading-relaxed text-gray-500">
-            Select any channel to begin chatting with doctors, advocates, and fellow sickle cell warriors.
+            Select a sample channel to preview community messaging.
           </p>
         </div>
       )}

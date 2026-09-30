@@ -76,6 +76,18 @@ export interface HealthHistoryCollection<T> {
   data: T[];
 }
 
+export type PersistenceWriteState = 'recorded' | 'device-only';
+
+export interface PersistenceWriteResult<T> {
+  state: PersistenceWriteState;
+  data: T;
+}
+
+export interface HydrationReadResult {
+  state: HealthHistoryReadState;
+  data: HydrationHistoryData | null;
+}
+
 export interface HydrationHistoryData {
   amount: number;
   goal: number;
@@ -877,7 +889,7 @@ export const firebaseService = {
       const newMed = { id: Math.random().toString(36).substring(2, 9), ...data };
       meds.push(newMed);
       localStorage.setItem(cacheKey, JSON.stringify(meds));
-      return newMed;
+      return { state: 'device-only' as const, data: newMed };
     }
     const path = `users/${userId}/medications`;
     try {
@@ -890,9 +902,10 @@ export const firebaseService = {
       const meds = cached ? JSON.parse(cached) : [];
       meds.push(newMed);
       localStorage.setItem(cacheKey, JSON.stringify(meds));
-      return newMed;
+      return { state: 'recorded' as const, data: newMed };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
+      throw error;
     }
   },
 
@@ -904,12 +917,20 @@ export const firebaseService = {
       meds = meds.map((m: any) => m.id === medId ? { ...m, ...data } : m);
       localStorage.setItem(cacheKey, JSON.stringify(meds));
     }
-    if (!userId) return;
+    if (!userId) {
+      if (cached) return { state: 'device-only' as const, data: { id: medId, ...data } };
+      throw new Error('Medication update could not be saved');
+    }
     const path = `users/${userId}/medications/${medId}`;
     try {
       await updateDoc(doc(db, path), data);
+      return { state: 'recorded' as const, data: { id: medId, ...data } };
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
+      try {
+        handleFirestoreError(error, OperationType.UPDATE, path);
+      } catch { /* A confirmed local update is still device-only. */ }
+      if (cached) return { state: 'device-only' as const, data: { id: medId, ...data } };
+      throw error;
     }
   },
 
@@ -921,21 +942,31 @@ export const firebaseService = {
       meds = meds.filter((m: any) => m.id !== medId);
       localStorage.setItem(cacheKey, JSON.stringify(meds));
     }
-    if (!userId) return;
+    if (!userId) {
+      if (cached) return { state: 'device-only' as const, data: { id: medId } };
+      throw new Error('Medication removal could not be saved');
+    }
     const path = `users/${userId}/medications/${medId}`;
     try {
       await deleteDoc(doc(db, path));
+      return { state: 'recorded' as const, data: { id: medId } };
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, path);
+      try {
+        handleFirestoreError(error, OperationType.DELETE, path);
+      } catch { /* A confirmed local removal is still device-only. */ }
+      if (cached) return { state: 'device-only' as const, data: { id: medId } };
+      throw error;
     }
   },
 
   // --- Water Intake ---
-  async getWaterLog(userId: string, dateStr: string) {
+  async getWaterLog(userId: string, dateStr: string): Promise<HydrationReadResult> {
     const cacheKey = getWaterCacheKey(userId, dateStr);
     if (!userId) {
       const cached = localStorage.getItem(cacheKey);
-      return cached ? JSON.parse(cached) : { amount: 0, goal: 3.0 };
+      return cached
+        ? { state: 'recorded', data: JSON.parse(cached) }
+        : { state: 'missing', data: null };
     }
     const path = `users/${userId}/waterLogs/${dateStr}`;
     try {
@@ -944,29 +975,50 @@ export const firebaseService = {
       if (snapshot.exists()) {
         const data = snapshot.data();
         localStorage.setItem(cacheKey, JSON.stringify(data));
-        return { amount: data.amount || 0, goal: data.goal || 3.0 };
+        return {
+          state: 'recorded',
+          data: {
+            amount: typeof data.amount === 'number' ? data.amount : 0,
+            goal: typeof data.goal === 'number' ? data.goal : 3.0,
+          },
+        };
       }
-      return { amount: 0, goal: 3.0 };
+      return { state: 'missing', data: null };
     } catch (error) {
       console.warn("Firestore hydration failed, using cache:", error);
       const cached = localStorage.getItem(cacheKey);
-      return cached ? JSON.parse(cached) : { amount: 0, goal: 3.0 };
+      return cached
+        ? { state: 'cached', data: JSON.parse(cached) }
+        : { state: 'unavailable', data: null };
     }
   },
 
   async saveWaterLog(userId: string, dateStr: string, amount: number, goal: number) {
     const data = { amount, goal, updatedAt: serverTimestamp() };
-    localStorage.setItem(getWaterCacheKey(userId, dateStr), JSON.stringify({ amount, goal }));
+    const resultData = { amount, goal };
+    let savedLocally = false;
+    try {
+      localStorage.setItem(getWaterCacheKey(userId, dateStr), JSON.stringify(resultData));
+      savedLocally = true;
+    } catch (error) {
+      console.warn('Hydration local save failed:', error);
+    }
     if (!userId) {
-      await this.updateStreak(userId);
-      return;
+      try { await this.updateStreak(userId); } catch { /* Optional streak update. */ }
+      if (savedLocally) return { state: 'device-only' as const, data: resultData };
+      throw new Error('Hydration could not be saved');
     }
     const path = `users/${userId}/waterLogs/${dateStr}`;
     try {
       await setDoc(doc(db, path), data);
-      await this.updateStreak(userId);
+      try { await this.updateStreak(userId); } catch { /* Hydration is already confirmed. */ }
+      return { state: 'recorded' as const, data: resultData };
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, path);
+      try {
+        handleFirestoreError(error, OperationType.WRITE, path);
+      } catch { /* A confirmed local write remains device-only. */ }
+      if (savedLocally) return { state: 'device-only' as const, data: resultData };
+      throw error;
     }
   },
 
@@ -984,8 +1036,9 @@ export const firebaseService = {
         return {
           dateStr,
           label,
-          amount: log ? log.amount : 0,
-          goal: log ? log.goal : 3.0
+          state: log.state,
+          amount: log.data?.amount ?? null,
+          goal: log.data?.goal ?? null
         };
       })());
     }
@@ -1472,9 +1525,18 @@ export const firebaseService = {
     const cachedStr = localStorage.getItem(`warrior_mood_logs_${userId || 'guest'}`);
     let logs = cachedStr ? JSON.parse(cachedStr) : [];
     logs = [newLog, ...logs];
-    localStorage.setItem(`warrior_mood_logs_${userId || 'guest'}`, JSON.stringify(logs));
+    let savedLocally = false;
+    try {
+      localStorage.setItem(`warrior_mood_logs_${userId || 'guest'}`, JSON.stringify(logs));
+      savedLocally = true;
+    } catch (error) {
+      console.warn('Mood history local save failed:', error);
+    }
 
-    if (!userId) return newLog;
+    if (!userId) {
+      if (savedLocally) return { state: 'device-only' as const, data: newLog };
+      throw new Error('Mood history could not be saved');
+    }
 
     const path = `users/${userId}/moodLogs`;
     try {
@@ -1482,10 +1544,13 @@ export const firebaseService = {
         ...entry,
         createdAt: serverTimestamp()
       });
-      return { id: docRef.id, ...entry };
+      return { state: 'recorded' as const, data: { id: docRef.id, ...entry } };
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
-      return newLog;
+      try {
+        handleFirestoreError(error, OperationType.CREATE, path);
+      } catch { /* A confirmed local history write remains device-only. */ }
+      if (savedLocally) return { state: 'device-only' as const, data: newLog };
+      throw error;
     }
   },
 
@@ -1526,19 +1591,32 @@ export const firebaseService = {
       updatedAt: new Date().toISOString()
     };
 
-    localStorage.setItem(`warrior_daily_mood_${userId || 'guest'}_${dateStr}`, JSON.stringify(payload));
+    let savedLocally = false;
+    try {
+      localStorage.setItem(`warrior_daily_mood_${userId || 'guest'}_${dateStr}`, JSON.stringify(payload));
+      savedLocally = true;
+    } catch (error) {
+      console.warn('Daily check-in local save failed:', error);
+    }
 
     // Also add to historical mood logs for holistic longitudinal tracking
-    await this.saveMoodLog(userId, {
-      emotion: `${moodData.emoji} ${moodData.emotion}`,
-      intensity: moodData.score,
-      symptoms: moodData.score <= 4 ? ['Low Energy / Discomfort'] : [],
-      journalText: moodData.note || `Daily check-in: ${moodData.emotion} (${moodData.score}/10)`
-    });
+    let historyState: PersistenceWriteState | 'failed' = 'failed';
+    try {
+      const historyResult = await this.saveMoodLog(userId, {
+        emotion: `${moodData.emoji} ${moodData.emotion}`,
+        intensity: moodData.score,
+        symptoms: moodData.score <= 4 ? ['Low Energy / Discomfort'] : [],
+        journalText: moodData.note || `Daily check-in: ${moodData.emotion} (${moodData.score}/10)`
+      });
+      historyState = historyResult.state;
+    } catch (error) {
+      console.warn('Daily check-in history copy failed:', error);
+    }
 
     if (!userId) {
-      await this.updateStreak(userId);
-      return payload;
+      try { await this.updateStreak(userId); } catch { /* Optional streak update. */ }
+      if (savedLocally) return { state: 'device-only' as const, data: payload, historyState };
+      throw new Error('Daily check-in could not be saved');
     }
 
     const path = `users/${userId}/dailyMoodCheckIns/${dateStr}`;
@@ -1547,12 +1625,15 @@ export const firebaseService = {
         ...payload,
         serverTime: serverTimestamp()
       });
-      await this.updateStreak(userId);
-      return payload;
+      try { await this.updateStreak(userId); } catch { /* Check-in is already confirmed. */ }
+      return { state: 'recorded' as const, data: payload, historyState };
     } catch (error) {
       console.warn("Firestore saveDailyMoodCheckIn fallback:", error);
-      handleFirestoreError(error, OperationType.WRITE, path);
-      return payload;
+      try {
+        handleFirestoreError(error, OperationType.WRITE, path);
+      } catch { /* A confirmed local check-in remains device-only. */ }
+      if (savedLocally) return { state: 'device-only' as const, data: payload, historyState };
+      throw error;
     }
   },
 
@@ -1651,8 +1732,9 @@ export const firebaseService = {
         dateStr,
         dayLabel,
         displayDate,
-        waterAmount: waterLog ? parseFloat((waterLog.amount || 0).toFixed(2)) : 0,
-        waterGoal: waterLog ? waterLog.goal || 3.0 : 3.0,
+        waterAmount: waterLog.data ? parseFloat(waterLog.data.amount.toFixed(2)) : null,
+        waterGoal: waterLog.data?.goal ?? null,
+        hydrationState: waterLog.state,
         moodScore: moodScore !== null ? moodScore : 7.0, // baseline placeholder for smooth chart rendering if unlogged
         hasMoodLogged: moodScore !== null,
         moodEmoji,

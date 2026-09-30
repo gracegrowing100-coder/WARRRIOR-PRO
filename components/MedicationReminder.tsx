@@ -23,6 +23,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [operationMessage, setOperationMessage] = useState('');
   
   // Alarm state
   const [activeAlarmMed, setActiveAlarmMed] = useState<Medication | null>(null);
@@ -187,12 +188,11 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
 
   const handleToggleTaken = async (medId: string, currentlyTaken: boolean) => {
     const updatedDate = currentlyTaken ? '' : todayStr;
-    
-    // Optimistic UI
-    setMeds(prev => prev.map(m => m.id === medId ? { ...m, lastTakenDate: updatedDate } : m));
-    
+    setOperationMessage('');
     try {
-      await firebaseService.updateMedication(userId, medId, { lastTakenDate: updatedDate });
+      const result = await firebaseService.updateMedication(userId, medId, { lastTakenDate: updatedDate });
+      setMeds(prev => prev.map(m => m.id === medId ? { ...m, lastTakenDate: updatedDate } : m));
+      setOperationMessage(result.state === 'recorded' ? 'Medication status saved to your account.' : 'Medication status saved on this device only.');
       
       // Play a little check-mark notification noise
       if (!currentlyTaken) {
@@ -218,8 +218,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
       }
     } catch (e) {
       console.error(e);
-      // Revert on error
-      fetchMeds();
+      setOperationMessage('Medication status could not be saved.');
     }
   };
 
@@ -228,21 +227,36 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
     if (!newMed.name || !newMed.dosage) return;
     
     setLoading(true);
-    await firebaseService.addMedication(userId, {
-      ...newMed,
-      lastTakenDate: ''
-    });
-    
-    setNewMed({ name: '', dosage: '', time: '08:00', frequency: 'Once Daily' });
-    setShowAddForm(false);
-    fetchMeds();
+    setOperationMessage('');
+    try {
+      const result = await firebaseService.addMedication(userId, {
+        ...newMed,
+        lastTakenDate: ''
+      });
+      setNewMed({ name: '', dosage: '', time: '08:00', frequency: 'Once Daily' });
+      setShowAddForm(false);
+      setOperationMessage(result.state === 'recorded' ? 'Medication saved to your account.' : 'Medication saved on this device only.');
+      await fetchMeds();
+    } catch (error) {
+      console.error(error);
+      setOperationMessage('Medication could not be saved.');
+      setLoading(false);
+    }
   };
 
   const handleDeleteMed = async (medId: string) => {
     if (window.confirm("Are you sure you want to remove this medication from your schedule?")) {
       setLoading(true);
-      await firebaseService.deleteMedication(userId, medId);
-      fetchMeds();
+      setOperationMessage('');
+      try {
+        const result = await firebaseService.deleteMedication(userId, medId);
+        setOperationMessage(result.state === 'recorded' ? 'Medication removed from your account.' : 'Medication removed on this device only.');
+        await fetchMeds();
+      } catch (error) {
+        console.error(error);
+        setOperationMessage('Medication could not be removed.');
+        setLoading(false);
+      }
     }
   };
 
@@ -259,6 +273,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
         <p className="mt-1 text-small text-foreground-secondary">
           {takenTodayCount} taken · {pendingTodayCount} pending today
         </p>
+        {operationMessage && <p role="status" className="mt-2 text-small text-foreground-secondary">{operationMessage}</p>}
         {loading ? <p role="status" className="mt-3 text-small">Loading medication…</p> : (
           <ul className="mt-3 divide-y divide-line">
             {(showFullSchedule ? meds : compactMedications).map(med => {
@@ -286,7 +301,8 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
           <Button size="sm" onClick={() => setShowAddForm(true)}>Add medication</Button>
         </div>}
       </Card>}
-      <div hidden={compact}>
+      {!compact && <div>
+      {operationMessage && <p role="status" className="mb-3 text-xs font-semibold text-gray-600 dark:text-slate-300">{operationMessage}</p>}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
@@ -394,7 +410,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
         </div>
       )}
 
-      </div>
+      </div>}
       {/* Very Loud Medication Alarm Modal Overlay */}
       {isAlarmRinging && activeAlarmMed && (
         <div className="fixed inset-0 bg-red-950/90 backdrop-blur-md z-50 p-6 flex flex-col items-center justify-center animate-in fade-in duration-200">

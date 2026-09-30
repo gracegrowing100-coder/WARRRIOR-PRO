@@ -41,7 +41,7 @@ export const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
       <header className="space-y-3">
         <h1 className="text-heading-1 text-foreground">Appointment request</h1>
         <HealthStatusBadge tone={isCancelled ? 'neutral' : 'info'}>
-          {appointment.status || 'Recorded'}
+          {isCancelled ? 'Cancelled' : 'Request recorded'}
         </HealthStatusBadge>
       </header>
 

@@ -81,7 +81,8 @@ The current Home screen includes all of the following in one long page:
 - Hydration tracker.
 - Medication reminders.
 - Seven-day mood and hydration chart.
-- AI pattern insights and doctor-report generation.
+- Experimental generated pattern insights and discussion-summary generation,
+  mounted only after its collapsed tool is opened.
 - Scheduled reminders.
 - Caregiver widget.
 - Thirty-day pain chart.
@@ -101,6 +102,11 @@ The current Home screen includes all of the following in one long page:
 - Mood journal, daily check-in, and trend aggregation.
 - Streak and XP updates attached to some logging actions.
 
+Daily check-in, hydration and medication surfaces now expose recorded,
+device-only/partial and failed outcomes where supported. Hydration reads keep
+missing, unavailable and genuine recorded zero distinct. Medication mutations
+update visible state only after a service result; an empty list remains valid.
+
 For an authenticated user, after the symptom Firestore upsert succeeds, saving a
 symptom log calls the pain-log and water-log services and then updates the
 streak. The guest path stores the symptom locally and updates the local streak,
@@ -110,7 +116,10 @@ be protected and made explicit during redesign work.
 
 ### Appointments and notifications
 
-- Appointment creation, listing, and cancellation exist within Telemedicine.
+- Appointment request creation, listing, and cancellation exist within
+  Telemedicine/Appointments. These are preferred dates and times, not confirmed
+  bookings. Home deterministically selects the earliest future request (with
+  stable past/legacy fallbacks) and uses `Requested for ...` wording.
 - Browser notification permission, scheduled reminder creation, enable/disable,
   deletion, and test notification exist.
 - Reminder checks run from a component interval while that surface is mounted;
@@ -135,9 +144,10 @@ Care Vault contains symptoms, mood, hydration, predictive analysis, an ER
 toolkit, diagnostics, procedures, medications, labs, and a clinical passport.
 It is implemented as one component of roughly 2,000 lines.
 
-Emergency information, caregiver information, and the ER toolkit use seeded
-defaults when no stored record exists. These defaults look like real patient
-data and must not be mistaken for verified user information.
+Emergency and designated-caregiver information remain empty when no scoped
+record exists. Legacy global values remain guest-only and are not attached to an
+authenticated patient. The legacy ER toolkit remains outside the current
+Medical Records production boundary.
 
 The caregiver SOS action opens a prefilled `sms:` draft, but immediately labels
 that draft as dispatched. The browser cannot verify that the user sent or that a
@@ -158,9 +168,13 @@ recipient received the message.
 Clinician-related concepts exist, but a production clinician product does not:
 
 - Signup includes a healthcare-professional role.
-- Chat includes seeded clinician channels and moderation controls.
-- Telemedicine displays seeded professional profiles.
-- Patient reports can be generated.
+- Chat moderation concepts remain, but seeded community conversations are
+  explicitly labelled synthetic; the named hematology persona, scripted reply,
+  and emergency-dispatch channel are removed from the Patient flow.
+- Telemedicine is the appointment-request surface and does not display provider
+  availability or clinician confirmation.
+- AI-generated patient discussion summaries remain experimental and are labelled
+  as generated, informational, and not clinician-verified clinical records.
 - The synthetic demo contains a nurse queue and approval action.
 
 There is no enforced clinician authorization model, assigned patient list,
@@ -259,11 +273,11 @@ The current `firestore.rules` file includes the established patient
 subcollections but does not include explicit rules for `moodLogs`,
 `dailyMoodCheckIns`, or `reminderSettings`.
 
-Because `saveDailyMoodCheckIn` writes a local daily record and then calls
-`saveMoodLog` before attempting the daily Firestore document, a permission
-failure on `moodLogs` can reject the method before the daily Firestore write and
-streak update. The local daily and mood-history records have already been
-written, but the UI may not show its success state.
+`saveDailyMoodCheckIn` now attempts the daily Firestore document even when the
+optional mood-history write fails. The returned result distinguishes the daily
+record from history and the UI reports recorded, device-only/partial, or failed
+outcomes. The absent rules can still make mood data device-only; no replay queue
+exists.
 
 ## Known technical debt
 
@@ -288,8 +302,8 @@ written, but the UI may not show its success state.
 - Constant pulse, bounce, gradients, and red surfaces conflict with the design
   specification.
 - Some icon controls have no accessible name.
-- Several clinical-sounding claims and confidence percentages are not backed by
-  a validated model.
+- Legacy predictive tools outside the recorded clinical boundary still require
+  validation and governance before production clinical claims are possible.
 
 ## Experimental features
 
@@ -297,6 +311,22 @@ Treat predictive pain analysis, crisis forecasting, doctor-report generation,
 AI pattern confidence, AI counselling, and any future eye-based PCV estimate as
 experimental. They must remain separated from the clinical MVP and use
 synthetic data until validation and governance requirements are met.
+
+The current generated pattern/discussion-summary surface does not substitute
+fallback statistics or profile facts when data or the API is unavailable. It
+does not show model confidence as clinical confidence or save generated output
+into Health History or Medical Records. Collapsed Home tools do not mount until
+opened.
+
+## P1–P3 pre-freeze repair (30 September 2026)
+
+Persistence truthfulness now covers daily check-in, hydration and medication
+without adding a general synchronization framework. Patient-visible success is
+based on explicit service results. Appointment presentation is request-only and
+chronological by preferred date. Seeded professional impersonation and fabricated
+AI/report fallbacks are removed from current Patient flows. Focused contract and
+component tests cover these boundaries; P4 still owns the product decision about
+a future full WARRIOR AI assistant.
 
 ## Related documents
 

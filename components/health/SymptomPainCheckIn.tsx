@@ -20,7 +20,7 @@ const TRIGGER_OPTIONS = [
 ];
 
 type SaveState = 'idle' | 'saving' | 'success' | 'error';
-type HydrationState = 'loading' | 'ready' | 'unavailable';
+type HydrationState = 'loading' | 'ready' | 'missing' | 'unavailable';
 
 export interface SymptomPainCheckInProps {
   open: boolean;
@@ -58,8 +58,8 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
     firebaseService.getWaterLog(userId, todayStr)
       .then((log) => {
         if (!active) return;
-        setWaterIntake(typeof log?.amount === 'number' ? log.amount : 0);
-        setHydrationState('ready');
+        setWaterIntake(log.data?.amount ?? 0);
+        setHydrationState(log.data ? 'ready' : log.state === 'unavailable' ? 'unavailable' : 'missing');
       })
       .catch(() => {
         if (!active) return;
@@ -283,6 +283,11 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
                 {hydrationState === 'unavailable' && (
                   <Alert tone="warning" title="Today’s total could not be loaded">
                     Review the editable value before saving this entry.
+                  </Alert>
+                )}
+                {hydrationState === 'missing' && (
+                  <Alert tone="info" title="No hydration recorded today">
+                    The editable value starts at zero and will be saved with this health entry.
                   </Alert>
                 )}
 

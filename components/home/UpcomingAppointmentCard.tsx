@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { CalendarDays, Clock3, RefreshCw, Stethoscope } from 'lucide-react';
+import { CalendarDays, RefreshCw } from 'lucide-react';
 import { firebaseService } from '../../services/firebaseService';
 import { Alert, Button, Card, Skeleton } from '../ui';
 
@@ -17,6 +17,27 @@ interface Appointment {
   status?: string;
 }
 
+function preferredDateTimestamp(value?: string) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const timestamp = new Date(`${value}T00:00:00`).getTime();
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
+export function selectRelevantAppointment(appointments: Appointment[], now = new Date()) {
+  const active = appointments.filter((item) => item.status?.toLowerCase() !== 'cancelled');
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const dated = active
+    .map((appointment) => ({ appointment, timestamp: preferredDateTimestamp(appointment.bookedDate) }))
+    .filter((entry): entry is { appointment: Appointment; timestamp: number } => entry.timestamp !== null);
+  const future = dated.filter((entry) => entry.timestamp >= today).sort((a, b) => a.timestamp - b.timestamp);
+  if (future[0]) return future[0].appointment;
+  const past = dated.filter((entry) => entry.timestamp < today).sort((a, b) => b.timestamp - a.timestamp);
+  if (past[0]) return past[0].appointment;
+  return active.sort((a, b) =>
+    `${a.bookedDate || ''}|${a.bookedTime || ''}|${a.id || ''}`.localeCompare(`${b.bookedDate || ''}|${b.bookedTime || ''}|${b.id || ''}`)
+  )[0] ?? null;
+}
+
 export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = ({ userId, onOpenCare }) => {
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,7 +49,7 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
 
     try {
       const appointments = await firebaseService.getAppointments(userId) as Appointment[];
-      setAppointment(appointments.find((item) => item.status?.toLowerCase() !== 'cancelled') ?? null);
+      setAppointment(selectRelevantAppointment(appointments));
     } catch (loadError) {
       console.warn('Appointment preview could not be loaded:', loadError);
       setError(true);
@@ -45,7 +66,7 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
   if (loading) {
     return (
       <Card as="section" aria-labelledby="appointment-title" padding="lg">
-        <h2 id="appointment-title" className="text-heading-2">Appointment</h2>
+        <h2 id="appointment-title" className="text-heading-2">Appointment request</h2>
         <Skeleton className="mt-5 min-h-32" />
       </Card>
     );
@@ -54,7 +75,7 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
   if (error) {
     return (
       <Card as="section" aria-labelledby="appointment-title" padding="lg">
-        <h2 id="appointment-title" className="text-heading-2">Appointment</h2>
+        <h2 id="appointment-title" className="text-heading-2">Appointment request</h2>
         <Alert
           tone="warning"
           title="Appointments are unavailable"
@@ -76,29 +97,28 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
 
   return (
     <Card as="section" aria-labelledby="appointment-title" className="border-line/70 shadow-none" padding="lg">
-      <h2 id="appointment-title" className="text-heading-2">Appointment</h2>
-      <p className="mt-1 text-small text-foreground-secondary">A current active booking from your appointment records.</p>
+      <h2 id="appointment-title" className="text-heading-2">Appointment request</h2>
+      <p className="mt-1 text-small text-foreground-secondary">A recorded request. Clinic acceptance and availability are not confirmed here.</p>
 
       {appointment ? (
         <div className="mt-5">
           <div className="flex items-start gap-3">
             <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-status-info-soft text-status-info" aria-hidden="true">
-              <Stethoscope size={22} />
+              <CalendarDays size={22} />
             </span>
             <div className="min-w-0">
-              <p className="text-body font-semibold text-foreground">{appointment.doctorName || 'Care appointment'}</p>
-              {appointment.doctorSpecialty && <p className="mt-0.5 text-small text-foreground-secondary">{appointment.doctorSpecialty}</p>}
-              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-small text-foreground-secondary">
-                {appointment.bookedDate && <span className="inline-flex items-center gap-1.5"><CalendarDays size={16} aria-hidden="true" />{appointment.bookedDate}</span>}
-                {appointment.bookedTime && <span className="inline-flex items-center gap-1.5"><Clock3 size={16} aria-hidden="true" />{appointment.bookedTime}</span>}
-              </div>
+              <p className="text-body font-semibold text-foreground">Hematology care request</p>
+              <p className="mt-1 inline-flex flex-wrap items-center gap-1.5 text-small text-foreground-secondary">
+                <CalendarDays size={16} aria-hidden="true" />
+                Requested for {appointment.bookedDate || 'date not recorded'}{appointment.bookedTime ? ` at ${appointment.bookedTime}` : ''}
+              </p>
             </div>
           </div>
-          <Button className="mt-5" onClick={onOpenCare}>View appointments</Button>
+          <Button className="mt-5" onClick={onOpenCare}>View requests</Button>
         </div>
       ) : (
         <div className="mt-5">
-          <p className="rounded-card bg-surface-subtle p-4 text-body text-foreground-secondary">No active appointment is currently listed.</p>
+          <p className="rounded-card bg-surface-subtle p-4 text-body text-foreground-secondary">No current appointment request is recorded.</p>
           <Button className="mt-4" onClick={onOpenCare}>Open Care</Button>
         </div>
       )}

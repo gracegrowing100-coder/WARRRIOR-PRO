@@ -20,6 +20,8 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
   const [loadingReport, setLoadingReport] = useState(false);
   const [copied, setCopied] = useState(false);
   const [patientProfile, setPatientProfile] = useState<any>(null);
+  const [insightError, setInsightError] = useState('');
+  const [reportError, setReportError] = useState('');
 
   useEffect(() => {
     fetchInsights();
@@ -27,6 +29,8 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
 
   const fetchInsights = async () => {
     setLoadingInsights(true);
+    setInsightError('');
+    setInsights(null);
     try {
       const painLogs = await firebaseService.getPainLogs(userId);
       const waterLogs = await firebaseService.getWaterLogs7Days(userId);
@@ -36,13 +40,14 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
       setPatientProfile(profile);
 
       const res = await generatePatternInsights(painLogs, waterLogs, moodLogs, symptomLogs, {
-        name: profile?.displayName || 'Warrior',
-        genotype: profile?.genotype || 'HbSS',
-        role: profile?.role || 'Warrior'
+        name: profile?.displayName ?? null,
+        genotype: profile?.genotype ?? null,
+        role: profile?.role ?? null
       });
       setInsights(res);
     } catch (e) {
       console.warn("Failed to generate pattern insights:", e);
+      setInsightError('Generated insights are unavailable. No pattern has been inferred.');
     } finally {
       setLoadingInsights(false);
     }
@@ -52,6 +57,7 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
     setShowDoctorReportModal(true);
     if (!doctorReportMarkdown) {
       setLoadingReport(true);
+      setReportError('');
       try {
         const painLogs = await firebaseService.getPainLogs(userId);
         const waterLogs = await firebaseService.getWaterLogs7Days(userId);
@@ -59,28 +65,34 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
         const profile = patientProfile || (await firebaseService.getUserProfile(userId));
 
         // Calculate quantitative summary
-        const painValues = (painLogs || []).map((p: any) => p.painLevel || 0);
+        const painValues = (painLogs || [])
+          .map((p: any) => p.painLevel)
+          .filter((value: unknown): value is number => typeof value === 'number');
         const avgPain = painValues.length > 0
           ? (painValues.reduce((a: number, b: number) => a + b, 0) / painValues.length).toFixed(1)
-          : '3.2';
+          : null;
         
         const severeCount = painValues.filter((val: number) => val >= 7).length;
-        const compliantHydration = (waterLogs || []).filter((w: any) => w.amount >= 2.8).length;
-        const hydrationRate = waterLogs.length > 0 ? Math.round((compliantHydration / waterLogs.length) * 100) : 75;
+        const recordedWaterAmounts = (waterLogs || [])
+          .map((entry: any) => entry?.data?.amount ?? entry?.amount)
+          .filter((value: unknown): value is number => typeof value === 'number');
+        const compliantHydration = recordedWaterAmounts.filter((amount: number) => amount >= 2.8).length;
+        const hydrationRate = recordedWaterAmounts.length > 0
+          ? Math.round((compliantHydration / recordedWaterAmounts.length) * 100)
+          : null;
 
         const summaryStats = {
           avgPain,
-          crisisCount: severeCount > 0 ? `${severeCount} moderate/severe episodes` : '0 acute hospitalizations',
-          hydrationCompliance: `${hydrationRate}%`,
+          severePainEntries: painValues.length > 0 ? severeCount : null,
+          hydrationCompliance: hydrationRate === null ? null : `${hydrationRate}% of recorded days`,
           reportingPeriod: 'Last 30 Days'
         };
 
         const markdown = await generateDoctorReport(
           {
-            name: profile?.displayName || 'Warrior',
-            genotype: profile?.genotype || 'HbSS',
-            bloodType: profile?.bloodType || 'O+',
-            ageGroup: 'Adult',
+            name: profile?.displayName ?? null,
+            genotype: profile?.genotype ?? null,
+            bloodType: profile?.bloodType ?? null,
           },
           summaryStats,
           {
@@ -92,6 +104,7 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
         setDoctorReportMarkdown(markdown);
       } catch (e) {
         console.warn("Failed to generate doctor report:", e);
+        setReportError('The AI-generated discussion summary is unavailable. No clinical record was created.');
       } finally {
         setLoadingReport(false);
       }
@@ -110,7 +123,7 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
       printWindow.document.write(`
         <html>
           <head>
-            <title>Sickle Cell Clinical Consultation Summary</title>
+            <title>AI-Generated Patient Discussion Summary</title>
             <style>
               body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
               h1, h2, h3, h4 { color: #0f172a; margin-top: 24px; }
@@ -122,8 +135,8 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
           </head>
           <body>
             <div class="header">
-              <h2>WARRIOR CELL — SICKLE CELL CLINICAL SUMMARY REPORT</h2>
-              <p>Confidential Patient-Reported Longitudinal Health Summary</p>
+              <h2>WARRIOR CELL — AI-GENERATED PATIENT DISCUSSION SUMMARY</h2>
+              <p>Informational draft from patient-recorded data. Not a clinical record or clinician-verified report.</p>
             </div>
             <div>
               ${document.getElementById('doctor-report-content')?.innerHTML || doctorReportMarkdown}
@@ -152,14 +165,14 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
           <div>
             <div className="flex items-center gap-2">
               <h4 className="font-black text-gray-900 dark:text-white text-sm uppercase tracking-wider">
-                Crisis Pattern Insights & Doctor Reports
+                Generated Pattern Insights &amp; Discussion Summaries
               </h4>
               <span className="bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-black px-2 py-0.5 rounded-full">
                 AI Correlation
               </span>
             </div>
             <p className="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-0.5">
-              Empirical Cluster Analysis & Exportable Clinical Summaries
+              Experimental AI output from patient-recorded data
             </p>
           </div>
         </div>
@@ -178,7 +191,7 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
             onClick={handleOpenDoctorReport}
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
           >
-            <FileText size={13} /> Generate Doctor Report
+            <FileText size={13} /> Generate Discussion Summary
           </button>
         </div>
       </div>
@@ -188,21 +201,25 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
         <div className="py-8 flex flex-col items-center justify-center gap-2">
           <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
           <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">
-            Calculating Biometric Correlations...
+            Generating an informational pattern summary...
           </span>
         </div>
-      ) : (
+      ) : insightError ? (
+        <p role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+          {insightError}
+        </p>
+      ) : insights ? (
         <div className="space-y-4">
           {/* Main Key Insight Headline Banner */}
           <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white rounded-2xl p-5 border border-indigo-500/30 shadow-md">
             <div className="flex items-center gap-2 mb-1.5">
               <Sparkles className="w-4 h-4 text-yellow-400" />
               <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200">
-                Primary Detected Cluster Pattern
+                 AI-generated pattern hypothesis
               </span>
             </div>
             <h4 className="text-sm md:text-base font-extrabold text-white tracking-tight">
-              "{insights?.headline || 'Your crises cluster after low hydration + high stress'}"
+              "{insights.headline}"
             </h4>
             {insights?.actionableShield && (
               <p className="text-xs text-indigo-200/90 font-medium mt-2 pt-2 border-t border-indigo-500/30 flex items-start gap-1.5">
@@ -234,7 +251,7 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
                         isPos ? 'bg-emerald-200 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200' :
                         'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
                       }`}>
-                        {cor.confidence || '85%'} Confidence
+                        Generated observation
                       </span>
                     </div>
                     <h5 className="font-bold text-xs text-gray-900 dark:text-white leading-tight">
@@ -249,6 +266,8 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
             })}
           </div>
         </div>
+      ) : (
+        <p className="text-xs text-gray-500 dark:text-slate-400">No generated insight is available.</p>
       )}
 
       {/* Doctor Report Modal */}
@@ -269,10 +288,10 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
                   </div>
                   <div>
                     <h3 className="text-base font-black text-gray-900 dark:text-white">
-                      Physician Consultation Health Summary
+                      AI-Generated Patient Discussion Summary
                     </h3>
                     <p className="text-xs text-gray-500 dark:text-slate-400 font-medium">
-                      Standardized report for hematology clinics and general practitioners
+                      Informational draft. Not a clinical record or clinician-verified report.
                     </p>
                   </div>
                 </div>
@@ -288,13 +307,13 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
               {/* Action Bar */}
               <div className="flex flex-wrap items-center justify-between gap-3 py-3 border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30 px-4 -mx-6">
                 <div className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-slate-300">
-                  <User size={13} /> {patientProfile?.displayName || 'Warrior'} ({patientProfile?.genotype || 'HbSS'})
+                  <User size={13} /> {patientProfile?.displayName || 'Name not recorded'} ({patientProfile?.genotype || 'Genotype not recorded'})
                 </div>
 
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleCopyReport}
-                    disabled={loadingReport}
+                    disabled={loadingReport || !doctorReportMarkdown}
                     className="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-gray-100 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     {copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
@@ -303,7 +322,7 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
 
                   <button
                     onClick={handlePrint}
-                    disabled={loadingReport}
+                    disabled={loadingReport || !doctorReportMarkdown}
                     className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     <Printer size={13} /> Print / Save PDF
@@ -317,9 +336,13 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
                   <div className="py-16 flex flex-col items-center justify-center gap-3">
                     <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                     <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">
-                      Compiling Longitudinal Clinical Data...
+                      Generating an informational summary...
                     </span>
                   </div>
+                ) : reportError ? (
+                  <p role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                    {reportError}
+                  </p>
                 ) : (
                   <div id="doctor-report-content" className="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-slate-200 text-xs leading-relaxed space-y-3 font-sans select-text">
                     <ReactMarkdown>{doctorReportMarkdown}</ReactMarkdown>

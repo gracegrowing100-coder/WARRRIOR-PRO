@@ -17,13 +17,13 @@ describe('TodaysHealthCard', () => {
     vi.clearAllMocks();
     service.getDailyMoodCheckIn.mockResolvedValue({ emotion: 'Okay' });
     service.getPainLogs.mockResolvedValue([]);
-    service.getWaterLog.mockResolvedValue({ amount: 0, goal: 3 });
+    service.getWaterLog.mockResolvedValue({ state: 'missing', data: null });
   });
 
   it('shows only factual values from today’s persisted records', async () => {
     const today = new Date().toLocaleDateString('sv');
     service.getPainLogs.mockResolvedValue([{ dateStr: today, painLevel: 4 }]);
-    service.getWaterLog.mockResolvedValue({ amount: 1.5, goal: 3 });
+    service.getWaterLog.mockResolvedValue({ state: 'recorded', data: { amount: 1.5, goal: 3 } });
 
     render(<TodaysHealthCard userId="patient-1" />);
 

@@ -37,7 +37,7 @@ describe('Patient Home critical rendering', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service.addSymptomLog.mockResolvedValue(undefined);
-    service.getWaterLog.mockResolvedValue({ amount: 1, goal: 3 });
+    service.getWaterLog.mockResolvedValue({ state: 'recorded', data: { amount: 1, goal: 3 } });
     service.updateStreak.mockResolvedValue(4);
     service.getUserProfile.mockResolvedValue({
       displayName: 'Tayo',
@@ -53,14 +53,21 @@ describe('Patient Home critical rendering', () => {
     expect(document.body).toHaveTextContent('Hydration for patient-1');
     expect(document.body).toHaveTextContent('Medication for patient-1');
     expect(document.body).toHaveTextContent('Daily mood for patient-1');
-    expect(document.body).toHaveTextContent('Care Vault for patient-1');
+    expect(document.body).not.toHaveTextContent('Care Vault for patient-1');
+    expect(document.body).not.toHaveTextContent('Pattern report for patient-1');
     expect(screen.getByRole('button', { name: /Log symptoms and pain/i })).toBeInTheDocument();
     expect(screen.getByText('More health tools')).toBeInTheDocument();
     expect(container.querySelectorAll('details')).toHaveLength(8);
     container.querySelectorAll('details').forEach(details => expect(details.open).toBe(false));
     expect(container.querySelector('#water-intake-tracker-module')).toBeInTheDocument();
     expect(container.querySelector('#medication-reminder-card')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('More health tools'));
+    await userEvent.click(screen.getByText('Pain trends'));
     expect(container.querySelector('#pain-trends-chart-card')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('Care Vault'));
+    expect(container.querySelector('#care-vault-section')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('Generated reports'));
+    expect(document.body).toHaveTextContent('Pattern report for patient-1');
 
     const ordered = [
       screen.getByRole('heading', { name: /Welcome back/i }),

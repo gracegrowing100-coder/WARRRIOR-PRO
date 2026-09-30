@@ -61,8 +61,8 @@ role string is not authorization for clinician capabilities.
 | `users/{uid}/waterLogs/{dateStr}` | get, set | `amount`, `goal`, `updatedAt`; default goal is `3.0`. |
 | `users/{uid}/painLogs/{logId}` | list, daily query/upsert | `painLevel`, `dateStr`, `triggers`, timestamp/update time. |
 | `users/{uid}/symptomLogs/{logId}` | list, daily query/upsert | `userId`, `painLevel`, `symptoms`, `triggers`, `waterIntake`, `dateStr`, timestamp. |
-| `users/{uid}/emergencyInfo/summary` | get, merge set | Contact, blood/genotype, allergies, medications, notes; seeded defaults exist. |
-| `users/{uid}/appointments/{appointmentId}` | list, create, cancel | UI-defined booking data, `createdAt`, `status`; cancellation writes `Cancelled`. |
+| `users/{uid}/emergencyInfo/summary` | get, merge set | Contact, blood/genotype, allergies, medications, notes; missing records remain empty. |
+| `users/{uid}/appointments/{appointmentId}` | list, create, cancel | UI-defined request preferences, `createdAt`, `status`; cancellation writes `Cancelled`. No clinic confirmation is established. |
 | `users/{uid}/careVault/medicalHistory` | get, merge set | Large document holding diagnosis/history arrays and other Care Vault fields. |
 | `users/{uid}/moodLogs/{logId}` | list, create | `emotion`, `intensity`, `symptoms`, `journalText`, optional `aiResponse`, `createdAt`. |
 | `users/{uid}/dailyMoodCheckIns/{dateStr}` | get, set | `emoji`, `emotion`, `score`, optional `note`, `dateStr`, timestamps. |
@@ -109,24 +109,26 @@ the local symptom remains but the linked calls do not run. This is the exact
 existing contract; refactoring must preserve it or replace it through an
 explicit, tested data decision.
 
-`saveDailyMoodCheckIn(...)` writes both local records first, then calls
-`saveMoodLog(...)` before writing the daily Firestore document. Because the
-error helper rethrows permission errors, a denied `moodLogs` create prevents the
-daily Firestore write and streak update, even though the local daily and
-historical mood records already exist.
+`saveDailyMoodCheckIn(...)` writes the local daily record, attempts the optional
+mood-history write, and still attempts the independent daily Firestore document
+when mood history fails. It returns the daily persistence `state` plus
+`historyState` (`recorded`, `device-only`, or `failed`). Streak failure does not
+change an already established daily result. The UI presents recorded,
+device-only/partial, and failed outcomes separately.
 
 ## Fallback semantics by feature
 
 | Feature/write | Current local behavior | Cloud/error nuance |
 |---|---|---|
 | Profile create/update | Local profile written first. | Permission errors can still reject after the local write. |
-| Medication create | Guest writes locally; authenticated create is cloud-first and caches only after success. | There is no authenticated offline create queue. |
-| Medication update/delete | Existing local cache is changed first. | Permission errors can reject after the local change. |
-| Hydration, pain, emergency, Care Vault | Local value is written first. | Firestore is attempted afterward; no replay ledger exists. |
+| Medication create | Guest writes locally; authenticated create is cloud-first and caches only after success. | Returns `recorded` or `device-only`; authenticated cloud failure rejects rather than appearing successful. There is no offline create queue. |
+| Medication update/delete | Existing local cache is changed first. | Returns `recorded` after cloud success or `device-only` after a local-only mutation; throws when neither destination changed. |
+| Hydration | Local value is written first. | Save returns `recorded` or `device-only` and throws when neither destination saved. Reads distinguish `recorded`, `cached`, `missing`, and `unavailable`; data is nullable so missing/error is not recorded zero. |
+| Pain, emergency, Care Vault | Local value is written first. | Firestore is attempted afterward; no replay ledger exists. |
 | Symptom | Local symptom is written first. | Linked pain/water calls are conditional as described above. |
 | Appointment create | Local provisional item is written first into the UID-scoped cache. | Returns a record after cloud success, or undefined after cloud failure (including permission denial) once local saving succeeded. The result remains visible until Done; a later successful cloud list can still replace provisional items. |
 | Appointment cancel | Existing local status changes first. | Returns `{ state: "recorded" }` after cloud success or `{ state: "device-only" }` after a local-only update. Throws when neither destination saved the cancellation. No clinic notification is implied. |
-| Mood/daily check-in | Local records are written first. | Missing rules and rethrown permission errors can stop later steps. |
+| Mood/daily check-in | Local records are written first. | Mood history and daily check-in expose separate outcomes; a history failure no longer prevents the daily cloud attempt. Missing rules can produce device-only/partial results. |
 | Reminders | Local settings are written first. | Firestore errors are logged but not surfaced as a delivery/sync state. |
 | Chat/posts | Local cache is updated first for sends/creates and several mutations. | This is optimistic fallback, not queued synchronization. |
 
@@ -213,8 +215,8 @@ The Express server exposes:
 | `POST /api/gemini/game-story` | Educational game narrative. |
 | `POST /api/gemini/genotype-counselor` | Genotype education response. |
 | `POST /api/gemini/mood-response` | Mood reflection response. |
-| `POST /api/gemini/pattern-insights` | Experimental pattern summary. |
-| `POST /api/gemini/doctor-report` | Generated report content. |
+| `POST /api/gemini/pattern-insights` | Experimental generated pattern summary; client failure remains unavailable rather than fabricating statistics. |
+| `POST /api/gemini/doctor-report` | Generated discussion-summary content; client failure remains unavailable rather than fabricating clinical facts. |
 | `GET /api/health` | Server health endpoint. |
 | `GET /sw.js` | Service-worker asset. |
 
@@ -222,7 +224,22 @@ The Express server exposes:
 which is called from its feature component. API credentials remain server-side.
 
 All generated health, pattern, genotype, mood, and report content is advisory or
-experimental and requires the safety treatment defined in `PRODUCT.md`.
+experimental and requires the safety treatment defined in `PRODUCT.md`. The
+current Patient pattern/report UI does not persist generated output as clinical
+history, does not display model-provided confidence as clinical confidence, and
+passes missing name/genotype/blood/statistical inputs as missing.
+
+Collapsed secondary Home tools are lazily mounted. Their reads and AI requests
+begin only after the patient opens that specific tool.
+
+## Appointment presentation contract
+
+Appointment documents store patient requests and preferred dates/times. A legacy
+`Confirmed` status does not establish clinic acceptance and is presented as
+`Request recorded` unless cancelled. Home chooses the earliest future
+non-cancelled ISO preferred date, then the most recent past date, then a stable
+legacy fallback. Home, Care and Appointments use `Appointment request` and
+`Requested for ...`; no slot, clinician response, or reserved time is implied.
 
 ## Component-to-service relationships
 

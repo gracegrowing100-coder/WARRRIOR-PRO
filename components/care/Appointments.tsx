@@ -55,17 +55,14 @@ const RequestList: React.FC<{
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-body font-semibold text-foreground">
-                      {displayDate(appointment.bookedDate)}
-                    </span>
-                    <span className="mt-1 block text-small text-foreground-secondary">
-                      Preferred time: {appointment.bookedTime || 'Not recorded'}
+                      Requested for {displayDate(appointment.bookedDate)}{appointment.bookedTime ? ` at ${appointment.bookedTime}` : ''}
                     </span>
                     {appointment.patientNote && (
                       <span className="mt-1 block truncate text-small text-foreground-secondary">{appointment.patientNote}</span>
                     )}
                   </span>
                   <HealthStatusBadge tone={isCancelled ? 'neutral' : 'info'} className="hidden sm:inline-flex">
-                    {appointment.status || 'Recorded'}
+                    {isCancelled ? 'Cancelled' : 'Request recorded'}
                   </HealthStatusBadge>
                   <ChevronRight size={19} aria-hidden="true" className="shrink-0 text-foreground-secondary" />
                 </button>
@@ -218,7 +215,7 @@ export const Appointments: React.FC<AppointmentsProps> = ({
         )}
         {!loading && appointments.length > 0 && (
           <div className="space-y-8">
-            <RequestList title="Active and recorded requests" appointments={activeRequests} onOpen={openDetails} />
+            <RequestList title="Recorded requests" appointments={activeRequests} onOpen={openDetails} />
             <RequestList title="Cancelled requests" appointments={cancelledRequests} onOpen={openDetails} />
           </div>
         )}

@@ -4,7 +4,7 @@ vi.mock('../../services/offlineKnowledgeBase', () => ({
   processOfflineQuery: vi.fn((query: string) => ({ response: `offline:${query}` })),
 }));
 
-import { generateHealthAdvice } from '../../services/gemini';
+import { generateDoctorReport, generateHealthAdvice, generatePatternInsights } from '../../services/gemini';
 
 describe('Gemini client fallback behavior', () => {
   beforeEach(() => {
@@ -38,5 +38,17 @@ describe('Gemini client fallback behavior', () => {
     vi.mocked(fetch).mockRejectedValue(new Error('network unavailable'));
 
     await expect(generateHealthAdvice('warmth', 'test context')).resolves.toBe('offline:warmth');
+  });
+
+  it('does not fabricate pattern statistics when generation fails', async () => {
+    vi.mocked(fetch).mockRejectedValue(new Error('network unavailable'));
+
+    await expect(generatePatternInsights([], [], [], [], {})).rejects.toThrow('Generated pattern insights are unavailable.');
+  });
+
+  it('does not fabricate a clinical-looking report when generation fails', async () => {
+    vi.mocked(fetch).mockRejectedValue(new Error('network unavailable'));
+
+    await expect(generateDoctorReport({ name: null, genotype: null }, {}, {})).rejects.toThrow('Generated discussion summary is unavailable.');
   });
 });

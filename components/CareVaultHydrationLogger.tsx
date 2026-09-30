@@ -19,10 +19,10 @@ export const CareVaultHydrationLogger: React.FC<CareVaultHydrationLoggerProps> =
   const fetchHydrationData = async () => {
     setLoading(true);
     try {
-      const data = await firebaseService.getWaterLog(userId, todayStr);
-      if (data) {
-        setCurrentLiters(data.amount || 0);
-        setGoalLiters(data.goal || 3.5);
+      const result = await firebaseService.getWaterLog(userId, todayStr);
+      if (result.data) {
+        setCurrentLiters(result.data.amount);
+        setGoalLiters(result.data.goal);
       }
     } catch (e) {
       console.warn("Failed to load water log:", e);

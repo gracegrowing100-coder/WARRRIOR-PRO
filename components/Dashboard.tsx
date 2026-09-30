@@ -22,6 +22,17 @@ interface DashboardProps {
   userId: string;
 }
 
+const ExpandableTool: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <details open={open} onToggle={event => setOpen(event.currentTarget.open)}>
+      <summary className="min-h-12 cursor-pointer py-3 text-small font-semibold focus-visible:outline focus-visible:outline-focus">{title}</summary>
+      {open ? <div className="pb-4">{children}</div> : null}
+    </details>
+  );
+};
+
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
   const [profileName, setProfileName] = useState<string>("Warrior");
   const [refreshPain, setRefreshPain] = useState<number>(0);
@@ -167,10 +178,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
             { title: 'Caregiver tools', content: <DesignatedCaregiverWidget userId={userId} currentPainLevel={currentPainLevel} /> },
             { title: 'Pain trends', content: <section id="pain-trends-chart-card" aria-label="Pain trends"><PainTrendsChart userId={userId} refreshKey={refreshPain} /></section> },
             { title: 'Care Vault', content: <section id="care-vault-section" aria-label="Care Vault"><CareVault userId={userId} /></section> },
-          ].map(tool => <details key={tool.title}>
-            <summary className="min-h-12 cursor-pointer py-3 text-small font-semibold focus-visible:outline focus-visible:outline-focus">{tool.title}</summary>
-            <div className="pb-4">{tool.content}</div>
-          </details>)}
+          ].map(tool => <ExpandableTool key={tool.title} title={tool.title}>{tool.content}</ExpandableTool>)}
         </div>
       </details>
       <SymptomPainCheckIn

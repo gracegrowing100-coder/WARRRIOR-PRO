@@ -11,8 +11,9 @@ interface TodaysHealthCardProps {
 interface TodaySnapshot {
   hasCheckIn: boolean;
   painLevel: number | null;
-  waterAmount: number;
-  waterGoal: number;
+  waterAmount: number | null;
+  waterGoal: number | null;
+  hydrationState: 'recorded' | 'cached' | 'missing' | 'unavailable';
 }
 
 interface PainLog {
@@ -43,8 +44,9 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
       setSnapshot({
         hasCheckIn: Boolean(checkIn),
         painLevel: typeof todayPain?.painLevel === 'number' ? todayPain.painLevel : null,
-        waterAmount: Number(water?.amount || 0),
-        waterGoal: Number(water?.goal || 3),
+        waterAmount: water.data?.amount ?? null,
+        waterGoal: water.data?.goal ?? null,
+        hydrationState: water.state,
       });
     } catch (loadError) {
       console.warn("Today's health summary could not be loaded:", loadError);
@@ -92,8 +94,10 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
     );
   }
 
-  const hasTodayData = snapshot.hasCheckIn || snapshot.painLevel !== null || snapshot.waterAmount > 0;
-  const waterValueText = `${snapshot.waterAmount.toFixed(2)} L of ${snapshot.waterGoal.toFixed(2)} L`;
+  const hasTodayData = snapshot.hasCheckIn || snapshot.painLevel !== null || snapshot.waterAmount !== null;
+  const waterValueText = snapshot.waterAmount !== null && snapshot.waterGoal !== null
+    ? `${snapshot.waterAmount.toFixed(2)} L of ${snapshot.waterGoal.toFixed(2)} L`
+    : '';
 
   return (
     <Card
@@ -125,13 +129,19 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
               <Droplets size={18} aria-hidden="true" />
               <span>Hydration</span>
             </div>
-            <ProgressBar
-              value={snapshot.waterAmount}
-              max={snapshot.waterGoal}
-              label="Today’s hydration"
-              valueText={waterValueText}
-              className="mt-2 [&_span]:text-brand-foreground [&_[role=progressbar]]:bg-brand-foreground/20 [&_[role=progressbar]>div]:bg-brand-foreground"
-            />
+            {snapshot.waterAmount !== null && snapshot.waterGoal !== null ? (
+              <ProgressBar
+                value={snapshot.waterAmount}
+                max={snapshot.waterGoal}
+                label="Today’s hydration"
+                valueText={waterValueText}
+                className="mt-2 [&_span]:text-brand-foreground [&_[role=progressbar]]:bg-brand-foreground/20 [&_[role=progressbar]>div]:bg-brand-foreground"
+              />
+            ) : (
+              <p className="mt-1.5 text-small">
+                {snapshot.hydrationState === 'unavailable' ? 'Unavailable' : 'Not recorded'}
+              </p>
+            )}
           </div>
           <div className="rounded-control border border-brand-foreground/20 bg-brand-foreground/10 p-3 sm:p-4">
             <div className="flex items-center gap-2 text-small text-brand-foreground/85">
