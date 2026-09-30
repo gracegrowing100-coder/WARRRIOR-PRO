@@ -129,6 +129,30 @@ function getAppointmentCacheKey(userId: string) {
   return userId ? `${LEGACY_APPOINTMENT_CACHE_KEY}_${userId}` : LEGACY_APPOINTMENT_CACHE_KEY;
 }
 
+// Patient health caches are scoped by authenticated UID so two accounts on one
+// device can never read or overwrite each other's cached clinical values.
+// Guest (signed-out) sessions keep the legacy unscoped keys for compatibility.
+// Legacy unscoped data is never attached to an authenticated account and never
+// deleted: its ownership cannot be proven, so it stays quarantined.
+function getHealthCacheKey(baseKey: string, userId: string) {
+  return userId ? `${baseKey}_${userId}` : baseKey;
+}
+
+function getWaterCacheKey(userId: string, dateStr: string) {
+  return userId ? `water_${userId}_${dateStr}` : `water_${dateStr}`;
+}
+
+// Same-date upserts may only match an entry owned by the acting account.
+// A bare date match once let account B update account A's cached clinical
+// values while retaining account A's identity.
+function getCacheEntryOwner(userId: string) {
+  return userId || 'guest';
+}
+
+function isOwnedCacheEntry(entry: any, owner: string) {
+  return (entry?.userId || 'guest') === owner;
+}
+
 function readAppointmentCache(cacheKey: string): AppointmentRecord[] | null {
   const cached = localStorage.getItem(cacheKey);
   if (cached === null) return null;
@@ -826,8 +850,9 @@ export const firebaseService = {
 
   // --- Medications ---
   async getMedications(userId: string) {
+    const cacheKey = getHealthCacheKey('warrior_meds', userId);
     if (!userId) {
-      const cached = localStorage.getItem('warrior_meds');
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : [];
     }
     const path = `users/${userId}/medications`;
@@ -835,22 +860,23 @@ export const firebaseService = {
       const q = query(collection(db, path), orderBy('time', 'asc'));
       const snapshot = await getDocs(q);
       const meds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      localStorage.setItem('warrior_meds', JSON.stringify(meds));
+      localStorage.setItem(cacheKey, JSON.stringify(meds));
       return meds;
     } catch (error) {
       console.warn("Firestore medications failed, using cache:", error);
-      const cached = localStorage.getItem('warrior_meds');
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : [];
     }
   },
 
   async addMedication(userId: string, data: any) {
+    const cacheKey = getHealthCacheKey('warrior_meds', userId);
     if (!userId) {
-      const cached = localStorage.getItem('warrior_meds');
+      const cached = localStorage.getItem(cacheKey);
       const meds = cached ? JSON.parse(cached) : [];
       const newMed = { id: Math.random().toString(36).substring(2, 9), ...data };
       meds.push(newMed);
-      localStorage.setItem('warrior_meds', JSON.stringify(meds));
+      localStorage.setItem(cacheKey, JSON.stringify(meds));
       return newMed;
     }
     const path = `users/${userId}/medications`;
@@ -860,10 +886,10 @@ export const firebaseService = {
         createdAt: serverTimestamp()
       });
       const newMed = { id: docRef.id, ...data };
-      const cached = localStorage.getItem('warrior_meds');
+      const cached = localStorage.getItem(cacheKey);
       const meds = cached ? JSON.parse(cached) : [];
       meds.push(newMed);
-      localStorage.setItem('warrior_meds', JSON.stringify(meds));
+      localStorage.setItem(cacheKey, JSON.stringify(meds));
       return newMed;
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
@@ -871,11 +897,12 @@ export const firebaseService = {
   },
 
   async updateMedication(userId: string, medId: string, data: any) {
-    const cached = localStorage.getItem('warrior_meds');
+    const cacheKey = getHealthCacheKey('warrior_meds', userId);
+    const cached = localStorage.getItem(cacheKey);
     if (cached) {
       let meds = JSON.parse(cached);
       meds = meds.map((m: any) => m.id === medId ? { ...m, ...data } : m);
-      localStorage.setItem('warrior_meds', JSON.stringify(meds));
+      localStorage.setItem(cacheKey, JSON.stringify(meds));
     }
     if (!userId) return;
     const path = `users/${userId}/medications/${medId}`;
@@ -887,11 +914,12 @@ export const firebaseService = {
   },
 
   async deleteMedication(userId: string, medId: string) {
-    const cached = localStorage.getItem('warrior_meds');
+    const cacheKey = getHealthCacheKey('warrior_meds', userId);
+    const cached = localStorage.getItem(cacheKey);
     if (cached) {
       let meds = JSON.parse(cached);
       meds = meds.filter((m: any) => m.id !== medId);
-      localStorage.setItem('warrior_meds', JSON.stringify(meds));
+      localStorage.setItem(cacheKey, JSON.stringify(meds));
     }
     if (!userId) return;
     const path = `users/${userId}/medications/${medId}`;
@@ -904,8 +932,9 @@ export const firebaseService = {
 
   // --- Water Intake ---
   async getWaterLog(userId: string, dateStr: string) {
+    const cacheKey = getWaterCacheKey(userId, dateStr);
     if (!userId) {
-      const cached = localStorage.getItem(`water_${dateStr}`);
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : { amount: 0, goal: 3.0 };
     }
     const path = `users/${userId}/waterLogs/${dateStr}`;
@@ -914,20 +943,20 @@ export const firebaseService = {
       const snapshot = await getDoc(docRef);
       if (snapshot.exists()) {
         const data = snapshot.data();
-        localStorage.setItem(`water_${dateStr}`, JSON.stringify(data));
+        localStorage.setItem(cacheKey, JSON.stringify(data));
         return { amount: data.amount || 0, goal: data.goal || 3.0 };
       }
       return { amount: 0, goal: 3.0 };
     } catch (error) {
       console.warn("Firestore hydration failed, using cache:", error);
-      const cached = localStorage.getItem(`water_${dateStr}`);
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : { amount: 0, goal: 3.0 };
     }
   },
 
   async saveWaterLog(userId: string, dateStr: string, amount: number, goal: number) {
     const data = { amount, goal, updatedAt: serverTimestamp() };
-    localStorage.setItem(`water_${dateStr}`, JSON.stringify({ amount, goal }));
+    localStorage.setItem(getWaterCacheKey(userId, dateStr), JSON.stringify({ amount, goal }));
     if (!userId) {
       await this.updateStreak(userId);
       return;
@@ -965,7 +994,7 @@ export const firebaseService = {
 
   async getHydrationHistory(userId: string, dateStrs: string[]): Promise<Array<HealthHistoryRecord<HydrationHistoryData>>> {
     return Promise.all(dateStrs.map(async (dateStr) => {
-      const cacheKey = `water_${dateStr}`;
+      const cacheKey = getWaterCacheKey(userId, dateStr);
       const historyCacheKey = userId ? `health_history_water_${userId}_${dateStr}` : cacheKey;
       let cached: HydrationHistoryData | null = null;
       try {
@@ -1006,8 +1035,9 @@ export const firebaseService = {
 
   // --- Pain Logs (Trends) ---
   async getPainLogs(userId: string) {
+    const cacheKey = getHealthCacheKey('warrior_pain', userId);
     if (!userId) {
-      const cached = localStorage.getItem('warrior_pain');
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : [];
     }
     const path = `users/${userId}/painLogs`;
@@ -1015,28 +1045,32 @@ export const firebaseService = {
       const q = query(collection(db, path), orderBy('dateStr', 'asc'));
       const snapshot = await getDocs(q);
       const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      localStorage.setItem('warrior_pain', JSON.stringify(logs));
+      localStorage.setItem(cacheKey, JSON.stringify(logs));
       return logs;
     } catch (error) {
       console.warn("Firestore pain logs failed, using cache:", error);
-      const cached = localStorage.getItem('warrior_pain');
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : [];
     }
   },
 
   async addPainLog(userId: string, painLevel: number, dateStr: string, triggers: string[] = []) {
+    const owner = getCacheEntryOwner(userId);
     const data = { painLevel, dateStr, triggers, timestamp: serverTimestamp() };
-    const cached = localStorage.getItem('warrior_pain');
+    const cacheKey = getHealthCacheKey('warrior_pain', userId);
+    const cached = localStorage.getItem(cacheKey);
     const logs = cached ? JSON.parse(cached) : [];
-    
-    // Check if entry for dateStr already exists, to update it, or add new
-    const existingIndex = logs.findIndex((l: any) => l.dateStr === dateStr);
+
+    // Check if an entry for dateStr already exists for THIS account, to update
+    // it, or add a new one. Date-only matching once allowed one account's write
+    // to overwrite another account's cached same-day pain values.
+    const existingIndex = logs.findIndex((l: any) => l.dateStr === dateStr && isOwnedCacheEntry(l, owner));
     if (existingIndex !== -1) {
-      logs[existingIndex] = { ...logs[existingIndex], painLevel, triggers };
+      logs[existingIndex] = { ...logs[existingIndex], userId: owner, painLevel, triggers };
     } else {
-      logs.push({ id: Math.random().toString(36).substring(2, 9), ...data, timestamp: new Date().toISOString() });
+      logs.push({ id: Math.random().toString(36).substring(2, 9), userId: owner, ...data, timestamp: new Date().toISOString() });
     }
-    localStorage.setItem('warrior_pain', JSON.stringify(logs));
+    localStorage.setItem(cacheKey, JSON.stringify(logs));
 
     if (!userId) {
       await this.updateStreak(userId);
@@ -1061,8 +1095,9 @@ export const firebaseService = {
 
   // --- Symptom Logs ---
   async getSymptomLogs(userId: string) {
+    const cacheKey = getHealthCacheKey('warrior_symptom_logs', userId);
     if (!userId) {
-      const cached = localStorage.getItem('warrior_symptom_logs');
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : [];
     }
     const path = `users/${userId}/symptomLogs`;
@@ -1070,11 +1105,11 @@ export const firebaseService = {
       const q = query(collection(db, path), orderBy('dateStr', 'asc'));
       const snapshot = await getDocs(q);
       const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      localStorage.setItem('warrior_symptom_logs', JSON.stringify(logs));
+      localStorage.setItem(cacheKey, JSON.stringify(logs));
       return logs;
     } catch (error) {
       console.warn("Firestore symptom logs failed, using cache:", error);
-      const cached = localStorage.getItem('warrior_symptom_logs');
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : [];
     }
   },
@@ -1082,11 +1117,11 @@ export const firebaseService = {
   async getSymptomHistory(userId: string): Promise<HealthHistoryCollection<SymptomHistoryData>> {
     let cached: SymptomHistoryData[] = [];
     try {
-      const cachedValue = localStorage.getItem('warrior_symptom_logs');
+      const cachedValue = localStorage.getItem(getHealthCacheKey('warrior_symptom_logs', userId));
       const parsed = cachedValue ? JSON.parse(cachedValue) : [];
-      cached = Array.isArray(parsed)
-        ? parsed.filter((entry) => !userId || entry?.userId === userId)
-        : [];
+      // Authenticated caches are already isolated by UID. Do not reject older
+      // legitimate records solely because they predate the userId field.
+      cached = Array.isArray(parsed) ? parsed : [];
     } catch {
       cached = [];
     }
@@ -1102,7 +1137,7 @@ export const firebaseService = {
       const q = query(collection(db, path), orderBy('dateStr', 'asc'));
       const snapshot = await getDocs(q);
       const logs = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() } as SymptomHistoryData));
-      localStorage.setItem('warrior_symptom_logs', JSON.stringify(logs));
+      localStorage.setItem(getHealthCacheKey('warrior_symptom_logs', userId), JSON.stringify(logs));
       return logs.length > 0
         ? { state: 'recorded', data: logs }
         : { state: 'missing', data: [] };
@@ -1115,8 +1150,9 @@ export const firebaseService = {
   },
 
   async addSymptomLog(userId: string, painLevel: number, symptoms: string[], triggers: string[], waterIntake: number, dateStr: string) {
+    const owner = getCacheEntryOwner(userId);
     const data = { 
-      userId: userId || 'guest',
+      userId: owner,
       painLevel, 
       symptoms, 
       triggers, 
@@ -1125,9 +1161,14 @@ export const firebaseService = {
       timestamp: serverTimestamp() 
     };
 
-    const cached = localStorage.getItem('warrior_symptom_logs');
+    const cacheKey = getHealthCacheKey('warrior_symptom_logs', userId);
+    const cached = localStorage.getItem(cacheKey);
     const logs = cached ? JSON.parse(cached) : [];
-    const existingIndex = logs.findIndex((l: any) => l.dateStr === dateStr);
+
+    // Same-date upserts must only match an entry owned by the acting account.
+    // Date-only matching once let account B update account A's cached clinical
+    // values while the cache kept attributing them to account A.
+    const existingIndex = logs.findIndex((l: any) => l.dateStr === dateStr && isOwnedCacheEntry(l, owner));
     
     const localData = { 
       ...data, 
@@ -1136,11 +1177,11 @@ export const firebaseService = {
     };
 
     if (existingIndex !== -1) {
-      logs[existingIndex] = { ...logs[existingIndex], painLevel, symptoms, triggers, waterIntake };
+      logs[existingIndex] = { ...logs[existingIndex], userId: owner, painLevel, symptoms, triggers, waterIntake };
     } else {
       logs.push(localData);
     }
-    localStorage.setItem('warrior_symptom_logs', JSON.stringify(logs));
+    localStorage.setItem(cacheKey, JSON.stringify(logs));
 
     if (!userId) {
       await this.updateStreak(userId);
@@ -1252,21 +1293,16 @@ export const firebaseService = {
   },
 
   // --- Emergency Info ---
+  // Missing emergency information stays missing: no seeded contacts, allergies,
+  // medications or clinical notes are invented for real Patient flows. Cached
+  // emergency data is UID-scoped for authenticated accounts; guest sessions keep
+  // the legacy unscoped key. Legacy unscoped data is never attached to an
+  // authenticated account and never deleted.
   async getEmergencyInfo(userId: string) {
-    const defaultInfo = {
-      bloodType: 'O+',
-      genotype: 'SS',
-      emergencyContactName: 'Dr. Amina Yusuf (Specialist)',
-      emergencyContactPhone: '+234 812 345 6789',
-      primaryCaregiverName: 'Sarah Smith (Mother)',
-      primaryCaregiverPhone: '+234 803 111 2222',
-      allergies: 'Penicillin, Sulfa medications',
-      currentMeds: 'Hydroxyurea (500mg daily), Folic Acid (5mg)',
-      customNotes: 'Keep well hydrated. Avoid extreme cold temperature triggers. Administer IV fluids quickly'
-    };
+    const cacheKey = getHealthCacheKey('warrior_emergency', userId);
     if (!userId) {
-      const cached = localStorage.getItem('warrior_emergency');
-      return cached ? JSON.parse(cached) : defaultInfo;
+      const cached = localStorage.getItem(cacheKey);
+      return cached ? JSON.parse(cached) : {};
     }
     const path = `users/${userId}/emergencyInfo/summary`;
     try {
@@ -1274,19 +1310,19 @@ export const firebaseService = {
       const snapshot = await getDoc(docRef);
       if (snapshot.exists()) {
         const data = snapshot.data();
-        localStorage.setItem('warrior_emergency', JSON.stringify(data));
+        localStorage.setItem(cacheKey, JSON.stringify(data));
         return data;
       }
-      return defaultInfo;
+      return {};
     } catch (error) {
       console.warn("Firestore emergency info failed, fallback:", error);
-      const cached = localStorage.getItem('warrior_emergency');
-      return cached ? JSON.parse(cached) : defaultInfo;
+      const cached = localStorage.getItem(cacheKey);
+      return cached ? JSON.parse(cached) : {};
     }
   },
 
   async saveEmergencyInfo(userId: string, data: any) {
-    localStorage.setItem('warrior_emergency', JSON.stringify(data));
+    localStorage.setItem(getHealthCacheKey('warrior_emergency', userId), JSON.stringify(data));
     if (!userId) return;
     const path = `users/${userId}/emergencyInfo/summary`;
     try {
@@ -1600,7 +1636,7 @@ export const firebaseService = {
 
       // If no explicit mood checkin, check if there's a pain log for that day to infer wellness (10 - painLevel)
       if (moodScore === null) {
-        const cachedPain = localStorage.getItem('warrior_pain');
+        const cachedPain = localStorage.getItem(getHealthCacheKey('warrior_pain', userId));
         const painLogs = cachedPain ? JSON.parse(cachedPain) : [];
         const foundPain = painLogs.find((p: any) => p.dateStr === dateStr);
         if (foundPain) {
@@ -1629,18 +1665,10 @@ export const firebaseService = {
 
   // --- Scheduled Reminders Persistence ---
   async getScheduledReminders(userId: string) {
-    const defaultReminders = [
-      { id: 'rem-med-1', title: 'Hydroxyurea Daily Dose', type: 'medication', time: '08:00', enabled: true, details: '500mg with breakfast' },
-      { id: 'rem-hyd-1', title: 'Mid-Morning Hydration Boost', type: 'hydration', time: '11:00', enabled: true, details: 'Drink 500ml of warm water' },
-      { id: 'rem-chk-1', title: 'Afternoon Pain & Wellness Check-in', type: 'checkin', time: '14:30', enabled: true, details: 'Record symptoms & resting level' },
-      { id: 'rem-med-2', title: 'Evening Folic Acid & Hydration', type: 'medication', time: '20:00', enabled: true, details: 'Folic acid 5mg + 350ml water' },
-      { id: 'rem-chk-2', title: 'Nighttime Cellular Recovery', type: 'checkin', time: '22:00', enabled: false, details: 'Bedtime relaxation & warmth check' }
-    ];
-
     const cached = localStorage.getItem(`warrior_reminders_${userId || 'guest'}`);
     if (cached) return JSON.parse(cached);
 
-    if (!userId) return defaultReminders;
+    if (!userId) return [];
 
     const path = `users/${userId}/reminderSettings/config`;
     try {
@@ -1650,10 +1678,10 @@ export const firebaseService = {
         localStorage.setItem(`warrior_reminders_${userId}`, JSON.stringify(data));
         return data;
       }
-      return defaultReminders;
+      return [];
     } catch (error) {
       console.warn("Firestore getScheduledReminders fallback:", error);
-      return defaultReminders;
+      return [];
     }
   },
 

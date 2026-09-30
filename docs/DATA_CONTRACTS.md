@@ -164,11 +164,11 @@ refactoring.
 
 | Key | Purpose |
 |---|---|
-| `warrior_meds` | Cached medication array. Not currently UID-scoped. |
-| `water_{dateStr}` | Date hydration record. Not currently UID-scoped. |
-| `warrior_pain` | Cached pain logs. Not currently UID-scoped. |
-| `warrior_symptom_logs` | Cached symptom logs. Not currently UID-scoped. |
-| `warrior_emergency` | Emergency summary. Not currently UID-scoped. |
+| `warrior_meds_{uid}` | Authenticated medication cache. The legacy `warrior_meds` key remains guest-only and is never attached to an authenticated account. |
+| `water_{uid}_{dateStr}` | Authenticated hydration record. The legacy `water_{dateStr}` key remains guest-only. |
+| `warrior_pain_{uid}` | Authenticated pain-log cache. The legacy `warrior_pain` key remains guest-only. |
+| `warrior_symptom_logs_{uid}` | Authenticated symptom-log cache. The legacy `warrior_symptom_logs` key remains guest-only. |
+| `warrior_emergency_{uid}` | Authenticated emergency summary. Missing records return an empty object; the legacy `warrior_emergency` key remains guest-only. |
 | `warrior_appointments` | Guest-only legacy appointment list; never read for authenticated users. |
 | `warrior_appointments_{uid}` | Authenticated appointment cache; cloud success replaces this cache. |
 | `warrior_carevault_<uid>` | Authenticated Medical Records fallback; only the matching account reads it. |
@@ -177,7 +177,7 @@ refactoring.
 | `warrior_mood_logs_{uid|guest}` | Mood history. |
 | `warrior_daily_mood_{uid|guest}_{dateStr}` | Daily mood check-in. |
 | `warrior_reminders_{uid|guest}` | Scheduled reminder settings. |
-| `warrior_designated_caregiver` | Caregiver widget data. |
+| `warrior_designated_caregiver_{uid}` | Authenticated designated-caregiver data. The legacy unscoped key remains guest-only. |
 | `warrior_er_checklist` | ER toolkit checklist state. |
 
 ### Community, education, and local assistant
@@ -197,9 +197,10 @@ refactoring.
 | `warrior_daily_challenge` | Daily game completion. |
 | `warrior_active_skin` | Selected game skin. |
 
-Global health keys create cross-account leakage risk on shared browsers. Fix
-through a versioned read-old/write-new migration, not by deleting or renaming
-keys without a compatibility path.
+Legacy global health keys are preserved without deletion because ownership
+cannot be established. Authenticated reads and writes use UID-scoped keys and
+do not migrate or expose legacy global values. Guest flows retain the legacy
+keys for compatibility.
 
 ## Server API contracts
 
@@ -246,7 +247,8 @@ experimental and requires the safety treatment defined in `PRODUCT.md`.
   deterministic simulated curve. Each point has `isReal`, but recorded and
   simulated points share one rendered series.
 - `getMoodAndHydrationTrends7Days` uses an explicit daily mood score when
-  present, otherwise may infer a score from the global `warrior_pain` cache as
+  present, otherwise may infer a score from the acting account's UID-scoped
+  `warrior_pain_{uid}` cache as
   `max(1, 10 - painLevel)`. With no mood or pain it returns `7.0` for chart
   continuity. The current `hasMoodLogged` value is true for inferred pain-based
   scores as well as explicit mood entries.

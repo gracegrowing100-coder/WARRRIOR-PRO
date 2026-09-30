@@ -42,4 +42,18 @@ describe('Emergency entry point', () => {
     const closeButton = screen.getByRole('button', { name: 'Close emergency information' });
     expect(closeButton).toHaveClass('min-h-11', 'min-w-11');
   });
+
+  it('shows missing states without invented clinical values or call links', async () => {
+    service.getEmergencyInfo.mockResolvedValue({});
+    const user = userEvent.setup();
+    render(<EmergencyButton userId="patient-1" />);
+
+    await user.click(screen.getByRole('button', { name: /Emergency HUD/i }));
+
+    expect(await screen.findAllByText('N/A')).toHaveLength(2);
+    expect(screen.getByText('No custom notes provided.')).toBeInTheDocument();
+    expect(screen.getAllByText('Not recorded yet')).toHaveLength(2);
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Amina Yusuf|Sarah Smith|Hydroxyurea \(500mg daily\)/i)).not.toBeInTheDocument();
+  });
 });

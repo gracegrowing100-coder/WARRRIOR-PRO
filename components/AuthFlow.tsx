@@ -192,11 +192,11 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
 
   // Onboarding sequence state
   const [onboardingStep, setOnboardingStep] = useState(1);
-  const [scdType, setScdType] = useState('SS');
-  const [medicationsList, setMedicationsList] = useState<string[]>(['Folic Acid (Daily)']);
+  const [scdType, setScdType] = useState('');
+  const [medicationsList, setMedicationsList] = useState<string[]>([]);
   const [newCustomMed, setNewCustomMed] = useState('');
   const [crisisTriggersList, setCrisisTriggersList] = useState<string[]>([]);
-  const [targetHydration, setTargetHydration] = useState(3.8);
+  const [targetHydration, setTargetHydration] = useState(3.0);
   const [loadingPhase, setLoadingPhase] = useState<string | null>(null);
 
   const PRESET_TRIGGERS = [
@@ -258,38 +258,12 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
         setLoadingPhase(null);
         onAuthSuccess(fbUser);
       } else {
-        // If they don't have a profile for some reason, we can set up a default profile for them instantly too!
-        setLoadingPhase("Configuring fallback patient parameters...");
-        const userId = fbUser.uid;
-        const profilePayload = {
-          displayName: fullName || fbUser.displayName || email.split('@')[0],
-          role: 'Person with Sickle Cell Disease',
-          email: fbUser.email || email,
-          age: 25,
-          city: 'Not Specified',
-          bloodType: 'Not Specified',
-          scdType: 'SS',
-          streak: 0,
-          photoURL: fbUser.photoURL || '',
-          lastActiveDate: new Date().toLocaleDateString('sv')
-        };
-        await firebaseService.createUserProfile(userId, profilePayload);
-        await firebaseService.saveWaterLog(userId, new Date().toLocaleDateString('sv'), 0, 3.8);
-        await firebaseService.saveEmergencyInfo(userId, {
-          bloodType: 'O-positive (Pending)',
-          genotype: 'SS',
-          emergencyContactName: 'SCD Clinical Coordinator',
-          emergencyContactPhone: '+1 800-411-CARE',
-          primaryCaregiverName: 'Not recorded yet',
-          primaryCaregiverPhone: 'Not recorded yet',
-          allergies: 'None recorded',
-          currentMeds: 'Folic acid support',
-          customNotes: 'Target hydration: 3.8 Liters.'
-        });
-        setLoadingPhase("Welcome! Opening clinical portal...");
-        await new Promise(resolve => setTimeout(resolve, 800));
+        // A missing profile must be completed by the account owner. Do not turn
+        // prototype defaults into patient-owned clinical records.
+        setFullName(fbUser.displayName || email.split('@')[0] || '');
+        setEmail(fbUser.email || email);
+        setScreen('onboarding');
         setLoadingPhase(null);
-        onAuthSuccess(fbUser);
       }
     } catch (err: any) {
       setLoadingPhase(null);
@@ -337,7 +311,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
         console.warn("Could not dispatch initial verification link:", e);
       }
 
-      setLoadingPhase("Initializing clinical parameters & rehydration thresholds...");
+      setLoadingPhase("Saving your account details...");
       
       const userId = fbUser.uid;
       const currentSelectedGenotype = userRole === 'Person with Sickle Cell Disease' ? scdType : 'N/A';
@@ -346,7 +320,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
         displayName: fullName || fbUser.displayName || 'Anonymous Warrior',
         role: userRole,
         email: fbUser.email || email,
-        age: dob ? Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : 25,
+        ...(dob ? { age: Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) } : {}),
         city: city || 'Not Specified',
         bloodType: 'Not Specified',
         scdType: currentSelectedGenotype,
@@ -360,12 +334,12 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
 
       setLoadingPhase("Activating daily medication reminders...");
 
-      // 5. Pre-populate medications list automatically based on selection or defaults
+      // 5. Save only medications deliberately selected by the user.
       if (medicationsList.length > 0) {
         for (const med of medicationsList) {
           await firebaseService.addMedication(userId, {
             name: med,
-            dosage: "1 dose",
+            dosage: "Not specified",
             time: "08:00",
             category: "Refinement Daily",
             checkedDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -374,23 +348,14 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
         }
       }
 
-      setLoadingPhase("Connecting emergency coordination protocols...");
-
-      // 6. Initialize water level rehydration log
-      await firebaseService.saveWaterLog(userId, new Date().toLocaleDateString('sv'), 0, targetHydration);
-
-      // 7. Save the optional emergency contact supplied during onboarding
-      await firebaseService.saveEmergencyInfo(userId, {
-        bloodType: 'O-positive (Pending confirmation)',
-        genotype: currentSelectedGenotype,
-        emergencyContactName: emergencyContactName || 'SCD Clinical Coordinator',
-        emergencyContactPhone: emergencyContactPhone || '+1 800-411-CARE',
-        primaryCaregiverName: userRole === 'Caregiver / Parent' ? fullName : (emergencyContactName || 'Not recorded yet'),
-        primaryCaregiverPhone: userRole === 'Caregiver / Parent' ? `${phoneCode} ${phoneNumber}` : (emergencyContactPhone || 'Not recorded yet'),
-        allergies: 'None recorded',
-        currentMeds: medicationsList.join(', ') || 'Folic acid support',
-        customNotes: `Target medical liquid intake threshold: ${targetHydration} Liters. Registered pain trigger profiles: ${crisisTriggersList.join(', ') || 'General cold/dehydration'}`
-      });
+      // 6. Save an emergency contact only when the user supplied one. Hydration,
+      // allergy, medication and caregiver records are created in their own flows.
+      if (emergencyContactName.trim() || emergencyContactPhone.trim()) {
+        await firebaseService.saveEmergencyInfo(userId, {
+          emergencyContactName: emergencyContactName.trim(),
+          emergencyContactPhone: emergencyContactPhone.trim()
+        });
+      }
 
       setLoadingPhase("Entering protected Warrior Cell workspace...");
       await new Promise(resolve => setTimeout(resolve, 800));
@@ -464,37 +429,10 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
           setLoadingPhase(null);
           onAuthSuccess(googleUser);
         } else {
-          setLoadingPhase("Setting up secure new clinician profile...");
-          const userId = googleUser.uid;
-          const profilePayload = {
-            displayName: googleUser.displayName || 'Anonymous Warrior',
-            role: 'Person with Sickle Cell Disease',
-            email: googleUser.email || '',
-            age: 25,
-            city: 'Not Specified',
-            bloodType: 'Not Specified',
-            scdType: 'SS',
-            streak: 0,
-            photoURL: googleUser.photoURL || '',
-            lastActiveDate: new Date().toLocaleDateString('sv')
-          };
-          await firebaseService.createUserProfile(userId, profilePayload);
-          await firebaseService.saveWaterLog(userId, new Date().toLocaleDateString('sv'), 0, 3.8);
-          await firebaseService.saveEmergencyInfo(userId, {
-            bloodType: 'O-positive (Pending confirmation)',
-            genotype: 'SS',
-            emergencyContactName: 'SCD Clinical Coordinator',
-            emergencyContactPhone: '+1 800-411-CARE',
-            primaryCaregiverName: 'Not recorded yet',
-            primaryCaregiverPhone: 'Not recorded yet',
-            allergies: 'None recorded',
-            currentMeds: 'Folic acid support',
-            customNotes: 'Target medical liquid intake threshold: 3.8 Liters.'
-          });
-          setLoadingPhase("Welcome! Redirecting to Warrior Cell App...");
-          await new Promise(resolve => setTimeout(resolve, 800));
+          setFullName(googleUser.displayName || '');
+          setEmail(googleUser.email || '');
+          setScreen('onboarding');
           setLoadingPhase(null);
-          onAuthSuccess(googleUser);
         }
       }
     } catch (err: any) {
@@ -543,7 +481,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
       displayName: fullName || auth.currentUser.displayName || 'Anonymous Warrior',
       role: userRole,
       email: auth.currentUser.email || email,
-      age: dob ? Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : 25,
+      ...(dob ? { age: Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) } : {}),
       city: city || 'Not Specified',
       bloodType: 'Not Specified',
       scdType: currentSelectedGenotype,
@@ -556,12 +494,12 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
       // 1. Create master client record
       await firebaseService.createUserProfile(userId, profilePayload);
 
-      // 2. Pre-populate medications list based on step selection
+      // 2. Save only medications deliberately selected in onboarding.
       if (medicationsList.length > 0) {
         for (const med of medicationsList) {
           await firebaseService.addMedication(userId, {
             name: med,
-            dosage: "1 dose",
+            dosage: "Not specified",
             time: "08:00",
             category: "Refinement Daily",
             checkedDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -570,23 +508,15 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
         }
       }
 
-      // 3. Initialize water level rehydration log
-      await firebaseService.saveWaterLog(userId, new Date().toLocaleDateString('sv'), 0, targetHydration);
+      // 3. Save an emergency contact only when one was explicitly supplied.
+      if (emergencyContactName.trim() || emergencyContactPhone.trim()) {
+        await firebaseService.saveEmergencyInfo(userId, {
+          emergencyContactName: emergencyContactName.trim(),
+          emergencyContactPhone: emergencyContactPhone.trim()
+        });
+      }
 
-      // 4. Save the optional emergency contact supplied during onboarding
-      await firebaseService.saveEmergencyInfo(userId, {
-        bloodType: 'O-positive (Pending confirmation)',
-        genotype: currentSelectedGenotype,
-        emergencyContactName: emergencyContactName || 'SCD Clinical Coordinator',
-        emergencyContactPhone: emergencyContactPhone || '+1 800-411-CARE',
-        primaryCaregiverName: userRole === 'Caregiver / Parent' ? fullName : (emergencyContactName || 'Not recorded yet'),
-        primaryCaregiverPhone: userRole === 'Caregiver / Parent' ? `${phoneCode} ${phoneNumber}` : (emergencyContactPhone || 'Not recorded yet'),
-        allergies: 'None recorded',
-        currentMeds: medicationsList.join(', ') || 'Folic acid support',
-        customNotes: `Target medical liquid intake threshold: ${targetHydration} Liters. Registered pain trigger profiles: ${crisisTriggersList.join(', ') || 'General cold/dehydration'}`
-      });
-
-      // 5. Complete
+      // 4. Complete
       onAuthSuccess(auth.currentUser);
     } catch (err: any) {
       console.error(err);

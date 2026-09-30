@@ -220,7 +220,10 @@ replay of every failed cloud write.
 Fallback reads are also not merge reads: for several features, a successful
 empty Firestore response replaces or ignores an existing global local cache.
 Local data is generally consulted on guest or error paths, with feature-specific
-exceptions such as mood history and reminders.
+exceptions such as mood history and reminders. Authenticated medication,
+hydration, pain, symptom, emergency and designated-caregiver fallbacks are
+scoped by UID. Legacy unscoped values remain stored for guest compatibility but
+are never attached to an authenticated account.
 
 Firestore is initialized with long-polling auto-detection, not an explicit
 persistent IndexedDB cache. The connection-test console message that says the
@@ -268,15 +271,17 @@ written, but the UI may not show its success state.
   `Telemedicine`, `Community`, and `Dashboard`.
 - Thin shared domain typing and extensive use of `any`.
 - No reusable `components/ui` or feature-boundary structure.
-- No automated unit, integration, accessibility, or end-to-end tests.
+- Focused Vitest component and persistence-contract coverage exists; there is
+  still no complete end-to-end or accessibility automation suite.
 - Installed React Router is unused.
 - Hard-coded element IDs and delayed scrolling connect some quick actions.
-- Global local-storage keys such as `warrior_meds` and `warrior_pain` are not
-  scoped by user and can mix cached data across accounts on one browser.
 - Firestore profile documents under `users/{uid}` can currently be read by any
   signed-in user, while create/update are owner-restricted. Whether clinic staff
   should ever read another profile requires an explicit authorization model.
-- Seeded medication, emergency, clinician, and Care Vault data can look real.
+- Synthetic and generated values remain in separately tracked legacy/experimental
+  surfaces, including charts and generated reports. Real account setup,
+  medication empty states, emergency information, scheduled reminders and the
+  designated-caregiver widget no longer seed sample patient records.
 - The symptom modal can display “synchronized successfully” without a distinct
   cloud acknowledgement, and the caregiver SMS draft can be labelled
   “dispatched” without delivery confirmation.

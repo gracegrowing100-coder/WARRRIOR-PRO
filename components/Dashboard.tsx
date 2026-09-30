@@ -164,7 +164,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
             { title: 'Mood and hydration trends', content: <MoodHydrationTrendsChart userId={userId} refreshTrigger={refreshPain} /> },
             { title: 'Generated reports', content: <PatternInsightsDoctorReport userId={userId} /> },
             { title: 'Scheduled reminders', content: <ScheduledRemindersManager userId={userId} /> },
-            { title: 'Caregiver tools', content: <DesignatedCaregiverWidget currentPainLevel={currentPainLevel} /> },
+            { title: 'Caregiver tools', content: <DesignatedCaregiverWidget userId={userId} currentPainLevel={currentPainLevel} /> },
             { title: 'Pain trends', content: <section id="pain-trends-chart-card" aria-label="Pain trends"><PainTrendsChart userId={userId} refreshKey={refreshPain} /></section> },
             { title: 'Care Vault', content: <section id="care-vault-section" aria-label="Care Vault"><CareVault userId={userId} /></section> },
           ].map(tool => <details key={tool.title}>

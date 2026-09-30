@@ -175,21 +175,9 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
   const fetchMeds = async () => {
     setLoading(true);
     const data = await firebaseService.getMedications(userId);
-    if (!data || data.length === 0) {
-      // Seed some default medications if user has absolutely empty setup
-      const defaults = [
-        { name: 'Hydroxyurea', dosage: '500mg', time: '08:00', frequency: 'Once Daily', lastTakenDate: '' },
-        { name: 'Folic Acid', dosage: '5mg', time: '12:00', frequency: 'Once Daily', lastTakenDate: '' }
-      ];
-      const saved: Medication[] = [];
-      for (const def of defaults) {
-        const added = await firebaseService.addMedication(userId, def);
-        if (added) saved.push(added as Medication);
-      }
-      setMeds(saved);
-    } else {
-      setMeds(data as Medication[]);
-    }
+    // An empty medication list stays empty. No sample or default medication is
+    // ever created as Patient data; existing stored medications still load.
+    setMeds((data as Medication[]) || []);
     setLoading(false);
   };
 

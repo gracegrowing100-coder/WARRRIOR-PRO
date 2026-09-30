@@ -46,19 +46,15 @@ const UserProfile: React.FC<UserProfileProps> = ({ onClose }) => {
             age: p.age?.toString() || ''
           });
         } else {
-          // Create initial profile if it doesn't exist
+          // Keep a missing profile empty until the account owner supplies it.
+          // Opening this panel must not manufacture an age or patient role.
           const initial = {
-            displayName: auth.currentUser.displayName || 'Warrior',
-            role: 'Warrior',
-            age: 25
+            displayName: auth.currentUser.displayName || '',
+            role: '',
+            age: ''
           };
-          await firebaseService.createUserProfile(auth.currentUser.uid, initial);
           setProfile(initial);
-          setFormData({
-            displayName: initial.displayName,
-            role: initial.role,
-            age: initial.age.toString()
-          });
+          setFormData(initial);
         }
       }
       setLoading(false);
@@ -74,7 +70,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ onClose }) => {
       ...profile,
       displayName: formData.displayName,
       role: formData.role,
-      age: parseInt(formData.age) || profile.age
+      age: formData.age ? parseInt(formData.age) : profile.age
     };
     await firebaseService.updateUserProfile(auth.currentUser.uid, updated);
     setProfile(updated);

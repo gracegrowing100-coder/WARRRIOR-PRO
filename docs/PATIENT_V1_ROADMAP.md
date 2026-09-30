@@ -38,23 +38,27 @@ batches are stable.
 
 Audit findings to resolve:
 
-- [ ] Fix cross-account symptom cache contamination (the cache writer
+- [x] Fix cross-account symptom cache contamination (the cache writer
       currently matches an existing record by date alone, allowing
       Account B to overwrite Account A's cached same-day clinical values
       while retaining Account A's identity).
-- [ ] Remove date-only ownership corruption (same root defect as above).
-- [ ] Scope remaining global health caches appropriately (e.g. unscoped
+- [x] Remove date-only ownership corruption (same root defect as above).
+- [x] Scope remaining global health caches appropriately (e.g. unscoped
       `warrior_*` local-storage keys such as medications and pain).
-- [ ] Remove automatic medicine creation triggered by empty medication
+- [x] Remove automatic medicine creation triggered by empty medication
       records.
-- [ ] Remove invented/sample emergency information (seeded contacts,
+- [x] Remove invented/sample emergency information (seeded contacts,
       allergies, medications, clinical facts) from real patient flows.
-- [ ] Review seeded caregiver identity where exposed to patients.
-- [ ] Preserve uncertain historical data without heuristic deletion
+- [x] Review seeded caregiver identity where exposed to patients.
+- [x] Preserve uncertain historical data without heuristic deletion
       (legacy samples without provenance stay, flagged, not purged).
 
-**Status:** OPEN. Documented in CURRENT_STATE.md known-technical-debt and
-DATA_CONTRACTS.md; no fix has landed.
+**Status:** COMPLETE IN WORKTREE (2026-09-30), pending human review. Authenticated
+health and caregiver caches are UID-scoped; legacy unscoped values remain
+untouched and are not attached to authenticated accounts. Account setup,
+medication empty states, emergency information and scheduled reminders no
+longer create sample patient records. Focused Vitest coverage verifies account
+isolation, missing-data states and preservation of explicit user entries.
 
 **Freeze gate:** No patient health data can leak to, or overwrite, another
 account's cached information; no invented clinical data appears in real
