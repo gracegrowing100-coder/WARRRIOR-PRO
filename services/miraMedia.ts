@@ -64,10 +64,16 @@ export async function startMiraRecording(options: { maxSeconds?: number } = {}):
     resolveClip = resolve;
     rejectClip = reject;
   });
-  let timeout: ReturnType<typeof setTimeout>;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const clearRecordingTimeout = () => {
+    if (timeout !== undefined) {
+      clearTimeout(timeout);
+      timeout = undefined;
+    }
+  };
 
   recorder.onstop = () => {
-    clearTimeout(timeout);
+    clearRecordingTimeout();
     releaseStream();
     if (cancelled) return;
     const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
@@ -81,27 +87,24 @@ export async function startMiraRecording(options: { maxSeconds?: number } = {}):
     );
   };
 
-  timeout = setTimeout(() => {
-    if (recorder.state !== 'inactive') recorder.stop();
-  }, maxSeconds * 1000);
-  
   try {
     recorder.start();
   } catch (error) {
-    clearTimeout(timeout);
+    clearRecordingTimeout();
     releaseStream();
     throw error instanceof Error ? error : new Error('Voice recording could not start.');
   }
 
-
-
+  timeout = setTimeout(() => {
+    if (recorder.state !== 'inactive') recorder.stop();
+  }, maxSeconds * 1000);
   return {
     stop: () => {
       if (recorder.state !== 'inactive') recorder.stop();
       return completion;
     },
     cancel: () => {
-      clearTimeout(timeout);
+      clearRecordingTimeout();
       cancelled = true;
       if (recorder.state !== 'inactive') recorder.stop();
       releaseStream();
