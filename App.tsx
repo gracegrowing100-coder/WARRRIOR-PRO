@@ -13,7 +13,7 @@ import {
 import { AnimatePresence } from 'motion/react';
 import Dashboard from './components/Dashboard';
 import GamesHub from './components/GamesHub';
-import ChatSystem from './components/ChatSystem';
+import ChatWorkspace from './components/ChatWorkspace';
 import Telemedicine from './components/Telemedicine';
 import Community from './components/Community';
 import Advocacy from './components/Advocacy';
@@ -49,6 +49,10 @@ const App: React.FC = () => {
   const [authResolved, setAuthResolved] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+
+  // Mira handoff: the patient-approved summary used to prefill an appointment
+  // request. It is form state only — no request is created or sent from here.
+  const [miraAppointmentDraft, setMiraAppointmentDraft] = useState('');
   
   // Multilingual state (English, Yoruba, Hausa, Igbo)
   const [language, setLanguage] = useState<SupportedLanguage>(() => {
@@ -182,9 +186,24 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'home': return <Dashboard onNavigate={navigate} userId={user?.uid || ''} />;
       case 'games': return <GamesHub />;
-      case 'chat': return <ChatSystem />;
+      case 'chat': return (
+        <ChatWorkspace
+          userId={user?.uid || ''}
+          onContinueToAppointment={(approvedSummary) => {
+            setMiraAppointmentDraft(approvedSummary);
+            navigate('telemedicine');
+          }}
+        />
+      );
       case 'care': return <CareHub userId={user?.uid || ''} onOpenAppointments={() => navigate('telemedicine')} />;
-      case 'telemedicine': return <Telemedicine userId={user?.uid || ''} onBackToCare={() => navigate('care')} />;
+      case 'telemedicine': return (
+        <Telemedicine
+          userId={user?.uid || ''}
+          initialReason={miraAppointmentDraft}
+          onInitialReasonConsumed={() => setMiraAppointmentDraft('')}
+          onBackToCare={() => navigate('care')}
+        />
+      );
       case 'community': return <Community />;
       case 'more': return <MoreMenu onNavigate={navigate} />;
       case 'advocacy': return <Advocacy />;

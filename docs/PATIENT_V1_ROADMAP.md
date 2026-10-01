@@ -15,7 +15,7 @@ See [WARRIOR_AI_MASTER_PLAN.md](./WARRIOR_AI_MASTER_PLAN.md)
   documentation only). The Patient/Care foundation is substantially
   implemented: Home, pain/symptom tracking, hydration, daily check-ins,
   medication, Health History, Care Hub, patient-maintained Medical Records,
-  appointment requests, emergency/offline surfaces, and legacy Chat.
+  appointment requests, emergency/offline surfaces, and the Mira/Community Chat workspace.
 - **Patient V1 functional freeze status:** NOT FROZEN. Documented audit
   findings below (P0–P5A, plus P5B before identifiable-patient deployment)
   remain unresolved.
@@ -137,22 +137,36 @@ recorded requests; no clinic acceptance or reserved time is implied.
 **Freeze gate:** Request-only semantics are consistent across Home, Care
 and Appointments.
 
-## 7. P4 — Chat V1 scope decision
+## 7. P4 — Mira (Chat V1 scope)
 
-> **DECISION REQUIRED** — the product owner must choose before functional
-> freeze. Existing docs record the open question, not the answer.
+**Decision (fixed): Option A — the assistant is part of Patient V1, as Mira.**
 
-**Option A — Full WARRIOR AI assistant is part of V1.**
-Requires a focused AI identity/safety/API work phase before freeze
-(assistant clearly identified as AI, no simulated clinician personas, safe
-escalation boundaries, reviewed API boundary).
+Mira is the canonical assistant identity: **Mira by WARRIOR AI**. Mira is
+clearly identified as AI, sickle-cell/hematology focused, text-first with a
+voice-enabled demo, multilingual (English, Hausa, Igbo, Yorùbá, Nigerian
+Pidgin), able to classify escalation (none / specialist / urgent), able to
+produce a patient-reviewed handoff summary, and able to pre-fill an appointment
+request without ever submitting one.
 
-**Option B — Full assistant is post-V1.**
-Remove/isolate misleading simulated clinician behavior and keep only
-supported functionality in V1; the full assistant is deferred.
+Historical options recorded before the decision (closed):
 
-Do not let the existing legacy Chat implementation define this product
-decision by default.
+- Option A — full WARRIOR AI assistant in V1 (**chosen**).
+- Option B — full assistant post-V1 (not chosen).
+
+**Status:** FOUNDATION REPAIRED IN WORKTREE (2026-10-01), pending human review. Mira
+text and demo voice share one conversation, one escalation model and one safety
+layer; only the modality differs. The Chat destination keeps the existing
+community chat as a separate tab. Mira conversations are stored separately from
+clinical records. Provider-unsupported voice languages (Yorùbá, Nigerian
+Pidgin; Igbo speech-to-text) are reported as unavailable instead of simulated.
+The server uses the official Firebase Admin token verifier, runs deterministic
+urgent checks before provider access, and exposes a provider-neutral Mira
+interface with Gemini as the current adapter. Voice remains a neutral capability
+flag. No payment, subscription or clinician-workspace functionality was added.
+
+**Freeze gate:** the assistant is never presented as a human clinician, never
+submits an appointment, never claims clinic confirmation, and states provider
+voice limits truthfully.
 
 ## 8. P5 — Offline and privacy boundary
 
@@ -279,7 +293,7 @@ from authorization to deploy with real identifiable patient health data.
 | Current baseline | Health History and Medical Records are separate domains | Longitudinal events vs patient-maintained background are different jobs | Architectural boundary; enforced in Care |
 | Current baseline | Appointments are requests, not confirmed bookings | No clinic backend exists to establish confirmation | Submit/review/cancel semantics preserved |
 | Current baseline | Future roles (Caregiver, Clinician, Administrator) deferred | Require consent/verification architectures that do not exist | Documented in ROLE_ACCESS_MODEL.md |
-| Current baseline | Chat V1 scope (P4) unresolved | Product decision, not technical | Open — blocks freeze |
+| Current baseline | Chat V1 scope (P4) resolved: Mira by WARRIOR AI is the Patient V1 assistant | Product decision made; replaces the open P2-era question | Mira text, escalation, handoff and demo voice implemented; community chat kept separate; no payment work |
 
 Do not invent dates; use "Current baseline" when a decision date is
 unavailable.

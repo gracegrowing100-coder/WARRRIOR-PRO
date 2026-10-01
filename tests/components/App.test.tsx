@@ -19,6 +19,7 @@ vi.mock('../../components/Dashboard', () => ({
 }));
 vi.mock('../../components/GamesHub', () => ({ default: () => <div>Games screen</div> }));
 vi.mock('../../components/ChatSystem', () => ({ default: () => <div>Chat screen</div> }));
+vi.mock('../../components/mira', () => ({ MiraAssistant: () => <div>Mira assistant</div> }));
 vi.mock('../../components/Telemedicine', () => ({ default: () => <div>Telemedicine screen</div> }));
 vi.mock('../../components/Community', () => ({ default: () => <div>Community screen</div> }));
 vi.mock('../../components/Advocacy', () => ({ default: () => <div>Advocacy screen</div> }));
@@ -71,7 +72,8 @@ describe('App startup, auth state, navigation, and settings', () => {
     expect(screen.getByRole('button', { name: 'Emergency HUD' })).toBeInTheDocument();
   });
 
-  it('handles hash changes after mount', async () => {
+  it('handles hash changes after mount and keeps community chat one tab away', async () => {
+    const user = userEvent.setup();
     render(<App />);
     act(() => authHarness.callback?.({ uid: 'patient-1' }));
     await screen.findByText('Patient Home for patient-1');
@@ -81,6 +83,10 @@ describe('App startup, auth state, navigation, and settings', () => {
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
 
+    expect(await screen.findByText('Mira assistant')).toBeInTheDocument();
+    expect(screen.queryByText('Chat screen')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Community' }));
     expect(await screen.findByText('Chat screen')).toBeInTheDocument();
   });
 

@@ -42,7 +42,7 @@ Navigation uses custom hash state rather than React Router, although
 |---|---|---|
 | `#/home` | Patient dashboard | `Dashboard` |
 | `#/games` | Games and education | `GamesHub` |
-| `#/chat` | Chat and peer-support surfaces | `ChatSystem` |
+| `#/chat` | Mira assistant and separate community chat | `ChatWorkspace` |
 | `#/telemedicine` | Appointments and remote-care concepts | `Telemedicine` |
 | `#/community` | Community and support centres | `Community` |
 | `#/advocacy` | Advocacy and research content | `Advocacy` |
@@ -54,6 +54,14 @@ sticky and the main content is constrained to `max-w-5xl`.
 Phase 4G: `App.tsx` initializes from the existing hash and handles subsequent
 hash changes without adding history entries. Direct Care and appointment links
 open their requested destination. Unknown hashes fall back to Home.
+
+Phase P4: Chat opens a workspace with Mira as the default patient assistant and
+the existing community chat as a separate tab. Mira is explicitly AI, uses an
+authenticated server API, keeps conversations outside clinical collections,
+and pre-fills appointment requests only after patient review. Deterministic
+urgent guidance does not depend on the AI provider. Text and supported voice
+modalities share one conversation pipeline; provider-limited languages remain
+labelled unavailable.
 
 ## Existing screens and feature surfaces
 
@@ -325,8 +333,8 @@ without adding a general synchronization framework. Patient-visible success is
 based on explicit service results. Appointment presentation is request-only and
 chronological by preferred date. Seeded professional impersonation and fabricated
 AI/report fallbacks are removed from current Patient flows. Focused contract and
-component tests cover these boundaries; P4 still owns the product decision about
-a future full WARRIOR AI assistant.
+component tests cover these boundaries. P4 subsequently established Mira as the
+Patient V1 assistant while retaining community chat as a separate surface.
 
 ## Related documents
 

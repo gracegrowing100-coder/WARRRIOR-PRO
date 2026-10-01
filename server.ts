@@ -2,6 +2,10 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
+import { registerMiraRoutes } from "./server/mira/miraRoutes";
+import { createGeminiMiraProvider } from "./server/mira/miraGeminiProvider";
+import type { MiraProvider } from "./server/mira/miraProvider";
+import firebaseConfig from "./firebase-applet-config.json";
 
 async function startServer() {
   const app = express();
@@ -28,7 +32,26 @@ async function startServer() {
     return aiInstance;
   }
 
+  let miraProvider: MiraProvider | null = null;
+  function getMiraProvider(): MiraProvider | null {
+    if (miraProvider) return miraProvider;
+    const ai = getGenAI();
+    if (!ai) return null;
+    miraProvider = createGeminiMiraProvider(ai);
+    return miraProvider;
+  }
+
+  // Only transcription accepts a larger base64 body. Other APIs retain the
+  // normal Express JSON limit.
+  app.use('/api/mira/transcribe', express.json({ limit: '8mb' }));
   app.use(express.json());
+
+  // Mira API boundary. The UID is derived from the verified Firebase ID token;
+  // no client-supplied user id is trusted, and provider keys stay server-side.
+  registerMiraRoutes(app, {
+    getProvider: getMiraProvider,
+    projectId: process.env.MIRA_FIREBASE_PROJECT_ID || firebaseConfig.projectId,
+  });
 
   // Resilient multi-tier model fallback with backoff to seamlessly handle 503 high-demand spikes
   async function generateContentWithResilience(

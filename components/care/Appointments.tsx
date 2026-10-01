@@ -14,6 +14,7 @@ export interface AppointmentsProps {
   userId: string;
   onBackToCare: () => void;
   initialReason?: string;
+  onInitialReasonConsumed?: () => void;
 }
 
 type AppointmentView = 'landing' | 'request' | 'details';
@@ -79,7 +80,9 @@ export const Appointments: React.FC<AppointmentsProps> = ({
   userId,
   onBackToCare,
   initialReason,
+  onInitialReasonConsumed,
 }) => {
+  const [requestInitialReason] = useState(initialReason ?? '');
   const [view, setView] = useState<AppointmentView>('landing');
   const [appointments, setAppointments] = useState<AppointmentRecord[]>([]);
   const [readState, setReadState] = useState<AppointmentReadState>('empty');
@@ -106,6 +109,10 @@ export const Appointments: React.FC<AppointmentsProps> = ({
   useEffect(() => {
     void loadAppointments();
   }, [loadAppointments]);
+
+  useEffect(() => {
+    if (initialReason) onInitialReasonConsumed?.();
+  }, [initialReason, onInitialReasonConsumed]);
 
   const openDetails = (appointment: AppointmentRecord) => {
     setSelected(appointment);
@@ -138,7 +145,7 @@ export const Appointments: React.FC<AppointmentsProps> = ({
     return (
       <AppointmentRequest
         userId={userId}
-        initialReason={initialReason}
+        initialReason={requestInitialReason}
         onBack={() => setView('landing')}
         onDone={() => {
           setView('landing');
