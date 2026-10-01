@@ -81,6 +81,10 @@ export async function startMiraRecording(options: { maxSeconds?: number } = {}):
     );
   };
 
+  timeout = setTimeout(() => {
+    if (recorder.state !== 'inactive') recorder.stop();
+  }, maxSeconds * 1000);
+  
   try {
     recorder.start();
   } catch (error) {
@@ -89,9 +93,7 @@ export async function startMiraRecording(options: { maxSeconds?: number } = {}):
     throw error instanceof Error ? error : new Error('Voice recording could not start.');
   }
 
-  timeout = setTimeout(() => {
-    if (recorder.state !== 'inactive') recorder.stop();
-  }, maxSeconds * 1000);
+
 
   return {
     stop: () => {
