@@ -4,9 +4,8 @@
 // stay free of Node and browser APIs.
 //
 // Provider capability honesty rule: a language is marked 'verified' only when
-// the current speech provider (Gemini 3.5 Transcribe / Gemini 3.8 Flash TTS)
-// documents support for it. Everything else stays 'provider-limited' and voice
-// is not simulated.
+// at least one configured provider has passed the required capability check.
+// Documented-but-unverified YarnGPT languages stay 'provider-limited'.
 
 export type MiraLanguageCode = 'en' | 'ha' | 'ig' | 'yo' | 'pcm';
 
@@ -30,7 +29,7 @@ export const MIRA_LANGUAGES: MiraLanguageDefinition[] = [
     speechToText: 'verified',
     textToSpeech: 'verified',
     voiceDetail:
-      'English voice input and spoken replies are documented by the current speech provider. Nigerian English is not a separately documented variant, so the provider hint uses en-GB.',
+      'English voice input and spoken replies passed live YarnGPT checks. Nigerian English is not a separately documented variant, so the Gemini fallback hint uses en-GB.',
   },
   {
     code: 'ha',
@@ -39,34 +38,34 @@ export const MIRA_LANGUAGES: MiraLanguageDefinition[] = [
     speechToText: 'verified',
     textToSpeech: 'verified',
     voiceDetail:
-      'Hausa is documented for speech-to-text (ha-NG) and for spoken replies by the current speech provider.',
+      'Hausa spoken replies passed live YarnGPT checks. YarnGPT speech-to-text did not retain usable text in the human-sample check, so voice input keeps the previously verified Gemini ha-NG path.',
   },
   {
     code: 'ig',
     label: 'Igbo',
     speechHint: null,
-    speechToText: 'provider-limited',
+    speechToText: 'verified',
     textToSpeech: 'verified',
     voiceDetail:
-      'Spoken Igbo replies are documented by the current speech provider. Igbo speech-to-text is not in the provider language list, so voice input is unavailable for Igbo.',
+      'Igbo voice input and spoken replies passed live YarnGPT checks; the human-sample transcript retained the main meaning with some substitutions and truncation.',
   },
   {
     code: 'yo',
     label: 'Yorùbá',
     speechHint: null,
-    speechToText: 'provider-limited',
-    textToSpeech: 'provider-limited',
+    speechToText: 'verified',
+    textToSpeech: 'verified',
     voiceDetail:
-      'Yorùbá is not documented for the current speech provider, so voice input and spoken replies are unavailable. Text chat still works.',
+      'Yorùbá voice input and spoken replies passed live YarnGPT checks; the human-sample transcript retained the main meaning with minor substitutions.',
   },
   {
     code: 'pcm',
     label: 'Nigerian Pidgin',
     speechHint: null,
-    speechToText: 'provider-limited',
-    textToSpeech: 'provider-limited',
+    speechToText: 'verified',
+    textToSpeech: 'verified',
     voiceDetail:
-      'Nigerian Pidgin is not documented for the current speech provider, so voice input and spoken replies are unavailable. Text chat still works.',
+      'Nigerian Pidgin voice input passed a genuine human-sample YarnGPT check with the meaning retained, and spoken replies returned playable audio without a language-code assumption.',
   },
 ];
 

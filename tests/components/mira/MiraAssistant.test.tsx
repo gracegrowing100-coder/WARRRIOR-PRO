@@ -105,15 +105,15 @@ describe('Mira assistant experience', () => {
     expect(screen.queryByText(/Dr\.|hematologist on call|I am your doctor|clinician-verified/i)).not.toBeInTheDocument();
   });
 
-  it('keeps the chosen language and states provider voice limits truthfully', async () => {
+  it('keeps a chosen live-verified voice language available', async () => {
     const user = userEvent.setup();
     renderMira();
 
     await user.selectOptions(await screen.findByLabelText('Mira conversation language'), 'yo');
 
     expect(miraApi.storeMiraLanguage).toHaveBeenCalledWith('yo');
-    expect(await screen.findByText('Voice input is not available in this language')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Speak to Mira/i })).toBeDisabled();
+    expect(await screen.findByText(/Yorùbá voice input and spoken replies passed live YarnGPT checks/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Speak to Mira in Yorùbá/i })).toBeEnabled();
   });
 
   it('shows a neutral capability notice when voice is switched off', async () => {

@@ -61,7 +61,13 @@ authenticated server API, keeps conversations outside clinical collections,
 and pre-fills appointment requests only after patient review. Deterministic
 urgent guidance does not depend on the AI provider. Text and supported voice
 modalities share one conversation pipeline; provider-limited languages remain
-labelled unavailable.
+labelled unavailable. The server uses YarnGPT for live-verified voice modes and
+Gemini where its support was already verified. YarnGPT TTS returned playable
+audio for English, Hausa, Igbo, Yorùbá and Nigerian Pidgin. Human-sample YarnGPT
+STT retained usable meaning for English, Igbo, Yorùbá and Nigerian Pidgin;
+Hausa stays on the verified Gemini path because the YarnGPT transcript was not
+usable. Transient YarnGPT transport/provider failures receive one bounded retry;
+ASR retries reuse the upload idempotency key and never resubmit an accepted job.
 
 ## Existing screens and feature surfaces
 

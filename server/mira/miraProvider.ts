@@ -19,9 +19,12 @@ export interface MiraChatProviderResult {
 export interface MiraTranscriptionInput { audioBase64: string; mimeType: string; language: MiraLanguageCode; }
 export interface MiraSpeechInput { text: string; language: MiraLanguageCode; }
 
-/** Provider-neutral server contract. The browser API does not depend on a vendor. */
-export interface MiraProvider {
-  chat(input: MiraChatInput): Promise<MiraChatProviderResult>;
+export interface MiraVoiceProvider {
   transcribe(input: MiraTranscriptionInput): Promise<{ transcript: string; model: string }>;
   synthesize(input: MiraSpeechInput): Promise<{ audioBase64: string; mimeType: string; model: string }>;
+}
+
+/** Provider-neutral server contract. The browser API does not depend on a vendor. */
+export interface MiraProvider extends MiraVoiceProvider {
+  chat(input: MiraChatInput): Promise<MiraChatProviderResult>;
 }

@@ -1,11 +1,20 @@
 import express from "express";
 import path from "path";
+import { loadEnvFile } from "node:process";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import { registerMiraRoutes } from "./server/mira/miraRoutes";
 import { createGeminiMiraProvider } from "./server/mira/miraGeminiProvider";
 import type { MiraProvider } from "./server/mira/miraProvider";
+import { createMiraProviderWithVoiceSelection } from "./server/mira/miraVoiceProvider";
+import { createYarnGptVoiceProvider } from "./server/mira/miraYarnGptProvider";
 import firebaseConfig from "./firebase-applet-config.json";
+
+try {
+  loadEnvFile(path.resolve(process.cwd(), '.env.local'));
+} catch (error) {
+  if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+}
 
 async function startServer() {
   const app = express();
@@ -37,7 +46,12 @@ async function startServer() {
     if (miraProvider) return miraProvider;
     const ai = getGenAI();
     if (!ai) return null;
-    miraProvider = createGeminiMiraProvider(ai);
+    const gemini = createGeminiMiraProvider(ai);
+    const yarnGptKey = process.env.YARNGPT_API_KEY;
+    miraProvider = createMiraProviderWithVoiceSelection(gemini, {
+      gemini,
+      ...(yarnGptKey ? { yarngpt: createYarnGptVoiceProvider({ apiKey: yarnGptKey }) } : {}),
+    });
     return miraProvider;
   }
 

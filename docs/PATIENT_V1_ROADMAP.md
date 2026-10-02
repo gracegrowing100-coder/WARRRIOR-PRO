@@ -157,11 +157,15 @@ Historical options recorded before the decision (closed):
 text and demo voice share one conversation, one escalation model and one safety
 layer; only the modality differs. The Chat destination keeps the existing
 community chat as a separate tab. Mira conversations are stored separately from
-clinical records. Provider-unsupported voice languages (Yorùbá, Nigerian
-Pidgin; Igbo speech-to-text) are reported as unavailable instead of simulated.
+clinical records. Live TTS checks produced playable audio for all five pitch
+languages. Human-sample STT checks retained usable meaning for English, Igbo,
+Yorùbá and Nigerian Pidgin. Hausa STT remains on the previously verified Gemini
+path because YarnGPT returned unusable mixed-script text for the checked sample.
 The server uses the official Firebase Admin token verifier, runs deterministic
 urgent checks before provider access, and exposes a provider-neutral Mira
-interface with Gemini as the current adapter. Voice remains a neutral capability
+interface with Gemini reasoning and a YarnGPT voice adapter. Provider routing
+follows the live-verified language/mode matrix and uses one bounded retry for
+transient YarnGPT failures without duplicating accepted ASR jobs. Voice remains a neutral capability
 flag. No payment, subscription or clinician-workspace functionality was added.
 
 **Freeze gate:** the assistant is never presented as a human clinician, never
