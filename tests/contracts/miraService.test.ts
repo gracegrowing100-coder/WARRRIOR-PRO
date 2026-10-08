@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const authHarness = vi.hoisted(() => ({
-  user: null as { getIdToken: () => Promise<string> } | null,
+  user: null as { uid: string; getIdToken: (forceRefresh?: boolean) => Promise<string> } | null,
+  authStateReady: vi.fn(async () => undefined),
 }));
 
 vi.mock('../../firebase-init', () => ({
@@ -9,6 +10,7 @@ vi.mock('../../firebase-init', () => ({
     get currentUser() {
       return authHarness.user;
     },
+    authStateReady: authHarness.authStateReady,
   },
   db: {},
 }));
@@ -34,6 +36,7 @@ import {
   readStoredMiraLanguage,
   sendMiraMessage,
   saveMiraMessage,
+  startMiraConversation,
   storeMiraLanguage,
   synthesizeMiraSpeech,
   transcribeMiraAudio,
@@ -55,7 +58,8 @@ function jsonResponse(payload: unknown, ok = true, status = 200) {
 
 describe('Mira client service', () => {
   beforeEach(() => {
-    authHarness.user = { getIdToken: vi.fn(async () => 'firebase-id-token') };
+    authHarness.user = { uid: 'patient-1', getIdToken: vi.fn(async () => 'firebase-id-token') };
+    authHarness.authStateReady.mockReset().mockResolvedValue(undefined);
     vi.stubGlobal('fetch', vi.fn());
     vi.mocked(setDoc).mockReset().mockResolvedValue(undefined);
     vi.mocked(getDocs).mockReset();
@@ -84,6 +88,7 @@ describe('Mira client service', () => {
     expect(url).toBe('/api/mira/chat');
     const headers = (options as RequestInit).headers as Record<string, string>;
     expect(headers.Authorization).toBe('Bearer firebase-id-token');
+    expect(authHarness.user?.getIdToken).toHaveBeenCalledWith(false);
     const body = (options as RequestInit).body as string;
     expect(body).not.toContain('userId');
     expect(JSON.parse(body)).toMatchObject({
@@ -100,7 +105,120 @@ describe('Mira client service', () => {
     await expect(
       sendMiraMessage({ conversationId: 'mira-1', language: 'en', message: 'hello', source: 'text', history: [] }),
     ).rejects.toMatchObject({ code: 'unauthenticated' });
+    expect(authHarness.authStateReady).toHaveBeenCalledTimes(1);
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('refreshes the Firebase token once and retries an authenticated request after a 401', async () => {
+    const initialGetIdToken = vi.fn().mockResolvedValue('stale-token');
+    const refreshedGetIdToken = vi.fn().mockResolvedValue('fresh-token');
+    authHarness.user = { uid: 'patient-1', getIdToken: initialGetIdToken };
+    vi.mocked(fetch)
+      .mockImplementationOnce(async () => {
+        authHarness.user = { uid: 'patient-1', getIdToken: refreshedGetIdToken };
+        return jsonResponse({ error: { code: 'unauthenticated', message: 'Sign in again to use Mira.' } }, false, 401);
+      })
+      .mockResolvedValueOnce(jsonResponse(chatResponse));
+
+    await expect(sendMiraMessage({
+      conversationId: 'mira-1',
+      language: 'en',
+      message: 'hello',
+      source: 'text',
+      history: [],
+    })).resolves.toMatchObject({ reply: 'Hydration helps.' });
+
+    expect(initialGetIdToken).toHaveBeenCalledWith(false);
+    expect(refreshedGetIdToken).toHaveBeenCalledWith(true);
+    expect(authHarness.authStateReady).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    const retryHeaders = (vi.mocked(fetch).mock.calls[1][1] as RequestInit).headers as Record<string, string>;
+    expect(retryHeaders.Authorization).toBe('Bearer fresh-token');
+  });
+
+  it('reports a temporary verification error when token refresh cannot reach Firebase', async () => {
+    const refreshError = Object.assign(new Error('offline'), { code: 'auth/network-request-failed' });
+    authHarness.user = {
+      uid: 'patient-1',
+      getIdToken: vi.fn()
+        .mockResolvedValueOnce('stale-token')
+        .mockRejectedValueOnce(refreshError),
+    };
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({ error: { code: 'unauthenticated', message: 'Sign in again to use Mira.' } }, false, 401),
+    );
+
+    await expect(sendMiraMessage({
+      conversationId: 'mira-1',
+      language: 'en',
+      message: 'hello',
+      source: 'text',
+      history: [],
+    })).rejects.toMatchObject({
+      code: 'auth_unavailable',
+      message: 'Mira could not verify your sign-in right now. Please try again.',
+      status: 503,
+    });
+  });
+
+  it('does not report an ended session when Firebase still has the user after a rejected refresh', async () => {
+    authHarness.user = {
+      uid: 'patient-1',
+      getIdToken: vi.fn()
+        .mockResolvedValueOnce('stale-token')
+        .mockResolvedValueOnce('refreshed-token'),
+    };
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        jsonResponse({ error: { code: 'unauthenticated', message: 'Sign in again to use Mira.' } }, false, 401),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ error: { code: 'unauthenticated', message: 'Sign in again to use Mira.' } }, false, 401),
+      );
+
+    await expect(sendMiraMessage({
+      conversationId: 'mira-1',
+      language: 'en',
+      message: 'hello',
+      source: 'text',
+      history: [],
+    })).rejects.toMatchObject({
+      code: 'auth_unavailable',
+      message: 'Mira could not verify your sign-in right now. Please try again.',
+      status: 503,
+    });
+  });
+
+  it('reports an ended session when Firebase removes the user during token refresh', async () => {
+    const user = {
+      uid: 'patient-1',
+      getIdToken: vi.fn()
+        .mockResolvedValueOnce('stale-token')
+        .mockImplementationOnce(async () => {
+          authHarness.user = null;
+          return 'refreshed-token';
+        }),
+    };
+    authHarness.user = user;
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        jsonResponse({ error: { code: 'unauthenticated', message: 'Sign in again to use Mira.' } }, false, 401),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ error: { code: 'unauthenticated', message: 'Sign in again to use Mira.' } }, false, 401),
+      );
+
+    await expect(sendMiraMessage({
+      conversationId: 'mira-1',
+      language: 'en',
+      message: 'hello',
+      source: 'text',
+      history: [],
+    })).rejects.toMatchObject({
+      code: 'unauthenticated',
+      message: 'Your session has ended. Sign in again to use Mira.',
+      status: 401,
+    });
   });
 
   it('reports the server error code instead of inventing a reply', async () => {
@@ -164,6 +282,45 @@ describe('Mira client service', () => {
       escalationUrgency: 'none',
       message: { id: 'm1', role: 'user', text: 'hello', source: 'text', createdAt: '2026-01-01T00:00:00Z' },
     })).resolves.toBe('unavailable');
+  });
+
+  it('uses the device fallback when a new-conversation Firestore write does not settle', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.mocked(setDoc).mockReturnValue(new Promise(() => undefined) as never);
+      const result = startMiraConversation({
+        userId: 'patient-1',
+        conversationId: 'mira-new',
+        language: 'en',
+        mode: 'text',
+      });
+
+      await vi.advanceTimersByTimeAsync(3_000);
+      await expect(result).resolves.toBe('device-only');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('starts a fresh device conversation without copying messages from the prior chat', async () => {
+    localStorage.setItem('warrior_mira_conversation_patient-1', JSON.stringify({
+      conversationId: 'prior-chat',
+      language: 'en',
+      updatedAt: '2026-01-01T00:00:00Z',
+      messages: [{ id: 'old', role: 'user', text: 'old context', source: 'text', createdAt: '2026-01-01T00:00:00Z' }],
+    }));
+
+    await startMiraConversation({
+      userId: 'patient-1',
+      conversationId: 'fresh-chat',
+      language: 'en',
+      mode: 'text',
+    });
+
+    expect(JSON.parse(localStorage.getItem('warrior_mira_conversation_patient-1') || '{}')).toMatchObject({
+      conversationId: 'fresh-chat',
+      messages: [],
+    });
   });
 
   it('loads the newest cloud messages and restores chronological order', async () => {

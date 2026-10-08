@@ -9,10 +9,16 @@ const authHarness = vi.hoisted(() => ({
   subscribeToAuth: vi.fn(),
 }));
 
+const profileHarness = vi.hoisted(() => ({
+  getUserProfileState: vi.fn(),
+}));
+
 vi.mock('../../firebase-init', () => ({
   auth: authHarness.auth,
   subscribeToAuth: authHarness.subscribeToAuth,
 }));
+
+vi.mock('../../services/firebaseService', () => ({ firebaseService: profileHarness }));
 
 vi.mock('../../components/Dashboard', () => ({
   default: ({ userId }: { userId: string }) => <div>Patient Home for {userId}</div>,
@@ -34,9 +40,10 @@ vi.mock('../../components/SyntheticDemo', () => ({
   SyntheticDemo: () => <div>Synthetic demo</div>,
 }));
 vi.mock('../../components/AuthFlow', () => ({
-  AuthFlow: ({ onAuthSuccess, onOpenDemo }: any) => (
+  AuthFlow: ({ initialNotice, onAuthSuccess, onOpenDemo }: any) => (
     <div>
       <span>Authentication screen</span>
+      {initialNotice ? <span>{initialNotice}</span> : null}
       <button type="button" onClick={() => onAuthSuccess({ uid: 'inline-user' })}>Complete sign in</button>
       <button type="button" onClick={onOpenDemo}>Open synthetic demo</button>
     </div>
@@ -53,6 +60,10 @@ describe('App startup, auth state, navigation, and settings', () => {
       authHarness.callback = callback;
       return vi.fn();
     });
+    profileHarness.getUserProfileState.mockReset().mockResolvedValue({
+      state: 'recorded',
+      data: { displayName: 'Tayo' },
+    });
   });
 
   it('shows session loading, then the signed-out authentication screen', async () => {
@@ -64,9 +75,26 @@ describe('App startup, auth state, navigation, and settings', () => {
     expect(await screen.findByText('Authentication screen')).toBeInTheDocument();
   });
 
+  it('stops waiting when Firebase auth initialization does not resolve', async () => {
+    vi.useFakeTimers();
+    try {
+      render(<App />);
+
+      expect(screen.getByText(/Checking your secure session/i)).toBeInTheDocument();
+      await act(async () => {
+        vi.advanceTimersByTime(8_000);
+      });
+
+      expect(screen.getByText('Authentication screen')).toBeInTheDocument();
+      expect(screen.getByText(/could not verify your saved session/i)).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('renders Patient Home and keeps emergency access for an authenticated user', async () => {
     render(<App />);
-    act(() => authHarness.callback?.({ uid: 'patient-1', displayName: 'Tayo' }));
+    await act(async () => authHarness.callback?.({ uid: 'patient-1', displayName: 'Tayo' }));
 
     expect(await screen.findByText('Patient Home for patient-1')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Emergency HUD' })).toBeInTheDocument();
@@ -75,7 +103,7 @@ describe('App startup, auth state, navigation, and settings', () => {
   it('handles hash changes after mount and keeps community chat one tab away', async () => {
     const user = userEvent.setup();
     render(<App />);
-    act(() => authHarness.callback?.({ uid: 'patient-1' }));
+    await act(async () => authHarness.callback?.({ uid: 'patient-1' }));
     await screen.findByText('Patient Home for patient-1');
 
     act(() => {
@@ -93,7 +121,7 @@ describe('App startup, auth state, navigation, and settings', () => {
   it('persists language, dark mode, and high contrast selections', async () => {
     const user = userEvent.setup();
     render(<App />);
-    act(() => authHarness.callback?.({ uid: 'patient-1' }));
+    await act(async () => authHarness.callback?.({ uid: 'patient-1' }));
     await screen.findByText('Patient Home for patient-1');
 
     await user.selectOptions(screen.getByRole('combobox', { name: 'Select Language' }), 'yo');
@@ -115,6 +143,21 @@ describe('App startup, auth state, navigation, and settings', () => {
 
     expect(screen.getByText('Synthetic demo')).toBeInTheDocument();
     expect(authHarness.auth.currentUser).toBeNull();
+  });
+
+  it('does not let an auth-state event bypass the provider profile gate', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    act(() => authHarness.callback?.(null));
+    await screen.findByText('Authentication screen');
+
+    act(() => authHarness.callback?.({ uid: 'google-user' }));
+
+    expect(screen.getByText('Authentication screen')).toBeInTheDocument();
+    expect(screen.queryByText('Patient Home for google-user')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Complete sign in' }));
+    expect(await screen.findByText('Patient Home for inline-user')).toBeInTheDocument();
   });
 
 });

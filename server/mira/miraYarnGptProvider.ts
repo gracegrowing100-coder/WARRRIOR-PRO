@@ -31,6 +31,7 @@ const LANGUAGE_ALIASES: Record<MiraLanguageCode, string[]> = {
 };
 
 const TRANSIENT_HTTP_STATUSES = new Set([500, 502, 503, 504]);
+const ASR_UPLOAD_RETRY_DELAYS_MS = [1_000] as const;
 const TRANSIENT_ERROR_CODES = new Set([
   'ECONNRESET',
   'ECONNREFUSED',
@@ -78,9 +79,28 @@ function extensionForMime(mimeType: string): string {
 }
 
 function errorMessage(payload: unknown, fallback: string): string {
-  const error = (payload as { error?: { user_message?: unknown; code?: unknown } })?.error;
+  const error = (payload as { error?: { user_message?: unknown; message?: unknown; code?: unknown } })?.error;
   if (typeof error?.user_message === 'string' && error.user_message.trim()) return error.user_message;
+  if (typeof error?.message === 'string' && error.message.trim()) return error.message;
   return typeof error?.code === 'string' ? `${fallback} (${error.code})` : fallback;
+}
+
+function apiErrorCode(payload: unknown): string | null {
+  const code = (payload as { error?: { code?: unknown } })?.error?.code;
+  return typeof code === 'string' ? code : null;
+}
+
+function logYarnGptFailure(operation: string, response: Response, payload: unknown): void {
+  const error = (payload as {
+    error?: { code?: unknown; service?: unknown; trace_id?: unknown };
+  })?.error;
+  console.warn('[Mira] YarnGPT request failed', {
+    operation,
+    status: response.status,
+    code: typeof error?.code === 'string' ? error.code : null,
+    service: typeof error?.service === 'string' ? error.service : null,
+    traceId: typeof error?.trace_id === 'string' ? error.trace_id : null,
+  });
 }
 
 async function readJson(response: Response): Promise<unknown> {
@@ -184,17 +204,40 @@ export function createYarnGptVoiceProvider(options: YarnGptProviderOptions): Mir
 
       const bytes = Buffer.from(input.audioBase64, 'base64');
       const idempotencyKey = randomUUID();
-      const upload = await requestWithOneTransientRetry(() => {
-        const body = new FormData();
-        body.append('file', new Blob([bytes], { type: input.mimeType }), `mira.${extensionForMime(input.mimeType)}`);
-        return authenticatedFetch('/api/v1/asr', {
-          method: 'POST',
-          headers: { 'Idempotency-Key': idempotencyKey },
-          body,
-        });
-      }, 'YarnGPT transcription upload is temporarily unavailable.');
-      const uploadPayload = await readJson(upload);
-      if (!upload.ok) throw new MiraProviderError(errorMessage(uploadPayload, 'YarnGPT transcription upload failed.'));
+      let upload: Response | null = null;
+      let uploadPayload: unknown = null;
+      for (let attempt = 0; attempt <= ASR_UPLOAD_RETRY_DELAYS_MS.length; attempt += 1) {
+        try {
+          const body = new FormData();
+          body.append('file', new Blob([bytes], { type: input.mimeType }), `mira.${extensionForMime(input.mimeType)}`);
+          upload = await authenticatedFetch('/api/v1/asr', {
+            method: 'POST',
+            headers: { 'Idempotency-Key': idempotencyKey },
+            body,
+          });
+          uploadPayload = await readJson(upload);
+        } catch (error) {
+          if (!isTransientTransportError(error) || attempt === ASR_UPLOAD_RETRY_DELAYS_MS.length) {
+            if (isTransientTransportError(error)) {
+              throw new MiraProviderError('YarnGPT transcription upload is temporarily unavailable.');
+            }
+            throw error;
+          }
+          await sleep(ASR_UPLOAD_RETRY_DELAYS_MS[attempt]);
+          continue;
+        }
+
+        if (upload.ok) break;
+        const retryableInProgress = upload.status === 409 && apiErrorCode(uploadPayload) === 'ALREADY_EXISTS';
+        const retryableFailure = TRANSIENT_HTTP_STATUSES.has(upload.status) || retryableInProgress;
+        if (!retryableFailure || attempt === ASR_UPLOAD_RETRY_DELAYS_MS.length) break;
+        await sleep(ASR_UPLOAD_RETRY_DELAYS_MS[attempt]);
+      }
+
+      if (!upload || !upload.ok) {
+        if (upload) logYarnGptFailure('asr_upload', upload, uploadPayload);
+        throw new MiraProviderError(errorMessage(uploadPayload, 'YarnGPT transcription upload failed.'));
+      }
       const jobId = (uploadPayload as { job_id?: unknown })?.job_id;
       if (typeof jobId !== 'string' || !jobId) throw new MiraProviderError('YarnGPT returned no transcription job.');
 
@@ -205,7 +248,10 @@ export function createYarnGptVoiceProvider(options: YarnGptProviderOptions): Mir
           'YarnGPT transcription status is temporarily unavailable.',
         );
         const payload = await readJson(poll);
-        if (!poll.ok) throw new MiraProviderError(errorMessage(payload, 'YarnGPT transcription status failed.'));
+        if (!poll.ok) {
+          logYarnGptFailure('asr_status', poll, payload);
+          throw new MiraProviderError(errorMessage(payload, 'YarnGPT transcription status failed.'));
+        }
         const result = payload as { status?: unknown; transcript?: unknown; error_message?: unknown };
         if (result.status === 'completed') {
           const transcript = typeof result.transcript === 'string' ? result.transcript.trim() : '';
@@ -213,6 +259,12 @@ export function createYarnGptVoiceProvider(options: YarnGptProviderOptions): Mir
           return { transcript, model: YARNGPT_ASR_MODEL };
         }
         if (result.status === 'failed') {
+          console.warn('[Mira] YarnGPT transcription job failed', {
+            code: typeof (payload as { error_code?: unknown }).error_code === 'string'
+              ? (payload as { error_code: string }).error_code
+              : null,
+            audioAvailable: (payload as { audio_available?: unknown }).audio_available === true,
+          });
           throw new MiraProviderError(
             typeof result.error_message === 'string' ? result.error_message : 'YarnGPT transcription failed.',
           );

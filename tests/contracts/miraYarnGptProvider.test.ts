@@ -41,7 +41,11 @@ describe('YarnGPT voice adapter', () => {
     const fetchImpl = vi.fn()
       .mockResolvedValueOnce(json({ voices: [{ name: 'yoruba-voice', languages: ['Yorùbá'], default: true }] }))
       .mockResolvedValueOnce(new Response(audio, { status: 200, headers: { 'Content-Type': 'audio/wav' } }));
-    const provider = createYarnGptVoiceProvider({ apiKey: 'test-key', fetchImpl: fetchImpl as typeof fetch });
+    const provider = createYarnGptVoiceProvider({
+      apiKey: 'test-key',
+      fetchImpl: fetchImpl as typeof fetch,
+      sleep: async () => undefined,
+    });
 
     const result = await provider.synthesize({ language: 'yo', text: 'Báwo ni?' });
     expect(result).toMatchObject({ mimeType: 'audio/wav', model: 'yarngpt-streaming-conversation-v1' });
@@ -140,6 +144,31 @@ describe('YarnGPT voice adapter', () => {
     expect(retryKey).toBe(firstKey);
   });
 
+  it('waits and replays an in-progress ASR upload with the same idempotency key', async () => {
+    const sleep = vi.fn(async () => undefined);
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(json({ languages: ['Nigerian Pidgin'] }))
+      .mockResolvedValueOnce(json({ error: { code: 'ALREADY_EXISTS' } }, 409))
+      .mockResolvedValueOnce(json({ job_id: 'asr-job-1', status: 'queued' }, 202))
+      .mockResolvedValueOnce(json({ status: 'completed', transcript: 'How you dey?' }));
+    const provider = createYarnGptVoiceProvider({
+      apiKey: 'test-key',
+      fetchImpl: fetchImpl as typeof fetch,
+      sleep,
+    });
+
+    await expect(provider.transcribe({
+      language: 'pcm',
+      mimeType: 'audio/webm',
+      audioBase64: Buffer.from('audio').toString('base64'),
+    })).resolves.toMatchObject({ transcript: 'How you dey?' });
+
+    const uploadCalls = fetchImpl.mock.calls.slice(1, 3);
+    const keys = uploadCalls.map(([, init]) => (init.headers as Record<string, string>)['Idempotency-Key']);
+    expect(new Set(keys).size).toBe(1);
+    expect(sleep).toHaveBeenNthCalledWith(1, 1_000);
+  });
+
   it('retries a transient ASR-language catalogue timeout before upload', async () => {
     const fetchImpl = vi.fn()
       .mockRejectedValueOnce(Object.assign(new TypeError('fetch failed'), { cause: { code: 'ETIMEDOUT' } }))
@@ -186,11 +215,23 @@ describe('YarnGPT voice adapter', () => {
   });
 
   it('normalizes repeated transient ASR upload failure', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const fetchImpl = vi.fn()
       .mockResolvedValueOnce(json({ languages: ['English'] }))
       .mockResolvedValueOnce(json({ error: { code: 'PROVIDER_TIMEOUT' } }, 504))
-      .mockResolvedValueOnce(json({ error: { code: 'PROVIDER_TIMEOUT' } }, 504));
-    const provider = createYarnGptVoiceProvider({ apiKey: 'test-key', fetchImpl: fetchImpl as typeof fetch });
+      .mockResolvedValueOnce(json({
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'private provider detail',
+          service: 'speech',
+          trace_id: 'trace-123',
+        },
+      }, 500));
+    const provider = createYarnGptVoiceProvider({
+      apiKey: 'test-key',
+      fetchImpl: fetchImpl as typeof fetch,
+      sleep: async () => undefined,
+    });
 
     await expect(provider.transcribe({
       language: 'en',
@@ -198,6 +239,16 @@ describe('YarnGPT voice adapter', () => {
       audioBase64: Buffer.from('audio').toString('base64'),
     })).rejects.toBeInstanceOf(MiraProviderError);
     expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(warn).toHaveBeenCalledWith('[Mira] YarnGPT request failed', {
+      operation: 'asr_upload',
+      status: 500,
+      code: 'INTERNAL_ERROR',
+      service: 'speech',
+      traceId: 'trace-123',
+    });
+    expect(JSON.stringify(warn.mock.calls)).not.toContain('private provider detail');
+    expect(JSON.stringify(warn.mock.calls)).not.toContain('test-key');
+    warn.mockRestore();
   });
 
   it('rejects unlisted ASR languages before uploading charged audio', async () => {
@@ -222,9 +273,10 @@ describe('YarnGPT voice adapter', () => {
 describe('Mira voice provider selection', () => {
   it('centralizes live-verified provider mapping for all five pitch languages', () => {
     expect(Object.keys(MIRA_VOICE_PROVIDER_PREFERENCES)).toEqual(['en', 'ha', 'ig', 'yo', 'pcm']);
-    Object.entries(MIRA_VOICE_PROVIDER_PREFERENCES).forEach(([language, mapping]) => {
+    Object.values(MIRA_VOICE_PROVIDER_PREFERENCES).forEach((mapping) => {
       expect(mapping.textToSpeech[0]).toBe('yarngpt');
-      expect(mapping.speechToText[0]).toBe(language === 'ha' ? 'gemini' : 'yarngpt');
+      expect(mapping.speechToText[0]).toBe('gemini');
+      expect(mapping.speechToText).toContain('gemini');
     });
     expect(MIRA_VOICE_PROVIDER_PREFERENCES.ha.speechToText).toEqual(['gemini']);
   });
@@ -245,5 +297,20 @@ describe('Mira voice provider selection', () => {
       .resolves.toMatchObject({ model: 'gemini-stt' });
     await expect(provider.synthesize({ language: 'ha', text: 'Sannu' }))
       .resolves.toMatchObject({ model: 'gemini-tts' });
+  });
+
+  it('keeps YarnGPT voice available when the chat provider is not configured', async () => {
+    const yarnGpt: MiraVoiceProvider = {
+      transcribe: vi.fn(async () => ({ transcript: 'How body?', model: 'yarngpt-stt' })),
+      synthesize: vi.fn(async () => ({ audioBase64: 'AAAA', mimeType: 'audio/wav', model: 'yarngpt-tts' })),
+    };
+    const provider = createMiraProviderWithVoiceSelection(null, { yarngpt: yarnGpt });
+
+    await expect(provider.transcribe({ language: 'pcm', mimeType: 'audio/webm', audioBase64: 'AAAA' }))
+      .resolves.toMatchObject({ transcript: 'How body?', model: 'yarngpt-stt' });
+    await expect(provider.synthesize({ language: 'pcm', text: 'I dey here with you.' }))
+      .resolves.toMatchObject({ model: 'yarngpt-tts' });
+    await expect(provider.chat({ language: 'pcm', history: [], message: 'How body?' }))
+      .rejects.toMatchObject({ message: 'Mira response service is not configured.' });
   });
 });

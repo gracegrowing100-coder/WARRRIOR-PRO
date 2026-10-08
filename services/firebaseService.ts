@@ -5,6 +5,7 @@ import {
   doc, 
   setDoc, 
   getDoc, 
+  getDocFromServer,
   getDocs, 
   updateDoc, 
   deleteDoc,
@@ -65,6 +66,13 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 
 export type HealthHistoryReadState = 'recorded' | 'cached' | 'missing' | 'unavailable';
 
+export type UserProfileReadState = 'recorded' | 'cached' | 'missing' | 'unavailable';
+
+export interface UserProfileReadResult {
+  state: UserProfileReadState;
+  data: DocumentData | null;
+}
+
 export interface HealthHistoryRecord<T> {
   dateStr: string;
   state: HealthHistoryReadState;
@@ -111,6 +119,38 @@ export interface SymptomHistoryData {
   triggers?: string[];
   waterIntake?: number;
   dateStr: string;
+  timestamp?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface PainHistoryData {
+  id?: string;
+  userId?: string;
+  painLevel: number;
+  triggers?: string[];
+  dateStr: string;
+  timestamp?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface MedicationScheduleData {
+  id?: string;
+  name?: unknown;
+  dosage?: unknown;
+  time?: unknown;
+  frequency?: unknown;
+  lastTakenDate?: unknown;
+  active?: unknown;
+  isActive?: unknown;
+  status?: unknown;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+  [key: string]: unknown;
+}
+
+export interface HydrationContextData {
+  amount?: unknown;
+  goal?: unknown;
   timestamp?: unknown;
   updatedAt?: unknown;
 }
@@ -223,6 +263,46 @@ async function loadAppointments(userId: string): Promise<AppointmentCollectionRe
 
 export const firebaseService = {
   // --- User Profiles ---
+  async getUserProfileState(userId: string): Promise<UserProfileReadResult> {
+    if (!userId) return { state: 'unavailable', data: null };
+
+    const path = `users/${userId}`;
+    const cacheKey = `user_profile_${userId}`;
+    const profileRef = doc(db, path);
+    try {
+      const profileSnapshot = await getDocFromServer(profileRef);
+      if (!profileSnapshot.exists()) {
+        return { state: 'missing', data: null };
+      }
+
+      const data = profileSnapshot.data();
+      localStorage.setItem(cacheKey, JSON.stringify(data));
+      return { state: 'recorded', data };
+    } catch (error) {
+      console.warn('Firestore profile verification failed, checking the UID-scoped cache:', error);
+      try {
+        const cachedSnapshot = await getDoc(profileRef);
+        if (cachedSnapshot.exists()) {
+          const data = cachedSnapshot.data();
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          return { state: 'cached', data };
+        }
+      } catch {
+        // Continue to the existing UID-scoped local fallback below.
+      }
+
+      const cached = localStorage.getItem(cacheKey);
+      if (!cached) return { state: 'unavailable', data: null };
+
+      try {
+        return { state: 'cached', data: JSON.parse(cached) as DocumentData };
+      } catch {
+        localStorage.removeItem(cacheKey);
+        return { state: 'unavailable', data: null };
+      }
+    }
+  },
+
   async getUserProfile(userId: string) {
     if (!userId) return null;
     const path = `users/${userId}`;
@@ -861,6 +941,42 @@ export const firebaseService = {
   },
 
   // --- Medications ---
+  async getMedicationScheduleResult(userId: string): Promise<HealthHistoryCollection<MedicationScheduleData>> {
+    const cacheKey = getHealthCacheKey('warrior_meds', userId);
+    let cached: MedicationScheduleData[] = [];
+    try {
+      const parsed: unknown = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+      cached = Array.isArray(parsed) ? parsed as MedicationScheduleData[] : [];
+    } catch {
+      cached = [];
+    }
+
+    if (!userId) {
+      return cached.length > 0
+        ? { state: 'cached', data: cached }
+        : { state: 'missing', data: [] };
+    }
+
+    const path = `users/${userId}/medications`;
+    try {
+      const q = query(collection(db, path), orderBy('time', 'asc'));
+      const snapshot = await getDocs(q);
+      const medications = snapshot.docs.map(entry => ({
+        id: entry.id,
+        ...entry.data(),
+      } as MedicationScheduleData));
+      localStorage.setItem(cacheKey, JSON.stringify(medications));
+      return medications.length > 0
+        ? { state: 'recorded', data: medications }
+        : { state: 'missing', data: [] };
+    } catch (error) {
+      console.warn('Firestore medication schedule failed, using matching cache:', error);
+      return cached.length > 0
+        ? { state: 'cached', data: cached }
+        : { state: 'unavailable', data: [] };
+    }
+  },
+
   async getMedications(userId: string) {
     const cacheKey = getHealthCacheKey('warrior_meds', userId);
     if (!userId) {
@@ -960,6 +1076,44 @@ export const firebaseService = {
   },
 
   // --- Water Intake ---
+  async getHydrationContextHistory(
+    userId: string,
+    dateStrs: string[],
+  ): Promise<Array<HealthHistoryRecord<HydrationContextData>>> {
+    return Promise.all(dateStrs.map(async (dateStr) => {
+      const cacheKey = getWaterCacheKey(userId, dateStr);
+      let cached: HydrationContextData | null = null;
+      try {
+        const parsed: unknown = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+        cached = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+          ? parsed as HydrationContextData
+          : null;
+      } catch {
+        cached = null;
+      }
+
+      if (!userId) {
+        return cached
+          ? { dateStr, state: 'cached' as const, data: cached }
+          : { dateStr, state: 'missing' as const, data: null };
+      }
+
+      const path = `users/${userId}/waterLogs/${dateStr}`;
+      try {
+        const snapshot = await getDoc(doc(db, path));
+        if (!snapshot.exists()) return { dateStr, state: 'missing' as const, data: null };
+        const data = snapshot.data() as HydrationContextData;
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+        return { dateStr, state: 'recorded' as const, data };
+      } catch (error) {
+        console.warn(`Firestore hydration context failed for ${dateStr}:`, error);
+        return cached
+          ? { dateStr, state: 'cached' as const, data: cached }
+          : { dateStr, state: 'unavailable' as const, data: null };
+      }
+    }));
+  },
+
   async getWaterLog(userId: string, dateStr: string): Promise<HydrationReadResult> {
     const cacheKey = getWaterCacheKey(userId, dateStr);
     if (!userId) {
@@ -1087,6 +1241,46 @@ export const firebaseService = {
   },
 
   // --- Pain Logs (Trends) ---
+  async getPainHistory(userId: string, startDateStr?: string): Promise<HealthHistoryCollection<PainHistoryData>> {
+    const cacheKey = getHealthCacheKey('warrior_pain', userId);
+    let cached: PainHistoryData[] = [];
+    try {
+      const parsed: unknown = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+      cached = Array.isArray(parsed) ? parsed as PainHistoryData[] : [];
+    } catch {
+      cached = [];
+    }
+    const inWindow = (entry: PainHistoryData) => !startDateStr || entry.dateStr >= startDateStr;
+    const cachedWindow = cached.filter(inWindow);
+
+    if (!userId) {
+      return cachedWindow.length > 0
+        ? { state: 'cached', data: cachedWindow }
+        : { state: 'missing', data: [] };
+    }
+
+    const path = `users/${userId}/painLogs`;
+    try {
+      const constraints = startDateStr
+        ? [where('dateStr', '>=', startDateStr), orderBy('dateStr', 'asc')]
+        : [orderBy('dateStr', 'asc')];
+      const q = query(collection(db, path), ...constraints);
+      const snapshot = await getDocs(q);
+      const logs = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() } as PainHistoryData));
+      localStorage.setItem(cacheKey, JSON.stringify(startDateStr
+        ? [...cached.filter(entry => !inWindow(entry)), ...logs]
+        : logs));
+      return logs.length > 0
+        ? { state: 'recorded', data: logs }
+        : { state: 'missing', data: [] };
+    } catch (error) {
+      console.warn('Firestore pain history failed, using matching cache:', error);
+      return cachedWindow.length > 0
+        ? { state: 'cached', data: cachedWindow }
+        : { state: 'unavailable', data: [] };
+    }
+  },
+
   async getPainLogs(userId: string) {
     const cacheKey = getHealthCacheKey('warrior_pain', userId);
     if (!userId) {
@@ -1167,7 +1361,7 @@ export const firebaseService = {
     }
   },
 
-  async getSymptomHistory(userId: string): Promise<HealthHistoryCollection<SymptomHistoryData>> {
+  async getSymptomHistory(userId: string, startDateStr?: string): Promise<HealthHistoryCollection<SymptomHistoryData>> {
     let cached: SymptomHistoryData[] = [];
     try {
       const cachedValue = localStorage.getItem(getHealthCacheKey('warrior_symptom_logs', userId));
@@ -1179,25 +1373,33 @@ export const firebaseService = {
       cached = [];
     }
 
+    const inWindow = (entry: SymptomHistoryData) => !startDateStr || entry.dateStr >= startDateStr;
+    const cachedWindow = cached.filter(inWindow);
+
     if (!userId) {
-      return cached.length > 0
-        ? { state: 'recorded', data: cached }
+      return cachedWindow.length > 0
+        ? { state: 'recorded', data: cachedWindow }
         : { state: 'missing', data: [] };
     }
 
     const path = `users/${userId}/symptomLogs`;
     try {
-      const q = query(collection(db, path), orderBy('dateStr', 'asc'));
+      const constraints = startDateStr
+        ? [where('dateStr', '>=', startDateStr), orderBy('dateStr', 'asc')]
+        : [orderBy('dateStr', 'asc')];
+      const q = query(collection(db, path), ...constraints);
       const snapshot = await getDocs(q);
       const logs = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() } as SymptomHistoryData));
-      localStorage.setItem(getHealthCacheKey('warrior_symptom_logs', userId), JSON.stringify(logs));
+      localStorage.setItem(getHealthCacheKey('warrior_symptom_logs', userId), JSON.stringify(startDateStr
+        ? [...cached.filter(entry => !inWindow(entry)), ...logs]
+        : logs));
       return logs.length > 0
         ? { state: 'recorded', data: logs }
         : { state: 'missing', data: [] };
     } catch (error) {
       console.warn('Firestore symptom history failed, using matching cache:', error);
-      return cached.length > 0
-        ? { state: 'cached', data: cached }
+      return cachedWindow.length > 0
+        ? { state: 'cached', data: cachedWindow }
         : { state: 'unavailable', data: [] };
     }
   },

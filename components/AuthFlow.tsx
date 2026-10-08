@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import type { User as FirebaseUser } from 'firebase/auth';
 import { 
   Mail, 
   Lock, 
@@ -41,7 +42,8 @@ import {
   triggerEmailVerification, 
   updateUserDisplayNameAndPhoto,
   loginWithGoogle,
-  configureAuthPersistence
+  configureAuthPersistence,
+  linkPendingGoogleCredential
 } from '../firebase-init';
 import { firebaseService } from '../services/firebaseService';
 
@@ -50,6 +52,7 @@ const PRIVACY_DISCLAIMER_TEXT = "Pilot notice: Warrior AI is currently a prototy
 interface AuthFlowProps {
   onAuthSuccess: (user: any) => void;
   onOpenDemo: () => void;
+  initialNotice?: string | null;
 }
 
 // Genotype definitions matching clinical standards
@@ -106,7 +109,7 @@ const CLINICAL_GENOTYPES: GenotypeDefinition[] = [
   }
 ];
 
-export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo }) => {
+export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, initialNotice = null }) => {
   // Navigation screen states
   const [screen, setScreen] = useState<'landing' | 'login' | 'signup' | 'forgot' | 'onboarding'>('landing');
   
@@ -131,7 +134,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
 
   // Loading and feedback states
   const [isSubmit, setIsSubmit] = useState(false);
-  const [generalError, setGeneralError] = useState<string | null>(null);
+  const [generalError, setGeneralError] = useState<string | null>(initialNotice);
   const [generalSuccess, setGeneralSuccess] = useState<string | null>(null);
 
   // Form inputs
@@ -198,6 +201,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
   const [crisisTriggersList, setCrisisTriggersList] = useState<string[]>([]);
   const [targetHydration, setTargetHydration] = useState(3.0);
   const [loadingPhase, setLoadingPhase] = useState<string | null>(null);
+  const resumedAuthenticatedUser = useRef(false);
 
   const PRESET_TRIGGERS = [
     "Sudden Atmospheric Cold (Thermal Shock)",
@@ -230,6 +234,41 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
     return null;
   };
 
+  const continueAfterAuthentication = useCallback(async (fbUser: FirebaseUser) => {
+    setLoadingPhase('Retrieving secure profile data...');
+    const profile = await firebaseService.getUserProfileState(fbUser.uid);
+
+    if (profile.state === 'recorded' || profile.state === 'cached') {
+      setLoadingPhase(null);
+      onAuthSuccess(fbUser);
+      return;
+    }
+
+    if (profile.state === 'missing') {
+      setFullName(fbUser.displayName || fbUser.email?.split('@')[0] || '');
+      setEmail(fbUser.email || '');
+      setScreen('onboarding');
+      setLoadingPhase(null);
+      return;
+    }
+
+    setLoadingPhase(null);
+    throw Object.assign(
+      new Error('We could not confirm your existing profile. Check your connection and try again.'),
+      { code: 'profile/unavailable' },
+    );
+  }, [onAuthSuccess]);
+
+  useEffect(() => {
+    const currentUser = auth.currentUser;
+    if (!currentUser || resumedAuthenticatedUser.current) return;
+    resumedAuthenticatedUser.current = true;
+
+    void continueAfterAuthentication(currentUser).catch(() => {
+      setGeneralError('We could not confirm your existing profile. Check your connection and try again.');
+    });
+  }, [continueAfterAuthentication]);
+
   // Safe Authentication submit
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -244,30 +283,20 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
     try {
       await configureAuthPersistence(rememberMe);
       const fbUser = await loginWithEmail(email, password);
+      await linkPendingGoogleCredential(fbUser);
       if (rememberMe) {
         localStorage.setItem('warrior_remembered_email', email);
       } else {
         localStorage.removeItem('warrior_remembered_email');
       }
 
-      setLoadingPhase("Retrieving secure profile data...");
-      const profile = await firebaseService.getUserProfile(fbUser.uid);
-      if (profile) {
-        setLoadingPhase("Success! Connecting to medical dashboard...");
-        await new Promise(resolve => setTimeout(resolve, 750));
-        setLoadingPhase(null);
-        onAuthSuccess(fbUser);
-      } else {
-        // A missing profile must be completed by the account owner. Do not turn
-        // prototype defaults into patient-owned clinical records.
-        setFullName(fbUser.displayName || email.split('@')[0] || '');
-        setEmail(fbUser.email || email);
-        setScreen('onboarding');
-        setLoadingPhase(null);
-      }
+      await continueAfterAuthentication(fbUser);
     } catch (err: any) {
       setLoadingPhase(null);
       const isHandledError = ['auth/wrong-password', 'auth/user-not-found', 'auth/invalid-credential', 'auth/invalid-email'].includes(err?.code);
+      if (typeof window !== 'undefined' && ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname) && isHandledError) {
+        console.info('[Auth] Password sign-in rejected.', { code: err?.code || 'unknown' });
+      }
       if (!isHandledError) {
         console.error("Authentication submit error:", err);
       }
@@ -276,6 +305,10 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
         errMsg = "We couldn't locate matching credentials. Please review the input and try again.";
       } else if (err.code === 'auth/network-request-failed') {
         errMsg = "Network Connection Issue: check your internet connection and reload.";
+      } else if (err.code === 'profile/unavailable') {
+        errMsg = "We could not confirm your existing profile. Check your connection and try again.";
+      } else if (err.code === 'auth/account-link-email-mismatch') {
+        errMsg = "The Google account does not match this signed-in account. No accounts or patient records were linked.";
       }
       setGeneralError(errMsg);
     } finally {
@@ -370,16 +403,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
         // Self-healing automatic login attempt
         try {
           const loggedInUser = await loginWithEmail(email, password);
-          const profile = await firebaseService.getUserProfile(loggedInUser.uid);
-          if (profile) {
-            setLoadingPhase("Welcome back! Entering Warrior Cell workspace...");
-            await new Promise(resolve => setTimeout(resolve, 750));
-            setLoadingPhase(null);
-            onAuthSuccess(loggedInUser);
-          } else {
-            setScreen('onboarding');
-            setLoadingPhase(null);
-          }
+          await continueAfterAuthentication(loggedInUser);
           return;
         } catch (loginErr: any) {
           setLoadingPhase(null);
@@ -415,30 +439,32 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
   // Google Provider flow
   const handleGoogleAuth = async () => {
     setGeneralError(null);
+    setGeneralSuccess(null);
     setIsSubmit(true);
     setLoadingPhase("Opening Google sign-in...");
     try {
       await configureAuthPersistence(true);
       const googleUser = await loginWithGoogle(false);
       if (googleUser) {
-        setLoadingPhase("Checking authorization credentials...");
-        const profile = await firebaseService.getUserProfile(googleUser.uid);
-        if (profile) {
-          setLoadingPhase("Welcome back! Entering Warrior Cell workspace...");
-          await new Promise(resolve => setTimeout(resolve, 750));
-          setLoadingPhase(null);
-          onAuthSuccess(googleUser);
-        } else {
-          setFullName(googleUser.displayName || '');
-          setEmail(googleUser.email || '');
-          setScreen('onboarding');
-          setLoadingPhase(null);
-        }
+        await continueAfterAuthentication(googleUser);
       }
     } catch (err: any) {
-      console.error(err);
       setLoadingPhase(null);
-      setGeneralError(err.message || "Institutional Single Sign-On had an issue. Please retry or sign in with your email.");
+      if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
+        setGeneralSuccess('Google sign-in was cancelled. You can try again when you are ready.');
+      } else if (err?.code === 'auth/account-exists-with-different-credential') {
+        const existingEmail = err?.customData?.email || '';
+        setEmail(existingEmail);
+        setScreen('login');
+        setGeneralError('This email already has a Warrior AI account. Sign in with its existing password to link Google to the same Firebase user. No patient records will be copied or merged.');
+      } else if (err?.code === 'profile/unavailable') {
+        setGeneralError('We could not confirm your existing profile. Check your connection and try again.');
+      } else if (err?.code === 'auth/unauthorized-domain') {
+        setGeneralError('Google sign-in is not enabled for this address. Open http://localhost:3000 and try again.');
+      } else {
+        console.error('Google authentication failed:', err);
+        setGeneralError('Google sign-in could not be completed. Please retry or sign in with your email.');
+      }
     } finally {
       setIsSubmit(false);
     }
@@ -761,6 +787,13 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
                       </svg>
                       Continue with Google
                     </button>
+
+                    {generalError && (
+                      <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-250 dark:border-rose-900/55 rounded-2xl text-xs font-semibold text-rose-800 dark:text-rose-300 flex items-start gap-2.5" role="alert">
+                        <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                        <span>{generalError}</span>
+                      </div>
+                    )}
 
                   </div>
 

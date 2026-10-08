@@ -16,6 +16,8 @@ export interface MiraRecording {
 
 export interface MiraAudioPlayback {
   done: Promise<void>;
+  pause: () => void;
+  resume: () => Promise<void>;
   stop: () => void;
 }
 
@@ -114,22 +116,55 @@ export async function startMiraRecording(options: { maxSeconds?: number } = {}):
 
 export function playMiraAudio(source: string): MiraAudioPlayback {
   const audio = new Audio(source);
+  let settled = false;
+  let resolveDone!: () => void;
+  let rejectDone!: (error: Error) => void;
   const done = new Promise<void>((resolve, reject) => {
-    audio.onended = () => resolve();
-    audio.onerror = () => reject(new Error('The spoken reply could not be played.'));
+    resolveDone = resolve;
+    rejectDone = reject;
+    audio.onended = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    audio.onerror = () => {
+      if (settled) return;
+      settled = true;
+      reject(new Error('The spoken reply could not be played.'));
+    };
     const started = audio.play();
     if (started && typeof started.catch === 'function') {
-      started.catch(() => reject(new Error('The browser blocked audio playback.')));
+      started.catch(() => {
+        if (settled) return;
+        settled = true;
+        reject(new Error('The browser blocked audio playback.'));
+      });
     }
   });
   return {
     done,
+    pause: () => audio.pause(),
+    resume: async () => {
+      try {
+        await audio.play();
+      } catch {
+        if (!settled) {
+          settled = true;
+          rejectDone(new Error('The browser blocked audio playback.'));
+        }
+        throw new Error('The browser blocked audio playback.');
+      }
+    },
     stop: () => {
       try {
         audio.pause();
         audio.currentTime = 0;
       } catch {
         // Playback already finished.
+      }
+      if (!settled) {
+        settled = true;
+        resolveDone();
       }
     },
   };

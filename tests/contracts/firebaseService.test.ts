@@ -246,6 +246,35 @@ describe('firebaseService current persistence contracts', () => {
     await expect(firebaseService.getMedications('user-1')).resolves.toEqual(cached);
   });
 
+  it('reports cached and unavailable medication schedule reads without fabricating records', async () => {
+    localStorage.setItem('warrior_meds_user-1', JSON.stringify([{ id: 'med-1', name: 'Synthetic cached medicine' }]));
+    firestore.getDocs.mockRejectedValue(new Error('offline'));
+
+    await expect(firebaseService.getMedicationScheduleResult('user-1')).resolves.toEqual({
+      state: 'cached',
+      data: [{ id: 'med-1', name: 'Synthetic cached medicine' }],
+    });
+
+    localStorage.removeItem('warrior_meds_user-1');
+    await expect(firebaseService.getMedicationScheduleResult('user-1')).resolves.toEqual({
+      state: 'unavailable',
+      data: [],
+    });
+  });
+
+  it('bounds stateful pain reads to the requested date window', async () => {
+    localStorage.setItem('warrior_pain_user-1', JSON.stringify([
+      { id: 'old', dateStr: '2026-09-01', painLevel: 8 },
+      { id: 'recent', dateStr: '2026-10-06', painLevel: 3 },
+    ]));
+    firestore.getDocs.mockRejectedValueOnce(new Error('offline'));
+
+    await expect(firebaseService.getPainHistory('user-1', '2026-10-02')).resolves.toEqual({
+      state: 'cached',
+      data: [{ id: 'recent', dateStr: '2026-10-06', painLevel: 3 }],
+    });
+  });
+
   it('does not cache an authenticated medication until its cloud create succeeds', async () => {
     firestore.addDoc.mockRejectedValueOnce(new Error('offline'));
 

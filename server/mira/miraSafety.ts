@@ -5,6 +5,17 @@
 // that removes first-person clinician claims from generated text, and a
 // handoff draft builder that only restates what the patient explicitly wrote.
 
+import type { MiraLanguageCode } from '../../services/miraConfig';
+import type {
+  MiraClinicalUrgency,
+  MiraSafetyCategory,
+  MiraSafetyResult,
+} from '../../services/miraClinicalContracts';
+import {
+  MIRA_SAFETY_CATEGORY_DEFINITIONS,
+  type MiraSafetyCategoryDefinition,
+} from './miraSafetyCategories';
+
 export const MIRA_AI_IDENTITY_LINE =
   'Mira is an AI assistant, not a doctor, and no clinician has verified this message.';
 
@@ -16,51 +27,102 @@ export const MIRA_EMERGENCY_GUIDANCE =
 export const MIRA_URGENT_HEADLINE = 'This may need emergency care now';
 export const MIRA_SPECIALIST_HEADLINE = 'Human hematology review is appropriate';
 
-interface MiraRedFlagPattern {
-  label: string;
-  pattern: RegExp;
+export const MIRA_URGENT_REPLY = 'Please use the urgent safety guidance shown below.';
+
+const CURRENT_MARKER = /\b(?:now|right now|today|currently|still|continues?|continuing|ongoing|at the moment|dey now|still dey|har yanzu)\b|ṣì|ka dị/iu;
+const CONTINUATION_MARKER = /\b(?:still|continues?|continuing|ongoing|has not stopped|not getting better|still dey|har yanzu)\b|ṣì|ka dị/iu;
+const PREVENTIVE_OR_EDUCATIONAL = [
+  /\bwhat (?:should|do|can) i do if\b/i,
+  /\bwhat if i (?:ever )?(?:get|have|develop)\b/i,
+  /\bif i (?:ever )?(?:get|have|develop)\b/i,
+  /\bhow (?:do|can) i (?:prevent|avoid|recognize|recognise)\b/i,
+  /\bwatch (?:out )?for\b/i,
+  /\bsigns (?:of|to watch)\b/i,
+];
+const HISTORICAL_MARKER = /\b(?:last year|last month|years? ago|when i was (?:younger|a child)|in (?:19|20)\d{2})\b/i;
+const NEGATION_BEFORE_CUE = /(?:\bno\b|\bnot\b|\bnever\b|\bwithout\b|\bdo not\b|\bdon't\b|\bdoes not\b|\bdoesn't\b|\bhave not\b|\bhaven't\b|\bno get\b)[^.!?]{0,36}$/i;
+const UNSAFE_MEDICATION_REQUEST = /\b(?:what|which) (?:drug|medicine|medication) should i take(?: right now)?\b|\b(?:should|can) i (?:double|increase|reduce|change|stop) (?:my |the )?(?:dose|dosage|medicine|medication)\b|\bdouble my dose\b/i;
+const LEGACY_CRISIS_DESCRIPTION = /\bin (?:a |the )?crisis\b|\bhaving a crisis\b|agbákò|agbako|fitila|oké mgbu|oke mgbu|matsanancin ciwo|nsogbu ike/iu;
+
+function normalizeSafetyText(text: string): string {
+  return text.replace(/[’‘]/g, "'").replace(/\s+/g, ' ').trim();
 }
 
-// Multilingual cues are carried over from the approved offline knowledge base
-// keyword set so that escalation behaviour stays consistent across surfaces.
-const MIRA_RED_FLAG_PATTERNS: MiraRedFlagPattern[] = [
-  {
-    label: 'chest pain or difficulty breathing',
-    pattern: /\bchest pain\b|\bcan(no|')?t breathe\b|\bdifficulty breathing\b|\bshort(ness)? of breath\b|\bbreathless\b/i,
-  },
-  {
-    label: 'fever or signs of infection',
-    pattern: /\bfever\b|\bhigh temperature\b|\b38\.5\b|\b39(\.\d)?\s*(°|degrees)?\b/i,
-  },
-  {
-    label: 'severe or worsening pain',
-    pattern: /\bsevere pain\b|\bworst pain\b|\bunbearable\b|\bexcruciating\b|\b10\s*\/\s*10\b|\bpain (is )?(getting|got) worse\b/i,
-  },
-  {
-    label: 'possible stroke signs',
-    pattern: /\bstroke\b|\bface droop\b|\bslurred speech\b|\bweak(ness)? on one side\b|\bcan(no|')?t move my (arm|leg|hand)\b/i,
-  },
-  {
-    label: 'priapism',
-    pattern: /\bpriapism\b|\bpainful erection\b|\berection.{0,20}(hours?|over two hours)\b/i,
-  },
-  {
-    label: 'possible splenic or blood-volume problem',
-    pattern: /\bsplenic\b|\bspleen\b|\bsudden pallor\b|\bvery pale\b|\bpaleness\b/i,
-  },
-  {
-    label: 'seizure or loss of consciousness',
-    pattern: /\bseizure\b|\bconvulsion\b|\bfainted\b|\bfainting\b|\bpassed out\b|\bunconscious\b/i,
-  },
-  {
-    label: 'unable to keep fluids down',
-    pattern: /\bcan(no|')?t (keep|stop) (any )?(water|fluids?)\b|\bvomiting (everything|non[- ]?stop)\b|\bunable to drink\b/i,
-  },
-  {
-    label: 'crisis described in a Nigerian language',
-    pattern: /\bin (a |the )?crisis\b|\bhaving a crisis\b|oké mgbu|oke mgbu|agbako|fitila|matsanancin ciwo|nsogbu ike/i,
-  },
-];
+function cueMatch(
+  definition: MiraSafetyCategoryDefinition,
+  text: string,
+  language?: MiraLanguageCode,
+): RegExpExecArray | null {
+  const languages = language
+    ? Array.from(new Set<MiraLanguageCode>(['en', language]))
+    : (Object.keys(definition.cues) as MiraLanguageCode[]);
+  for (const code of languages) {
+    for (const pattern of definition.cues[code] ?? []) {
+      pattern.lastIndex = 0;
+      const match = pattern.exec(text);
+      if (match) return match;
+    }
+  }
+  return null;
+}
+
+function isNonCurrentUse(text: string, cueIndex: number): boolean {
+  const hasCurrentMarker = CURRENT_MARKER.test(text);
+  if (!hasCurrentMarker && PREVENTIVE_OR_EDUCATIONAL.some(pattern => pattern.test(text))) return true;
+  if (!hasCurrentMarker && HISTORICAL_MARKER.test(text)) return true;
+  const beforeCue = text.slice(Math.max(0, cueIndex - 64), cueIndex);
+  return NEGATION_BEFORE_CUE.test(beforeCue);
+}
+
+function detectCurrentCategories(
+  text: string,
+  language?: MiraLanguageCode,
+): MiraSafetyCategoryDefinition[] {
+  const normalized = normalizeSafetyText(text);
+  return MIRA_SAFETY_CATEGORY_DEFINITIONS.filter((definition) => {
+    const match = cueMatch(definition, normalized, language);
+    return Boolean(match && !isNonCurrentUse(normalized, match.index));
+  });
+}
+
+export interface AssessMiraSafetyInput {
+  currentText: string;
+  recentPatientTurns?: string[];
+  language?: MiraLanguageCode;
+}
+
+/**
+ * Evaluates the current turn first. History can mark a current cue as a
+ * continuation, but an older red flag can never make an unrelated new turn
+ * urgent by itself.
+ */
+export function assessMiraSafety(input: AssessMiraSafetyInput): MiraSafetyResult {
+  const currentText = normalizeSafetyText(input.currentText);
+  const currentDefinitions = detectCurrentCategories(currentText, input.language);
+  const categories = currentDefinitions.map(definition => definition.category);
+  const currentCategorySet = new Set(categories);
+  const priorCategories = new Set<MiraSafetyCategory>();
+  for (const turn of input.recentPatientTurns ?? []) {
+    detectCurrentCategories(turn, input.language).forEach(definition => priorCategories.add(definition.category));
+  }
+  const continuationOfRecentConcern = CONTINUATION_MARKER.test(currentText)
+    && Array.from(currentCategorySet).some(category => priorCategories.has(category));
+  const medicationBoundary = !isNonCurrentUse(currentText, 0) && UNSAFE_MEDICATION_REQUEST.test(currentText);
+  const urgent = currentDefinitions.some(definition => definition.urgency === 'urgent');
+  const specialist = currentDefinitions.some(definition => definition.urgency === 'specialist') || medicationBoundary;
+  const urgency: MiraClinicalUrgency = urgent ? 'urgent' : specialist ? 'specialist' : 'none';
+  const reasons = currentDefinitions.map(definition => definition.reason);
+  if (medicationBoundary) reasons.push('medication selection or dose changes require human clinical review');
+
+  return {
+    urgency,
+    categories,
+    deterministic: medicationBoundary || currentDefinitions.some(definition => definition.level === 'DETERMINISTIC'),
+    matchedCurrentTurn: categories.length > 0 || medicationBoundary,
+    continuationOfRecentConcern,
+    reasons,
+  };
+}
 
 const CLINICIAN_CLAIM_PATTERNS: RegExp[] = [
   /\bi('| a)?m (a|an|your) (doctor|physician|haematologist|hematologist|nurse|consultant|clinician|specialist)\b/i,
@@ -71,9 +133,13 @@ const CLINICIAN_CLAIM_PATTERNS: RegExp[] = [
   /\byour (blood )?results (are|show)\b/i,
 ];
 
-export function scanMiraRedFlags(text: string): string[] {
-  const normalized = text.replace(/\s+/g, ' ');
-  return MIRA_RED_FLAG_PATTERNS.filter((entry) => entry.pattern.test(normalized)).map((entry) => entry.label);
+export function scanMiraRedFlags(text: string, language?: MiraLanguageCode): string[] {
+  const definitions = detectCurrentCategories(text, language).filter(definition => definition.urgency === 'urgent');
+  return definitions.map((definition) => (
+    definition.category === 'severe_or_worsening_pain' && LEGACY_CRISIS_DESCRIPTION.test(text)
+      ? 'crisis described in a Nigerian language'
+      : definition.legacyLabel
+  ));
 }
 
 /**
@@ -106,20 +172,26 @@ export interface MiraEscalation {
  */
 export function classifyMiraEscalation(input: {
   userText: string;
+  recentPatientTurns?: string[];
+  language?: MiraLanguageCode;
   modelUrgency?: unknown;
   modelReason?: unknown;
 }): MiraEscalation {
-  const matched = scanMiraRedFlags(input.userText);
+  const safety = assessMiraSafety({
+    currentText: input.userText,
+    recentPatientTurns: input.recentPatientTurns,
+    language: input.language,
+  });
   const modelUrgency =
     input.modelUrgency === 'urgent' || input.modelUrgency === 'specialist' ? input.modelUrgency : 'none';
   const modelReason = typeof input.modelReason === 'string' ? input.modelReason.trim() : '';
 
-  if (matched.length > 0) {
+  if (safety.urgency === 'urgent') {
     return {
       needed: true,
       urgency: 'urgent',
-      reason: `Your message mentions ${matched.join(', ')}. Mira cannot assess this, and a human should review it now.`,
-      matchedRedFlags: matched,
+      reason: `Your message mentions ${safety.reasons.join(', ')}. Mira cannot assess this, and a human should review it now.`,
+      matchedRedFlags: safety.reasons,
     };
   }
   if (modelUrgency === 'urgent') {
@@ -128,6 +200,14 @@ export function classifyMiraEscalation(input: {
       urgency: 'urgent',
       reason: modelReason || 'Mira flagged this conversation as needing urgent human review.',
       matchedRedFlags: [],
+    };
+  }
+  if (safety.urgency === 'specialist') {
+    return {
+      needed: true,
+      urgency: 'specialist',
+      reason: `Your message mentions ${safety.reasons.join(', ')}. A human clinician should review this before medication or care decisions are made.`,
+      matchedRedFlags: safety.reasons,
     };
   }
   if (modelUrgency === 'specialist') {

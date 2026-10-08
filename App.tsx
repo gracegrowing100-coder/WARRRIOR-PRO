@@ -33,6 +33,7 @@ import {
   type PatientNavigationDestination,
 } from './components/layout';
 import { SupportedLanguage, APP_TRANSLATIONS } from './services/offlineKnowledgeBase';
+import { firebaseService } from './services/firebaseService';
 
 export type Page = 'home' | 'games' | 'chat' | 'care' | 'telemedicine' | 'community' | 'more' | 'advocacy';
 
@@ -45,8 +46,9 @@ const pageFromHash = (): Page => {
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>(pageFromHash);
-  const [user, setUser] = useState(auth.currentUser);
+  const [user, setUser] = useState<typeof auth.currentUser>(null);
   const [authResolved, setAuthResolved] = useState(false);
+  const [authStartupNotice, setAuthStartupNotice] = useState<string | null>(null);
   const [demoMode, setDemoMode] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
 
@@ -119,16 +121,56 @@ const App: React.FC = () => {
   }, [highContrast]);
 
   useEffect(() => {
-    const unsub = subscribeToAuth((u) => {
-      setUser(u);
+    let disposed = false;
+    let authRevision = 0;
+    let initialAuthStateHandled = false;
+    const authResolutionTimeout = window.setTimeout(() => {
+      if (disposed || initialAuthStateHandled) return;
+      setAuthStartupNotice('We could not verify your saved session in this browser. Please sign in again or use a standard browser for Google sign-in.');
       setAuthResolved(true);
+    }, 8_000);
+    const unsub = subscribeToAuth((u) => {
+      const revision = ++authRevision;
       // Sync dark mode & high contrast style when auth state updates
       const isDark = localStorage.getItem('warrior_theme') === 'dark';
       setDarkMode(isDark);
       const isHighContrast = localStorage.getItem('warrior_high_contrast') === 'true';
       setHighContrast(isHighContrast);
+
+      if (initialAuthStateHandled) {
+        // AuthFlow owns positive sign-in transitions so its UID/profile check
+        // cannot be bypassed by onAuthStateChanged firing first.
+        if (!u) {
+          setUser(null);
+          setAuthResolved(true);
+        }
+        return;
+      }
+
+      initialAuthStateHandled = true;
+      window.clearTimeout(authResolutionTimeout);
+      setAuthStartupNotice(null);
+      if (!u) {
+        setUser(null);
+        setAuthResolved(true);
+        return;
+      }
+
+      void firebaseService.getUserProfileState(u.uid).then((profile) => {
+        if (disposed || revision !== authRevision) return;
+        setUser(profile.state === 'recorded' || profile.state === 'cached' ? u : null);
+        setAuthResolved(true);
+      }).catch(() => {
+        if (disposed || revision !== authRevision) return;
+        setUser(null);
+        setAuthResolved(true);
+      });
     });
-    return () => unsub();
+    return () => {
+      disposed = true;
+      window.clearTimeout(authResolutionTimeout);
+      unsub();
+    };
   }, []);
 
 
@@ -228,7 +270,7 @@ const App: React.FC = () => {
   }
 
   if (!user) {
-    return <AuthFlow onAuthSuccess={(u) => setUser(u)} onOpenDemo={() => setDemoMode(true)} />;
+    return <AuthFlow initialNotice={authStartupNotice} onAuthSuccess={(u) => setUser(u)} onOpenDemo={() => setDemoMode(true)} />;
   }
 
   return (

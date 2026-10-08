@@ -61,13 +61,60 @@ authenticated server API, keeps conversations outside clinical collections,
 and pre-fills appointment requests only after patient review. Deterministic
 urgent guidance does not depend on the AI provider. Text and supported voice
 modalities share one conversation pipeline; provider-limited languages remain
-labelled unavailable. The server uses YarnGPT for live-verified voice modes and
-Gemini where its support was already verified. YarnGPT TTS returned playable
-audio for English, Hausa, Igbo, Yorùbá and Nigerian Pidgin. Human-sample YarnGPT
-STT retained usable meaning for English, Igbo, Yorùbá and Nigerian Pidgin;
-Hausa stays on the verified Gemini path because the YarnGPT transcript was not
-usable. Transient YarnGPT transport/provider failures receive one bounded retry;
-ASR retries reuse the upload idempotency key and never resubmit an accepted job.
+labelled unavailable. Gemini 3.5 Transcribe is the primary speech-to-text path
+for all five supported languages. Generated-audio live checks returned non-empty
+transcripts for English, Hausa, Igbo, Yorùbá and Nigerian Pidgin. YarnGPT remains
+the primary text-to-speech path for those languages and a speech-to-text fallback
+except for Hausa, where its prior human-sample transcript was unusable. Transient
+YarnGPT transport/provider failures use bounded retries. ASR upload replays use
+one short wait and the same idempotency key; if YarnGPT still has not returned a
+job, the verified Gemini path can take over without exhausting the route timeout.
+Gemini text replies prioritize the consistently responsive Flash-Lite model with
+a 12-second attempt, followed by eight- and seven-second fallbacks. The combined
+27-second budget stays inside the route's 30-second limit, so an overloaded model
+cannot consume the entire fallback window.
+Patients can start a new Mira chat without deleting the prior conversation. The
+next message creates a fresh conversation ID so earlier safety context is not
+sent with the new request.
+
+P4.5 H1 adds server-safe TypeScript contracts and strict runtime validators for
+a future hematology intelligence layer. The foundation distinguishes clinical
+intent, topic and urgency; preserves patient-entered or patient-maintained
+provenance and missing/stale state; and defines versioned knowledge modules,
+retrieval and structured-result shapes. No clinical knowledge content,
+patient-data retrieval, prompt integration, provider integration or runtime
+behavior was added. The product still has no clinician-confirmed provenance
+system; these contracts are preparatory for later separately reviewed phases.
+
+P4.5 H2 adds a dormant patient-context builder and an adapter over the existing
+UID-scoped Firebase/local fallback services. It produces a bounded snapshot with
+profile facts plus only the medication, recent health-history, selected Medical
+Records or appointment categories relevant to the requested topic and intent.
+The builder strips account/contact identifiers, document IDs, free-text notes
+outside the selected clinical field and raw storage metadata. It preserves
+recorded, cached, device-only, missing and unavailable states without allowing a
+failed source to discard the rest of the snapshot. H2 is not imported by the
+current Mira route or provider, so no patient context is sent to Gemini yet.
+
+P4.5 H3 replaces the expanding red-flag regex list with 12 independently
+testable sickle-cell safety categories. Clear chest pain, breathing difficulty,
+neurological warnings, seizure or unconsciousness, fever or infection, severe
+or worsening pain, inability to retain fluids, priapism and mental-health crisis
+language use deterministic urgent handling. Confusion or severe weakness,
+sudden pallor or splenic concern, and pregnancy warning language use a hybrid
+specialist-review path. Medication-selection and dose-change requests also go
+to specialist review without medication advice.
+
+The server evaluates the current patient turn first. Recent patient turns can
+confirm that the same concern continues, but an older red flag cannot make an
+unrelated new message urgent. Obvious negated, preventive and historical uses
+are suppressed conservatively. The model may raise urgency but cannot lower a
+deterministic urgent result. English, Nigerian Pidgin, Yoruba, Igbo and Hausa
+have small deterministic cue sets for clear severe-pain, fever and breathing
+expressions. The non-English cues are covered by synthetic code tests but still
+require native-language and clinical review; they do not represent full
+linguistic validation. H3 adds no diagnosis, clinical knowledge modules or H2
+patient-context injection.
 
 ## Existing screens and feature surfaces
 
@@ -75,8 +122,10 @@ ASR retries reuse the upload idempotency key and never resubmit an accepted job.
 
 - Logged-out product landing screen.
 - Email/password login and registration.
-- Google popup login. A redirect-capable helper is exported, but the current UI
-  always requests the popup path and does not process a redirect result.
+- Google popup login. Redirect support is exported but not used by the current
+  UI because embedded browser environments may not complete the cross-origin
+  OAuth handoff. The startup session loader falls back to the sign-in screen
+  after eight seconds if Firebase auth initialization does not resolve.
 - Password reset.
 - Remember-email option and local/session authentication persistence.
 - Signup collects profile, role, medication, hydration, and emergency details in
@@ -283,15 +332,16 @@ The audited application produced:
 - Recharts warnings where responsive containers temporarily measured `-1` width
   or height.
 
-The current `firestore.rules` file includes the established patient
-subcollections but does not include explicit rules for `moodLogs`,
-`dailyMoodCheckIns`, or `reminderSettings`.
+The current `firestore.rules` source includes owner-only matches for the
+established patient subcollections, including `moodLogs`,
+`dailyMoodCheckIns`, `reminderSettings`, and Mira conversations. Deployment to
+the named Firestore database remains pending verification.
 
 `saveDailyMoodCheckIn` now attempts the daily Firestore document even when the
 optional mood-history write fails. The returned result distinguishes the daily
 record from history and the UI reports recorded, device-only/partial, or failed
-outcomes. The absent rules can still make mood data device-only; no replay queue
-exists.
+outcomes. Until the reconciled rules are deployed, the live rules can still
+make mood data device-only; no replay queue exists.
 
 ## Known technical debt
 

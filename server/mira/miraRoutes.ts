@@ -17,20 +17,18 @@ import { authenticateMiraRequest } from './miraAuth';
 import {
   MIRA_EMERGENCY_GUIDANCE,
   MIRA_HANDOFF_LABEL,
+  MIRA_URGENT_REPLY,
   buildMiraHandoffDraft,
   classifyMiraEscalation,
 } from './miraSafety';
-import {
-  MiraProviderError,
-  type MiraProvider,
-  type MiraChatTurn,
-} from './miraProvider';
+import type { MiraProvider, MiraChatTurn } from './miraProvider';
 
 export const MIRA_MAX_MESSAGE_CHARS = 2000;
 export const MIRA_MAX_HISTORY_TURNS = 8;
 export const MIRA_MAX_HISTORY_TURN_CHARS = 1200;
 export const MIRA_MAX_SPEAK_CHARS = 900;
 export const MIRA_MAX_AUDIO_BASE64_CHARS = 4_000_000;
+export const MIRA_PROVIDER_TIMEOUT_MS = 30_000;
 
 const CONVERSATION_ID_PATTERN = /^[a-zA-Z0-9_-]{1,128}$/;
 
@@ -135,9 +133,25 @@ function normalizeAudioMimeType(value: unknown): string | null {
 export interface MiraRouteOptions {
   getProvider: () => MiraProvider | null;
   projectId: string;
+  providerTimeoutMs?: number;
+}
+
+async function withProviderTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('Mira provider timed out.')), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  }
 }
 
 export function registerMiraRoutes(app: Express, options: MiraRouteOptions) {
+  const providerTimeoutMs = options.providerTimeoutMs ?? MIRA_PROVIDER_TIMEOUT_MS;
   app.post('/api/mira/chat', async (req, res) => {
     const context = await withAuthenticatedUser(req, res, options.projectId);
     if (!context) return;
@@ -175,14 +189,16 @@ export function registerMiraRoutes(app: Express, options: MiraRouteOptions) {
       return;
     }
 
-    const recentPatientMessages = [
-      ...history.filter((turn) => turn.role === 'user').slice(-3).map((turn) => turn.text),
-      message,
-    ];
-    const deterministicEscalation = classifyMiraEscalation({ userText: recentPatientMessages.join('\n') });
+    const recentPatientTurns = history.filter((turn) => turn.role === 'user').slice(-3).map((turn) => turn.text);
+    const recentPatientMessages = [...recentPatientTurns, message];
+    const deterministicEscalation = classifyMiraEscalation({
+      userText: message,
+      recentPatientTurns,
+      language,
+    });
     if (deterministicEscalation.urgency === 'urgent') {
       res.json({
-        reply: MIRA_EMERGENCY_GUIDANCE,
+        reply: MIRA_URGENT_REPLY,
         language,
         escalation: deterministicEscalation,
         handoff: null,
@@ -199,15 +215,20 @@ export function registerMiraRoutes(app: Express, options: MiraRouteOptions) {
         res,
         503,
         'mira_unavailable',
-        'Mira is not available on this server because no AI provider key is configured.',
+        'Mira response service is not configured.',
       );
       return;
     }
 
     try {
-      const result = await provider.chat({ language, history, message });
+      const result = await withProviderTimeout(
+        provider.chat({ language, history, message }),
+        providerTimeoutMs,
+      );
       const escalation = classifyMiraEscalation({
-        userText: recentPatientMessages.join('\n'),
+        userText: message,
+        recentPatientTurns,
+        language,
         modelUrgency: result.modelUrgency,
         modelReason: result.modelReason,
       });
@@ -225,10 +246,8 @@ export function registerMiraRoutes(app: Express, options: MiraRouteOptions) {
         emergencyGuidance: escalation.urgency === 'urgent' ? MIRA_EMERGENCY_GUIDANCE : null,
         provider: { model: result.model },
       });
-    } catch (error) {
-      const detail =
-        error instanceof MiraProviderError ? error.message : 'Mira could not reply right now. Please try again.';
-      sendError(res, 503, 'mira_unavailable', detail);
+    } catch {
+      sendError(res, 503, 'mira_unavailable', 'Mira response service is temporarily unavailable. Please try again.');
     }
   });
 
@@ -256,7 +275,7 @@ export function registerMiraRoutes(app: Express, options: MiraRouteOptions) {
     }
     const definition = miraLanguageDefinition(language);
     if (miraVoiceCapability(language, 'speechToText') !== 'verified') {
-      sendError(res, 422, 'voice_language_unsupported', `${definition.label}: ${definition.voiceDetail}`);
+      sendError(res, 422, 'voice_language_unsupported', `Voice input is not available in ${definition.label} right now.`);
       return;
     }
     const mimeType = normalizeAudioMimeType(body.mimeType);
@@ -272,17 +291,19 @@ export function registerMiraRoutes(app: Express, options: MiraRouteOptions) {
 
     const provider = options.getProvider();
     if (!provider) {
-      sendError(res, 503, 'mira_unavailable', 'Mira voice is not available because no AI provider key is configured.');
+      sendError(res, 503, 'mira_unavailable', 'Voice service is not configured.');
       return;
     }
 
     try {
-      const result = await provider.transcribe({ audioBase64, mimeType, language });
+      const result = await withProviderTimeout(
+        provider.transcribe({ audioBase64, mimeType, language }),
+        providerTimeoutMs,
+      );
       console.info('[Mira] transcription completed', { language, model: result.model });
       res.json({ transcript: result.transcript, language, provider: { model: result.model } });
-    } catch (error) {
-      const detail = error instanceof MiraProviderError ? error.message : 'Voice transcription failed. Please try again.';
-      sendError(res, 503, 'mira_unavailable', detail);
+    } catch {
+      sendError(res, 503, 'mira_unavailable', 'Mira could not transcribe that recording. Please try again.');
     }
   });
 
@@ -310,7 +331,7 @@ export function registerMiraRoutes(app: Express, options: MiraRouteOptions) {
     }
     const definition = miraLanguageDefinition(language);
     if (miraVoiceCapability(language, 'textToSpeech') !== 'verified') {
-      sendError(res, 422, 'voice_language_unsupported', `${definition.label}: ${definition.voiceDetail}`);
+      sendError(res, 422, 'voice_language_unsupported', `Spoken replies are not available in ${definition.label} right now.`);
       return;
     }
     const text = readString(body.text, MIRA_MAX_SPEAK_CHARS);
@@ -321,12 +342,15 @@ export function registerMiraRoutes(app: Express, options: MiraRouteOptions) {
 
     const provider = options.getProvider();
     if (!provider) {
-      sendError(res, 503, 'mira_unavailable', 'Mira voice is not available because no AI provider key is configured.');
+      sendError(res, 503, 'mira_unavailable', 'Voice service is not configured.');
       return;
     }
 
     try {
-      const result = await provider.synthesize({ text, language });
+      const result = await withProviderTimeout(
+        provider.synthesize({ text, language }),
+        providerTimeoutMs,
+      );
       console.info('[Mira] speech synthesized', { language, model: result.model });
       res.json({
         audioBase64: result.audioBase64,
@@ -334,9 +358,8 @@ export function registerMiraRoutes(app: Express, options: MiraRouteOptions) {
         language,
         provider: { model: result.model },
       });
-    } catch (error) {
-      const detail = error instanceof MiraProviderError ? error.message : 'Spoken replies failed. Please try again.';
-      sendError(res, 503, 'mira_unavailable', detail);
+    } catch {
+      sendError(res, 503, 'mira_unavailable', 'Mira could not create spoken audio. Please try again.');
     }
   });
 }

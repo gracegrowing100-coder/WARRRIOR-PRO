@@ -7,11 +7,11 @@ export const MIRA_VOICE_PROVIDER_PREFERENCES: Record<
   MiraLanguageCode,
   { speechToText: MiraVoiceProviderId[]; textToSpeech: MiraVoiceProviderId[] }
 > = {
-  en: { speechToText: ['yarngpt', 'gemini'], textToSpeech: ['yarngpt', 'gemini'] },
+  en: { speechToText: ['gemini', 'yarngpt'], textToSpeech: ['yarngpt', 'gemini'] },
   ha: { speechToText: ['gemini'], textToSpeech: ['yarngpt', 'gemini'] },
-  ig: { speechToText: ['yarngpt'], textToSpeech: ['yarngpt', 'gemini'] },
-  yo: { speechToText: ['yarngpt'], textToSpeech: ['yarngpt'] },
-  pcm: { speechToText: ['yarngpt'], textToSpeech: ['yarngpt'] },
+  ig: { speechToText: ['gemini', 'yarngpt'], textToSpeech: ['yarngpt', 'gemini'] },
+  yo: { speechToText: ['gemini', 'yarngpt'], textToSpeech: ['yarngpt'] },
+  pcm: { speechToText: ['gemini', 'yarngpt'], textToSpeech: ['yarngpt'] },
 };
 
 async function usePreferredProvider<T>(
@@ -32,11 +32,16 @@ async function usePreferredProvider<T>(
 }
 
 export function createMiraProviderWithVoiceSelection(
-  chatProvider: MiraProvider,
+  chatProvider: MiraProvider | null,
   providers: Partial<Record<MiraVoiceProviderId, MiraVoiceProvider>>,
 ): MiraProvider {
   return {
-    chat: (input) => chatProvider.chat(input),
+    chat: async (input) => {
+      if (!chatProvider) {
+        throw new MiraProviderError('Mira response service is not configured.');
+      }
+      return chatProvider.chat(input);
+    },
     transcribe: (input) => usePreferredProvider(
       MIRA_VOICE_PROVIDER_PREFERENCES[input.language].speechToText,
       providers,

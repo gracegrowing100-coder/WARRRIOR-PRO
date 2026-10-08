@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -61,6 +61,16 @@ const baseHandoff = {
   summaryText: 'MIRA HANDOFF DRAFT\n\nReported concern: My pain keeps coming back.\n\nAI-generated draft.',
 };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
 const renderMira = (props?: Partial<React.ComponentProps<typeof MiraAssistant>>) => {
   const onContinueToAppointment = vi.fn();
   render(<MiraAssistant userId="patient-1" onContinueToAppointment={onContinueToAppointment} {...props} />);
@@ -87,12 +97,18 @@ describe('Mira assistant experience', () => {
     miraApi.storeMiraLanguage.mockReset();
     miraApi.readStoredMiraLanguage.mockReset().mockReturnValue('en');
     miraApi.isVoiceEnabledForClient.mockReset().mockReturnValue(true);
+    miraApi.generateMiraConversationId.mockReset().mockReturnValue('mira-test-conversation');
     media.isMiraRecordingSupported.mockReset().mockReturnValue(true);
     media.startMiraRecording.mockReset().mockResolvedValue({
       stop: vi.fn(async () => ({ audioBase64: 'AAAA', mimeType: 'audio/webm' })),
       cancel: vi.fn(),
     });
-    media.playMiraAudio.mockReset().mockReturnValue({ done: Promise.resolve(), stop: vi.fn() });
+    media.playMiraAudio.mockReset().mockReturnValue({
+      done: Promise.resolve(),
+      pause: vi.fn(),
+      resume: vi.fn(async () => undefined),
+      stop: vi.fn(),
+    });
   });
 
   it('identifies Mira as an AI assistant and never as a clinician', async () => {
@@ -105,15 +121,16 @@ describe('Mira assistant experience', () => {
     expect(screen.queryByText(/Dr\.|hematologist on call|I am your doctor|clinician-verified/i)).not.toBeInTheDocument();
   });
 
-  it('keeps a chosen live-verified voice language available', async () => {
+  it('keeps a chosen voice language available without exposing provider or QA wording', async () => {
     const user = userEvent.setup();
     renderMira();
 
     await user.selectOptions(await screen.findByLabelText('Mira conversation language'), 'yo');
 
     expect(miraApi.storeMiraLanguage).toHaveBeenCalledWith('yo');
-    expect(await screen.findByText(/Yorùbá voice input and spoken replies passed live YarnGPT checks/)).toBeInTheDocument();
+    expect(await screen.findByText(/Voice input and spoken replies are available in Yorùbá/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Speak to Mira in Yorùbá/i })).toBeEnabled();
+    expect(document.body).not.toHaveTextContent(/YarnGPT|Gemini|live checks|configured provider/i);
   });
 
   it('shows a neutral capability notice when voice is switched off', async () => {
@@ -141,6 +158,42 @@ describe('Mira assistant experience', () => {
       }),
     );
     expect(miraApi.saveMiraMessage).toHaveBeenCalledTimes(2);
+  });
+
+  it('starts a new isolated conversation without deleting the previous one', async () => {
+    miraApi.loadLatestMiraConversation.mockResolvedValue({
+      conversationId: 'previous-conversation',
+      language: 'en',
+      updatedAt: '2026-01-01T00:00:00Z',
+      messages: [{ id: 'old-1', role: 'user', text: 'Previous urgent context', source: 'text', createdAt: '2026-01-01T00:00:00Z' }],
+    });
+    miraApi.generateMiraConversationId.mockReturnValue('fresh-conversation');
+    const user = userEvent.setup();
+    renderMira();
+
+    expect(await screen.findByText('Previous urgent context')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'New chat' }));
+
+    expect(screen.queryByText('Previous urgent context')).not.toBeInTheDocument();
+    await sendText(user, 'Hello from a fresh chat');
+    expect(miraApi.sendMiraMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: 'fresh-conversation',
+        history: [],
+        message: 'Hello from a fresh chat',
+      }),
+    );
+  });
+
+  it('does not block a Mira reply while the conversation cloud write is pending', async () => {
+    miraApi.startMiraConversation.mockReturnValue(new Promise(() => undefined));
+    const user = userEvent.setup();
+    renderMira();
+
+    await sendText(user, 'Can Mira answer before Firestore reconnects?');
+
+    expect(await screen.findByText(/Hydration is one of the most useful daily habits/i)).toBeInTheDocument();
+    expect(miraApi.sendMiraMessage).toHaveBeenCalledTimes(1);
   });
 
   it('produces an editable specialist handoff that is only shared after explicit approval', async () => {
@@ -202,47 +255,130 @@ describe('Mira assistant experience', () => {
     const emergency = await screen.findByRole('alert');
     expect(emergency).toHaveTextContent('This may need emergency care now');
     expect(emergency).toHaveTextContent(/has not contacted anyone on your behalf/i);
-    expect(screen.getByText(/does not replace emergency care/i)).toBeInTheDocument();
+    expect(emergency).toHaveTextContent(/No appointment has been submitted/i);
+    expect(within(screen.getByRole('log', { name: 'Mira conversation' })).getByRole('alert')).toBe(emergency);
     expect(onContinueToAppointment).not.toHaveBeenCalled();
     expect(miraApi.sendMiraMessage).toHaveBeenCalledTimes(1);
   });
 
-  it('sends voice through the same conversation and plays the spoken reply', async () => {
+  it('moves from recording to transcribing and waits for transcript review', async () => {
+    const transcription = deferred<{ transcript: string; language: 'en'; provider: { model: string } }>();
+    miraApi.transcribeMiraAudio.mockReturnValueOnce(transcription.promise);
     const user = userEvent.setup();
     renderMira();
 
-    await sendText(user, 'Hello Mira');
-    await screen.findByText(/Hydration is one of the most useful daily habits/i);
-
     await user.click(screen.getByRole('button', { name: /Speak to Mira in English/i }));
-    const finishButton = await screen.findByRole('button', { name: /Finish voice recording and send to Mira/i });
-    await user.click(finishButton);
+    expect(await screen.findByText('Listening...')).toBeInTheDocument();
+    expect(screen.getByText('0:00')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Stop recording' }));
+    expect(await screen.findByText('Transcribing your message...')).toBeInTheDocument();
 
-    expect(await screen.findByText('My legs hurt after walking')).toBeInTheDocument();
-    expect(await screen.findByText(/Last voice transcript/i)).toBeInTheDocument();
+    await act(async () => {
+      transcription.resolve({ transcript: 'My legs hurt after walking', language: 'en', provider: { model: 'transcribe-test' } });
+      await transcription.promise;
+    });
+
+    expect(await screen.findByRole('heading', { name: 'You said:' })).toBeInTheDocument();
+    expect(screen.getByText(/My legs hurt after walking/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Send to Mira' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Record again' })).toBeEnabled();
+    expect(miraApi.sendMiraMessage).not.toHaveBeenCalled();
     expect(miraApi.transcribeMiraAudio).toHaveBeenCalledWith(
       expect.objectContaining({ language: 'en', audioBase64: 'AAAA', mimeType: 'audio/webm' }),
     );
-    expect(miraApi.sendMiraMessage).toHaveBeenCalledTimes(2);
-    expect(miraApi.sendMiraMessage.mock.calls[1][0]).toMatchObject({
+  });
+
+  it('supports record again, transcript editing, and explicit send', async () => {
+    miraApi.transcribeMiraAudio
+      .mockResolvedValueOnce({ transcript: 'First inaccurate transcript', language: 'en', provider: { model: 'transcribe-test' } })
+      .mockResolvedValueOnce({ transcript: 'My back dey pain', language: 'en', provider: { model: 'transcribe-test' } });
+    const user = userEvent.setup();
+    renderMira();
+
+    await user.click(screen.getByRole('button', { name: /Speak to Mira in English/i }));
+    await user.click(await screen.findByRole('button', { name: 'Stop recording' }));
+    await screen.findByText(/First inaccurate transcript/);
+    await user.click(screen.getByRole('button', { name: 'Record again' }));
+    expect(await screen.findByText('Listening...')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Stop recording' }));
+    await screen.findByText(/My back dey pain/);
+
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    const editor = screen.getByLabelText('Edit voice transcript');
+    await user.clear(editor);
+    await user.type(editor, 'My back dey pain and I get fever.');
+    await user.click(screen.getByRole('button', { name: 'Send to Mira' }));
+
+    expect(await screen.findByText('My back dey pain and I get fever.')).toBeInTheDocument();
+    expect(miraApi.sendMiraMessage).toHaveBeenCalledWith(expect.objectContaining({
       source: 'voice',
       conversationId: 'mira-test-conversation',
-      message: 'My legs hurt after walking',
-    });
+      message: 'My back dey pain and I get fever.',
+    }));
     expect(miraApi.synthesizeMiraSpeech).toHaveBeenCalledWith(expect.objectContaining({ language: 'en' }));
     expect(media.playMiraAudio).toHaveBeenCalledTimes(1);
   });
 
+  it('shows the thinking state while waiting for a text response', async () => {
+    const response = deferred<typeof baseResult>();
+    miraApi.sendMiraMessage.mockReturnValueOnce(response.promise);
+    const user = userEvent.setup();
+    renderMira();
+
+    await user.type(screen.getByLabelText('Message to Mira'), 'How much water should I drink?');
+    await user.click(screen.getByRole('button', { name: /Send message/i }));
+    expect(await screen.findByText('Mira is thinking...', { selector: 'p' })).toHaveAttribute('role', 'status');
+
+    await act(async () => {
+      response.resolve(baseResult);
+      await response.promise;
+    });
+    expect(await screen.findByText(/Hydration is one of the most useful daily habits/i)).toBeInTheDocument();
+  });
+
+  it('shows spoken-reply preparation, playback, pause, and resume states', async () => {
+    const speech = deferred<{ audioBase64: string; mimeType: string; provider: { model: string } }>();
+    const playbackDone = deferred<void>();
+    const pause = vi.fn();
+    const resume = vi.fn(async () => undefined);
+    miraApi.synthesizeMiraSpeech.mockReturnValueOnce(speech.promise);
+    media.playMiraAudio.mockReturnValueOnce({ done: playbackDone.promise, pause, resume, stop: vi.fn() });
+    const user = userEvent.setup();
+    renderMira();
+
+    await user.click(screen.getByRole('button', { name: /Speak to Mira in English/i }));
+    await user.click(await screen.findByRole('button', { name: 'Stop recording' }));
+    await user.click(await screen.findByRole('button', { name: 'Send to Mira' }));
+    expect(await screen.findByText('Preparing spoken reply...')).toBeInTheDocument();
+
+    await act(async () => {
+      speech.resolve({ audioBase64: 'ZZZ', mimeType: 'audio/wav', provider: { model: 'tts-test' } });
+      await speech.promise;
+    });
+    expect(await screen.findByText("Playing Mira's reply")).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Pause reply' }));
+    expect(pause).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText("Mira's reply is paused.")).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Resume reply' }));
+    expect(resume).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      playbackDone.resolve();
+      await playbackDone.promise;
+    });
+  });
+
   it('reports an unavailable provider instead of inventing a reply', async () => {
     miraApi.sendMiraMessage.mockRejectedValue(
-      new miraApi.MiraApiError('mira_unavailable', 'Mira is not available on this server because no AI provider key is configured.'),
+      new miraApi.MiraApiError('mira_unavailable', 'Mira response service is not configured.'),
     );
     const user = userEvent.setup();
     renderMira();
 
     await sendText(user, 'Hello Mira');
 
-    expect(await screen.findByText(/no AI provider key is configured/i)).toBeInTheDocument();
+    expect(await screen.findByText(/response service is not configured/i)).toBeInTheDocument();
     expect(screen.queryByText('Mira (AI)')).not.toBeInTheDocument();
   });
 

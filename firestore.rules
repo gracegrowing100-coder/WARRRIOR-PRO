@@ -55,6 +55,15 @@ service cloud.firestore {
     match /users/{userId}/careVault/{docId} {
       allow read, write: if isOwner(userId);
     }
+    match /users/{userId}/moodLogs/{logId} {
+      allow read, write: if isOwner(userId);
+    }
+    match /users/{userId}/dailyMoodCheckIns/{dateStr} {
+      allow read, write: if isOwner(userId);
+    }
+    match /users/{userId}/reminderSettings/{docId} {
+      allow read, write: if isOwner(userId);
+    }
 
     // --- Mira assistant conversations (kept separate from clinical records) ---
     match /users/{userId}/miraConversations/{conversationId} {

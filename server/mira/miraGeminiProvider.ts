@@ -18,7 +18,11 @@ import {
   type MiraTranscriptionInput,
 } from './miraProvider';
 
-export const MIRA_CHAT_MODEL_CANDIDATES = ['gemini-3.7-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+export const MIRA_CHAT_MODEL_CANDIDATES = [
+  { model: 'gemini-3.5-flash-lite', timeoutMs: 12_000 },
+  { model: 'gemini-3.8-flash', timeoutMs: 8_000 },
+  { model: 'gemini-flash-latest', timeoutMs: 7_000 },
+] as const;
 export const MIRA_TRANSCRIBE_MODEL = 'gemini-3.5-transcribe';
 export const MIRA_TTS_MODEL_CANDIDATES = ['gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts'];
 export const MIRA_TTS_VOICE = 'Kore';
@@ -51,16 +55,45 @@ function buildContents(history: MiraChatTurn[], message: string) {
 }
 
 function isTransientProviderError(error: unknown): boolean {
-  const candidate = error as { status?: number; code?: number; message?: string };
+  const candidate = error as {
+    status?: number;
+    code?: number | string;
+    message?: string;
+    name?: string;
+    cause?: { code?: number | string; name?: string };
+  };
   const message = String(candidate?.message ?? '');
+  const status = typeof candidate?.status === 'number' ? candidate.status : null;
+  const code = String(candidate?.cause?.code ?? candidate?.code ?? '').toUpperCase();
   return (
-    candidate?.status === 503 ||
-    candidate?.code === 503 ||
-    candidate?.status === 429 ||
+    candidate?.name === 'AbortError' ||
+    candidate?.cause?.name === 'AbortError' ||
+    status === 408 ||
+    status === 429 ||
+    (status !== null && status >= 500) ||
+    ['ENOTFOUND', 'EAI_AGAIN', 'ECONNRESET', 'ETIMEDOUT', 'UND_ERR_CONNECT_TIMEOUT'].includes(code) ||
     message.includes('503') ||
     message.includes('429') ||
     message.toLowerCase().includes('demand')
   );
+}
+
+function safeProviderErrorMetadata(error: unknown) {
+  const candidate = error as {
+    status?: unknown;
+    code?: unknown;
+    name?: unknown;
+    cause?: { code?: unknown; name?: unknown };
+  };
+  return {
+    name: typeof candidate?.name === 'string' ? candidate.name : 'UnknownError',
+    status: typeof candidate?.status === 'number' ? candidate.status : null,
+    code: ['string', 'number'].includes(typeof candidate?.cause?.code)
+      ? candidate.cause?.code
+      : ['string', 'number'].includes(typeof candidate?.code)
+        ? candidate.code
+        : null,
+  };
 }
 
 async function runMiraChat(
@@ -71,7 +104,9 @@ async function runMiraChat(
   const systemInstruction = `${MIRA_SYSTEM_PROMPT}\n\nReply language: ${languageLabel}.`;
   let lastError: unknown = null;
 
-  for (const model of MIRA_CHAT_MODEL_CANDIDATES) {
+  for (const { model, timeoutMs } of MIRA_CHAT_MODEL_CANDIDATES) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await ai.models.generateContent({
         model,
@@ -80,6 +115,7 @@ async function runMiraChat(
           systemInstruction,
           temperature: 0.4,
           responseMimeType: 'application/json',
+          abortSignal: controller.signal,
         },
       });
       const text = (response.text ?? '').trim();
@@ -99,43 +135,37 @@ async function runMiraChat(
     } catch (error) {
       lastError = error;
       if (error instanceof MiraProviderError) throw error;
+      console.warn('[Mira] Gemini chat attempt failed', {
+        model,
+        language: input.language,
+        ...safeProviderErrorMetadata(error),
+      });
       if (!isTransientProviderError(error)) {
         throw new MiraProviderError('Mira could not generate a reply right now.');
       }
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
   throw new MiraProviderError('Mira could not generate a reply right now.');
 }
 
-interface InteractionLike {
-  output_text?: unknown;
-  outputs?: unknown;
-}
-
-function extractTextFromNode(node: unknown, depth = 0): string[] {
-  if (depth > 6 || node === null || node === undefined) return [];
-  if (typeof node === 'string') return [];
-  if (Array.isArray(node)) return node.flatMap((entry) => extractTextFromNode(entry, depth + 1));
-  if (typeof node !== 'object') return [];
-
-  const record = node as Record<string, unknown>;
-  const collected: string[] = [];
-  if (record.type === 'text' && typeof record.text === 'string') collected.push(record.text);
-  if (record.content !== undefined) collected.push(...extractTextFromNode(record.content, depth + 1));
-  if (record.outputs !== undefined) collected.push(...extractTextFromNode(record.outputs, depth + 1));
-  return collected;
-}
-
-export function extractInteractionText(interaction: unknown): string {
-  const candidate = interaction as InteractionLike;
-  if (typeof candidate?.output_text === 'string' && candidate.output_text.trim()) {
-    return candidate.output_text.trim();
-  }
-  if (Array.isArray(candidate?.outputs)) {
-    return extractTextFromNode(candidate.outputs).join(' ').replace(/\s+/g, ' ').trim();
-  }
-  return '';
+function extractAudioTranscription(response: unknown): string {
+  const candidates = (response as {
+    candidates?: Array<{
+      content?: {
+        parts?: Array<{ audioTranscription?: { text?: unknown }; text?: unknown }>;
+      };
+    }>;
+  })?.candidates;
+  const parts = candidates?.[0]?.content?.parts ?? [];
+  return parts
+    .flatMap((part) => [part.audioTranscription?.text, part.text])
+    .filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /**
@@ -147,13 +177,9 @@ async function transcribeWithProvider(
   ai: GoogleGenAI,
   input: MiraTranscriptionInput,
 ): Promise<{ transcript: string; model: string }> {
-  const definition = miraLanguageDefinition(input.language);
-  if (!definition.speechHint) {
-    throw new MiraProviderError('This language is not supported by the current speech provider.');
-  }
-
   let uploadedUri = '';
   let uploadedName = '';
+  let uploadedMimeType = input.mimeType;
   try {
     const audioBytes = Buffer.from(input.audioBase64, 'base64');
     const uploaded = await ai.files.upload({
@@ -162,15 +188,18 @@ async function transcribeWithProvider(
     });
     uploadedUri = uploaded.uri ?? '';
     uploadedName = uploaded.name ?? '';
+    uploadedMimeType = uploaded.mimeType ?? input.mimeType;
     if (!uploadedUri) throw new MiraProviderError('Audio upload did not return a file reference.');
 
-    const interaction = (await (ai as unknown as { interactions: { create: (params: unknown) => Promise<unknown> } })
-      .interactions.create({
-        model: MIRA_TRANSCRIBE_MODEL,
-        input: [{ type: 'audio', uri: uploadedUri, mime_type: input.mimeType }],
-      })) as unknown;
+    const response = await ai.models.generateContent({
+      model: MIRA_TRANSCRIBE_MODEL,
+      contents: [{
+        role: 'user',
+        parts: [{ fileData: { fileUri: uploadedUri, mimeType: uploadedMimeType } }],
+      }],
+    });
 
-    const transcript = extractInteractionText(interaction);
+    const transcript = extractAudioTranscription(response);
     if (!transcript) throw new MiraProviderError('Transcription returned no text.');
     return { transcript, model: MIRA_TRANSCRIBE_MODEL };
   } catch (error) {

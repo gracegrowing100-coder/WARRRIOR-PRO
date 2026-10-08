@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { CheckCircle2, Mic, MicOff, Send, ShieldAlert, Volume2 } from 'lucide-react';
+import { MessageSquarePlus, Mic, Pause, Pencil, Play, RotateCcw, Send, ShieldAlert, Square, Volume2 } from 'lucide-react';
 import { Alert, Button, Card, FormField, SelectInput, Textarea } from '../ui';
 import {
   MIRA_LANGUAGES,
@@ -43,15 +43,33 @@ export interface MiraAssistantProps {
   voiceEnabled?: boolean;
 }
 
-type MiraStatus = 'idle' | 'listening' | 'transcribing' | 'thinking' | 'speaking';
+type MiraStatus =
+  | 'idle'
+  | 'recording'
+  | 'transcribing'
+  | 'reviewing-transcript'
+  | 'sending'
+  | 'thinking'
+  | 'speaking'
+  | 'error';
+type MiraSpeechStage = 'preparing' | 'playing' | null;
 
 const STATUS_LABELS: Record<MiraStatus, string> = {
   idle: '',
-  listening: 'Listening… tap the microphone again to finish.',
-  transcribing: 'Transcribing your voice…',
-  thinking: 'Mira is preparing a reply…',
-  speaking: 'Playing Mira’s spoken reply…',
+  recording: 'Listening...',
+  transcribing: 'Transcribing your message...',
+  'reviewing-transcript': 'Review your transcript before sending it to Mira.',
+  sending: 'Sending your message...',
+  thinking: 'Mira is thinking...',
+  speaking: '',
+  error: '',
 };
+
+function formatRecordingTime(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
 
 export const MiraAssistant: React.FC<MiraAssistantProps> = ({
   userId,
@@ -70,13 +88,18 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
   const [handoffText, setHandoffText] = useState('');
   const [handoffApproved, setHandoffApproved] = useState(false);
   const [saveNotice, setSaveNotice] = useState('');
-  const [lastVoiceTranscript, setLastVoiceTranscript] = useState('');
+  const [transcriptDraft, setTranscriptDraft] = useState('');
+  const [editingTranscript, setEditingTranscript] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [speechStage, setSpeechStage] = useState<MiraSpeechStage>(null);
+  const [playbackPaused, setPlaybackPaused] = useState(false);
   const [loadingConversation, setLoadingConversation] = useState(true);
 
   const conversationRef = useRef<string>('');
   const startedConversationRef = useRef<string>('');
   const recordingRef = useRef<MiraRecording | null>(null);
   const playbackRef = useRef<MiraAudioPlayback | null>(null);
+  const speechOperationRef = useRef(0);
   const languageRef = useRef<MiraLanguageCode>(language);
   const activeUserRef = useRef(userId);
 
@@ -84,7 +107,10 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
   const speechInputVerified = miraVoiceCapability(language, 'speechToText') === 'verified';
   const speechOutputVerified = miraVoiceCapability(language, 'textToSpeech') === 'verified';
   const languageDefinition = miraLanguageDefinition(language);
-  const busy = status !== 'idle';
+  const busy = status !== 'idle' && status !== 'error';
+  const voiceHelpText = speechInputVerified && speechOutputVerified
+    ? `Voice input and spoken replies are available in ${languageDefinition.label}. ${MIRA_TEXT_CHAT_NOTE}`
+    : `Mira can reply in ${languageDefinition.label}. ${MIRA_TEXT_CHAT_NOTE}`;
 
   useEffect(() => {
     languageRef.current = language;
@@ -97,6 +123,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
     recordingRef.current = null;
     playbackRef.current?.stop();
     playbackRef.current = null;
+    speechOperationRef.current += 1;
     conversationRef.current = '';
     startedConversationRef.current = '';
     setMessages([]);
@@ -110,7 +137,11 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
     setHandoffText('');
     setHandoffApproved(false);
     setSaveNotice('');
-    setLastVoiceTranscript('');
+    setTranscriptDraft('');
+    setEditingTranscript(false);
+    setRecordingSeconds(0);
+    setSpeechStage(null);
+    setPlaybackPaused(false);
     setLoadingConversation(true);
     const load = async () => {
       try {
@@ -135,9 +166,37 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
   }, [userId]);
 
   const stopPlayback = useCallback(() => {
+    speechOperationRef.current += 1;
     playbackRef.current?.stop();
     playbackRef.current = null;
+    setSpeechStage(null);
+    setPlaybackPaused(false);
   }, []);
+
+  const startNewChat = useCallback(() => {
+    recordingRef.current?.cancel();
+    recordingRef.current = null;
+    stopPlayback();
+    conversationRef.current = '';
+    startedConversationRef.current = '';
+    setMessages([]);
+    setInputText('');
+    setStatus('idle');
+    setErrorMessage('');
+    setEscalation(null);
+    setEmergencyGuidance('');
+    setHandoff(null);
+    setHandoffLabel('');
+    setHandoffText('');
+    setHandoffApproved(false);
+    setSaveNotice('');
+    setTranscriptDraft('');
+    setEditingTranscript(false);
+    setRecordingSeconds(0);
+    setSpeechStage(null);
+    setPlaybackPaused(false);
+    setLoadingConversation(false);
+  }, [stopPlayback]);
 
   const persist = useCallback(
     async (message: MiraChatMessage, urgency: MiraEscalationUrgency) => {
@@ -165,11 +224,19 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
       if (!conversationRef.current) conversationRef.current = generateMiraConversationId();
       if (startedConversationRef.current !== conversationRef.current) {
         startedConversationRef.current = conversationRef.current;
-        await startMiraConversation({
+        const conversationId = conversationRef.current;
+        void startMiraConversation({
           userId,
-          conversationId: conversationRef.current,
+          conversationId,
           language: languageRef.current,
           mode,
+        }).then((state) => {
+          if (activeUserRef.current !== userId || conversationRef.current !== conversationId) return;
+          if (state === 'device-only') {
+            setSaveNotice('This conversation is only saved on this device right now.');
+          } else if (state === 'unavailable') {
+            setSaveNotice('This conversation could not be saved to the cloud or this device.');
+          }
         });
       }
       return conversationRef.current;
@@ -178,19 +245,32 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
   );
 
   const speakReply = useCallback(
-    async (text: string) => {
-      if (!voiceAvailable || miraVoiceCapability(languageRef.current, 'textToSpeech') !== 'verified') return;
+    async (text: string): Promise<boolean> => {
+      if (!voiceAvailable || miraVoiceCapability(languageRef.current, 'textToSpeech') !== 'verified') return true;
+      const operationId = speechOperationRef.current + 1;
+      speechOperationRef.current = operationId;
       try {
         setStatus('speaking');
+        setSpeechStage('preparing');
+        setPlaybackPaused(false);
         const speech = await synthesizeMiraSpeech({ language: languageRef.current, text });
+        if (speechOperationRef.current !== operationId) return true;
         const playback = playMiraAudio(`data:${speech.mimeType};base64,${speech.audioBase64}`);
         playbackRef.current = playback;
+        setSpeechStage('playing');
         await playback.done;
+        if (speechOperationRef.current === operationId) setStatus('idle');
+        return true;
       } catch (error) {
         setErrorMessage(error instanceof MiraApiError ? error.message : 'The spoken reply could not be played.');
+        if (speechOperationRef.current === operationId) setStatus('error');
+        return false;
       } finally {
-        playbackRef.current = null;
-        setStatus('idle');
+        if (speechOperationRef.current === operationId) {
+          playbackRef.current = null;
+          setSpeechStage(null);
+          setPlaybackPaused(false);
+        }
       }
     },
     [voiceAvailable],
@@ -201,19 +281,21 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
       const trimmed = text.trim();
       if (!trimmed) return;
       setErrorMessage('');
-      setStatus('thinking');
-      const conversationId = await ensureConversation(source);
-      const history = messages.slice(-8).map((message) => ({ role: message.role, text: message.text }));
-      const userMessage: MiraChatMessage = {
-        id: generateMiraMessageId(),
-        role: 'user',
-        text: trimmed,
-        source,
-        createdAt: new Date().toISOString(),
-      };
-      setMessages((current) => [...current, userMessage]);
-
+      setEscalation(null);
+      setEmergencyGuidance('');
+      setStatus('sending');
       try {
+        const conversationId = await ensureConversation(source);
+        const history = messages.slice(-8).map((message) => ({ role: message.role, text: message.text }));
+        const userMessage: MiraChatMessage = {
+          id: generateMiraMessageId(),
+          role: 'user',
+          text: trimmed,
+          source,
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((current) => [...current, userMessage]);
+        setStatus('thinking');
         const result = await sendMiraMessage({
           conversationId,
           language: languageRef.current,
@@ -239,14 +321,15 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
         await persist(userMessage, result.escalation.urgency);
         await persist(assistantMessage, result.escalation.urgency);
         if (source === 'voice') {
-          await speakReply(result.reply);
+          const spoken = await speakReply(result.reply);
+          if (!spoken) return;
         }
+        setStatus('idle');
       } catch (error) {
         setErrorMessage(
           error instanceof MiraApiError ? error.message : 'Mira could not reply right now. Please try again.',
         );
-      } finally {
-        setStatus('idle');
+        setStatus('error');
       }
     },
     [ensureConversation, messages, persist, speakReply],
@@ -265,37 +348,89 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
         audioBase64: clip.audioBase64,
         mimeType: clip.mimeType,
       });
-      setLastVoiceTranscript(result.transcript);
-      setStatus('idle');
-      await runTurn(result.transcript, 'voice');
+      setTranscriptDraft(result.transcript);
+      setEditingTranscript(false);
+      setStatus('reviewing-transcript');
     } catch (error) {
-      setStatus('idle');
+      setStatus('error');
       setErrorMessage(
         error instanceof MiraApiError || error instanceof Error
           ? error.message
           : 'Voice input failed. Please try again or type your message.',
       );
     }
-  }, [runTurn]);
+  }, []);
 
-  const handleMicrophone = useCallback(async () => {
-    if (status === 'listening') {
-      await finishRecording();
-      return;
-    }
-    if (status !== 'idle') return;
+  useEffect(() => {
+    if (status !== 'recording') return;
+    let elapsed = 0;
+    setRecordingSeconds(0);
+    const timer = window.setInterval(() => {
+      elapsed += 1;
+      setRecordingSeconds(elapsed);
+      if (elapsed >= 60) {
+        window.clearInterval(timer);
+        void finishRecording();
+      }
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [finishRecording, status]);
+
+  const beginRecording = useCallback(async () => {
     setErrorMessage('');
     if (!isMiraRecordingSupported()) {
+      setStatus('error');
       setErrorMessage('Voice recording is not supported in this browser. You can type your message instead.');
       return;
     }
     try {
+      stopPlayback();
+      setTranscriptDraft('');
+      setEditingTranscript(false);
       recordingRef.current = await startMiraRecording({ maxSeconds: 60 });
-      setStatus('listening');
+      setStatus('recording');
     } catch {
+      setStatus('error');
       setErrorMessage('Microphone access was not available. Check the browser permission and try again.');
     }
-  }, [finishRecording, status]);
+  }, [stopPlayback]);
+
+  const handleMicrophone = useCallback(async () => {
+    if (status !== 'idle' && status !== 'error') return;
+    await beginRecording();
+  }, [beginRecording, status]);
+
+  const sendReviewedTranscript = useCallback(async () => {
+    const transcript = transcriptDraft.trim();
+    if (!transcript) return;
+    setTranscriptDraft('');
+    setEditingTranscript(false);
+    await runTurn(transcript, 'voice');
+  }, [runTurn, transcriptDraft]);
+
+  const recordAgain = useCallback(async () => {
+    setTranscriptDraft('');
+    setEditingTranscript(false);
+    setStatus('idle');
+    await beginRecording();
+  }, [beginRecording]);
+
+  const togglePlaybackPause = useCallback(async () => {
+    const playback = playbackRef.current;
+    if (!playback || speechStage !== 'playing') return;
+    if (playbackPaused) {
+      try {
+        await playback.resume();
+        setPlaybackPaused(false);
+      } catch {
+        setErrorMessage('The spoken reply could not resume. You can replay it when ready.');
+        setStatus('error');
+      }
+      return;
+    }
+    playback.pause();
+    setPlaybackPaused(true);
+  }, [playbackPaused, speechStage]);
 
   const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const nextLanguage = event.target.value as MiraLanguageCode;
@@ -313,7 +448,6 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
     await runTurn(text, 'text');
   };
 
-  const lastVoiceLabel = lastVoiceTranscript ? `Last voice transcript: “${lastVoiceTranscript}”` : '';
   const lastAssistantMessage = [...messages].reverse().find((message) => message.role === 'assistant');
 
   return (
@@ -340,7 +474,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
 
         <FormField
           label="Conversation language"
-          helpText={`${languageDefinition.voiceDetail} ${MIRA_TEXT_CHAT_NOTE}`}
+          helpText={voiceHelpText}
         >
           <SelectInput
             value={language}
@@ -362,17 +496,29 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
         )}
         {voiceAvailable && !speechInputVerified && (
           <Alert tone="warning" title="Voice input is not available in this language">
-            {languageDefinition.voiceDetail} You can still type your message in {languageDefinition.label}.
+            You can still type your message in {languageDefinition.label}.
           </Alert>
         )}
       </Card>
 
       <Card as="section" padding="none" className="overflow-hidden">
-        <div className="border-b border-line bg-surface-subtle px-4 py-3 sm:px-5">
-          <h3 className="text-heading-3 text-foreground">Conversation</h3>
-          <p className="text-caption text-foreground-secondary">
-            Everything you and Mira say stays visible here, including voice transcripts.
-          </p>
+        <div className="flex items-start justify-between gap-3 border-b border-line bg-surface-subtle px-4 py-3 sm:px-5">
+          <div>
+            <h3 className="text-heading-3 text-foreground">Conversation</h3>
+            <p className="text-caption text-foreground-secondary">
+              Everything you and Mira say stays visible here, including voice transcripts.
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            leadingIcon={<MessageSquarePlus size={17} />}
+            onClick={startNewChat}
+            disabled={busy || loadingConversation}
+          >
+            New chat
+          </Button>
         </div>
         <div
           role="log"
@@ -407,14 +553,33 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
               <p className="mt-1 whitespace-pre-wrap text-body text-foreground">{message.text}</p>
             </article>
           ))}
+          {escalation?.urgency === 'urgent' && (
+            <Alert
+              tone="danger"
+              title="This may need emergency care now"
+              live="assertive"
+              icon={<ShieldAlert size={20} />}
+              className="max-w-[92%]"
+            >
+              <p>{emergencyGuidance || 'Please contact emergency services or go to the nearest emergency department now.'}</p>
+              <p className="mt-2">{escalation.reason}</p>
+              <p className="mt-2">
+                Mira has not contacted anyone for you. No appointment has been submitted, and nothing has been written
+                to your health or medical records.
+              </p>
+            </Alert>
+          )}
         </div>
-        {STATUS_LABELS[status] && (
+        {(status === 'sending' || status === 'thinking' || status === 'speaking') && (
           <p role="status" aria-live="polite" className="border-t border-line px-4 py-2 text-small text-foreground-secondary sm:px-5">
-            {STATUS_LABELS[status]}
+            {status === 'speaking'
+              ? speechStage === 'preparing'
+                ? 'Preparing spoken reply...'
+                : playbackPaused
+                  ? "Mira's reply is paused."
+                  : "Playing Mira's reply"
+              : STATUS_LABELS[status]}
           </p>
-        )}
-        {lastVoiceLabel && (
-          <p className="border-t border-line px-4 py-2 text-small text-foreground-secondary sm:px-5">{lastVoiceLabel}</p>
         )}
       </Card>
 
@@ -426,17 +591,6 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
       {saveNotice && (
         <Alert tone="warning" title="Conversation save status" live="polite">
           {saveNotice}
-        </Alert>
-      )}
-
-      {escalation?.urgency === 'urgent' && (
-        <Alert tone="danger" title="This may need emergency care now" live="assertive" icon={<ShieldAlert size={20} />}>
-          <p>{emergencyGuidance || 'Please contact emergency services or go to the nearest emergency department now.'}</p>
-          <p className="mt-2">{escalation.reason}</p>
-          <p className="mt-2">
-            Mira has not contacted anyone for you. An appointment request is not an emergency service and does not
-            replace emergency care.
-          </p>
         </Alert>
       )}
 
@@ -505,6 +659,84 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
       )}
 
       <Card as="section" className="space-y-4">
+        {status === 'recording' && (
+          <Alert
+            tone="info"
+            title="Listening..."
+            live="polite"
+            icon={<Mic size={20} />}
+            action={(
+              <Button
+                type="button"
+                variant="danger"
+                leadingIcon={<Square size={17} />}
+                onClick={() => void finishRecording()}
+              >
+                Stop recording
+              </Button>
+            )}
+          >
+            <span className="font-semibold tabular-nums">{formatRecordingTime(recordingSeconds)}</span>
+            <span className="ml-2">Your microphone is active.</span>
+          </Alert>
+        )}
+
+        {status === 'transcribing' && (
+          <Alert tone="info" title="Transcribing your message..." live="polite">
+            Keep this screen open while Mira turns your recording into text.
+          </Alert>
+        )}
+
+        {status === 'reviewing-transcript' && (
+          <section aria-labelledby="mira-transcript-review-title" className="space-y-3 rounded-card border border-line bg-surface-subtle p-4">
+            <div>
+              <h3 id="mira-transcript-review-title" className="text-body font-semibold text-foreground">You said:</h3>
+              <p className="mt-1 text-caption text-foreground-secondary">Review this transcript before sending it to Mira.</p>
+            </div>
+            {editingTranscript ? (
+              <FormField label="Edit transcript">
+                <Textarea
+                  rows={3}
+                  value={transcriptDraft}
+                  onChange={(event) => setTranscriptDraft(event.target.value)}
+                  aria-label="Edit voice transcript"
+                />
+              </FormField>
+            ) : (
+              <blockquote className="whitespace-pre-wrap rounded-control bg-surface px-4 py-3 text-body text-foreground">
+                “{transcriptDraft}”
+              </blockquote>
+            )}
+            <div className="flex flex-wrap gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                leadingIcon={<Pencil size={17} />}
+                onClick={() => setEditingTranscript(true)}
+                disabled={editingTranscript}
+              >
+                Edit
+              </Button>
+              <Button
+                type="button"
+                leadingIcon={<Send size={17} />}
+                onClick={() => void sendReviewedTranscript()}
+                disabled={transcriptDraft.trim().length === 0}
+              >
+                Send to Mira
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                leadingIcon={<RotateCcw size={17} />}
+                onClick={() => void recordAgain()}
+              >
+                Record again
+              </Button>
+            </div>
+          </section>
+        )}
+
         <form onSubmit={handleSend} className="space-y-3" noValidate>
           <FormField
             label="Your message to Mira"
@@ -516,14 +748,15 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
               onChange={(event) => setInputText(event.target.value)}
               placeholder="Type your question or concern"
               aria-label="Message to Mira"
+              disabled={busy}
             />
           </FormField>
           <div className="flex flex-wrap items-center gap-3">
             <Button
               type="submit"
               leadingIcon={<Send size={18} />}
-              loading={status === 'thinking'}
-              loadingLabel="Mira is replying…"
+              loading={status === 'sending' || status === 'thinking'}
+              loadingLabel={status === 'sending' ? 'Sending...' : 'Mira is thinking...'}
               disabled={busy || inputText.trim().length === 0}
             >
               Send message
@@ -533,17 +766,22 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
                 type="button"
                 variant="secondary"
                 onClick={() => void handleMicrophone()}
-                disabled={status === 'transcribing' || status === 'thinking' || status === 'speaking' || !speechInputVerified}
-                leadingIcon={status === 'listening' ? <MicOff size={18} /> : <Mic size={18} />}
-                aria-pressed={status === 'listening'}
-                aria-label={
-                  status === 'listening'
-                    ? 'Finish voice recording and send to Mira'
-                    : `Speak to Mira in ${languageDefinition.label}`
-                }
-                title={speechInputVerified ? undefined : languageDefinition.voiceDetail}
+                disabled={busy || !speechInputVerified}
+                leadingIcon={<Mic size={18} />}
+                aria-label={`Speak to Mira in ${languageDefinition.label}`}
+                title={speechInputVerified ? undefined : `Voice input is not available in ${languageDefinition.label} right now.`}
               >
-                {status === 'listening' ? 'Finish and send voice' : 'Speak to Mira'}
+                Speak to Mira
+              </Button>
+            )}
+            {status === 'speaking' && speechStage === 'playing' && (
+              <Button
+                type="button"
+                variant="secondary"
+                leadingIcon={playbackPaused ? <Play size={18} /> : <Pause size={18} />}
+                onClick={() => void togglePlaybackPause()}
+              >
+                {playbackPaused ? 'Resume reply' : 'Pause reply'}
               </Button>
             )}
             {voiceAvailable && speechOutputVerified && lastAssistantMessage && (
@@ -554,15 +792,15 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
                 onClick={() => void speakReply(lastAssistantMessage.text)}
                 disabled={status === 'speaking'}
               >
-                Play last reply
+                Replay last reply
               </Button>
             )}
           </div>
         </form>
         <p className="max-w-prose text-caption text-foreground-secondary">
           Mira is an AI assistant, not a doctor. Mira never submits appointment requests, never contacts anyone for you,
-          and never writes to your Health History or Medical Records. Voice availability depends on the configured
-          provider. Audio is sent to the provider for transcription and is not stored in Warrior AI records.
+          and never writes to your Health History or Medical Records. Voice availability may vary by language and
+          service availability. Audio is used for transcription and is not stored in Warrior AI records.
         </p>
       </Card>
     </section>

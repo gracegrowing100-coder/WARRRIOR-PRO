@@ -80,16 +80,63 @@ function readErrorMessage(payload: unknown, fallback: string): string {
     : fallback;
 }
 
-async function miraFetch<T>(path: string, body: Record<string, unknown>): Promise<T> {
-  const currentUser = auth.currentUser;
-  if (!currentUser) {
+const ENDED_FIREBASE_SESSION_CODES = new Set([
+  'auth/id-token-expired',
+  'auth/invalid-user-token',
+  'auth/user-disabled',
+  'auth/user-not-found',
+  'auth/user-token-expired',
+]);
+
+function firebaseAuthError(error: unknown): MiraApiError {
+  const code = String((error as { code?: unknown })?.code ?? '');
+  if (ENDED_FIREBASE_SESSION_CODES.has(code)) {
+    return new MiraApiError('unauthenticated', 'Your session has ended. Sign in again to use Mira.', 401);
+  }
+  return new MiraApiError(
+    'auth_unavailable',
+    'Mira could not verify your sign-in right now. Please try again.',
+    503,
+  );
+}
+
+async function currentMiraUser() {
+  try {
+    await auth.authStateReady();
+  } catch (error) {
+    throw firebaseAuthError(error);
+  }
+  if (!auth.currentUser) {
     throw new MiraApiError('unauthenticated', 'Sign in again to use Mira.', 401);
   }
-  const token = await currentUser.getIdToken();
+  return auth.currentUser;
+}
 
-  let response: Response;
+async function postMiraRequest(path: string, body: Record<string, unknown>, token: string): Promise<Response> {
+  if (typeof window !== 'undefined' && ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)) {
+    const segments = token.split('.');
+    let claims: Record<string, unknown> = {};
+    if (segments.length === 3) {
+      try {
+        const normalized = segments[1].replace(/-/g, '+').replace(/_/g, '/');
+        const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+        claims = JSON.parse(atob(padded)) as Record<string, unknown>;
+      } catch {
+        claims = {};
+      }
+    }
+    const firebase = claims.firebase as { sign_in_provider?: unknown } | undefined;
+    console.info('[Mira auth] Sending Firebase ID token.', {
+      uid: typeof claims.sub === 'string' ? claims.sub : undefined,
+      segmentCount: segments.length,
+      audience: typeof claims.aud === 'string' ? claims.aud : undefined,
+      issuer: typeof claims.iss === 'string' ? claims.iss : undefined,
+      signInProvider: typeof firebase?.sign_in_provider === 'string' ? firebase.sign_in_provider : undefined,
+    });
+  }
+
   try {
-    response = await fetch(path, {
+    return await fetch(path, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
@@ -97,11 +144,52 @@ async function miraFetch<T>(path: string, body: Record<string, unknown>): Promis
   } catch {
     throw new MiraApiError('network', 'Mira could not be reached. Check your connection and try again.', 0);
   }
+}
 
-  const payload = await response.json().catch(() => null);
+async function miraFetch<T>(path: string, body: Record<string, unknown>): Promise<T> {
+  const currentUser = await currentMiraUser();
+  let token: string;
+  try {
+    token = await currentUser.getIdToken(false);
+  } catch (error) {
+    throw firebaseAuthError(error);
+  }
+
+  let response = await postMiraRequest(path, body, token);
+  let payload = await response.json().catch(() => null);
+  const firstError = payload as { error?: { code?: unknown } };
+  if (response.status === 401 && firstError?.error?.code === 'unauthenticated') {
+    try {
+      const refreshedUser = await currentMiraUser();
+      if (refreshedUser.uid !== currentUser.uid) {
+        throw new MiraApiError(
+          'auth_unavailable',
+          'Mira could not verify your sign-in right now. Please try again.',
+          503,
+        );
+      }
+      token = await refreshedUser.getIdToken(true);
+    } catch (error) {
+      if (error instanceof MiraApiError) throw error;
+      throw firebaseAuthError(error);
+    }
+    response = await postMiraRequest(path, body, token);
+    payload = await response.json().catch(() => null);
+  }
+
   if (!response.ok) {
     const candidate = payload as { error?: { code?: unknown } };
     const code = typeof candidate?.error?.code === 'string' ? candidate.error.code : 'mira_unavailable';
+    if (response.status === 401 && code === 'unauthenticated') {
+      if (!auth.currentUser) {
+        throw new MiraApiError('unauthenticated', 'Your session has ended. Sign in again to use Mira.', 401);
+      }
+      throw new MiraApiError(
+        'auth_unavailable',
+        'Mira could not verify your sign-in right now. Please try again.',
+        503,
+      );
+    }
     throw new MiraApiError(code, readErrorMessage(payload, 'Mira could not complete that request.'), response.status);
   }
   return payload as T;
@@ -167,6 +255,24 @@ export interface MiraStoredConversation {
 
 const MIRA_DEVICE_CONVERSATION_PREFIX = 'warrior_mira_conversation_';
 const MIRA_STORED_MESSAGE_LIMIT = 40;
+const MIRA_FIRESTORE_WRITE_TIMEOUT_MS = 3_000;
+
+async function withMiraFirestoreWriteTimeout<T>(operation: Promise<T>): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error('Mira Firestore write timed out.')),
+          MIRA_FIRESTORE_WRITE_TIMEOUT_MS,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  }
+}
 
 export function generateMiraConversationId(): string {
   return `mira-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -233,13 +339,15 @@ export async function startMiraConversation(input: {
     conversationId,
     language,
     updatedAt: new Date().toISOString(),
-    messages: readDeviceConversation(userId)?.messages ?? [],
+    messages: [],
   });
   try {
-    await setDoc(
-      doc(db, 'users', userId, 'miraConversations', conversationId),
-      { language, mode, escalationUrgency: 'none', createdAt: serverTimestamp(), updatedAt: serverTimestamp() },
-      { merge: true },
+    await withMiraFirestoreWriteTimeout(
+      setDoc(
+        doc(db, 'users', userId, 'miraConversations', conversationId),
+        { language, mode, escalationUrgency: 'none', createdAt: serverTimestamp(), updatedAt: serverTimestamp() },
+        { merge: true },
+      ),
     );
     return 'recorded';
   } catch {
@@ -269,17 +377,19 @@ export async function saveMiraMessage(input: {
   });
 
   try {
-    await setDoc(
-      doc(db, 'users', userId, 'miraConversations', conversationId),
-      { language, escalationUrgency, updatedAt: serverTimestamp() },
-      { merge: true },
-    );
-    await addDoc(collection(db, 'users', userId, 'miraConversations', conversationId, 'messages'), {
-      role: message.role,
-      text: message.text,
-      source: message.source,
-      createdAt: serverTimestamp(),
-    });
+    await withMiraFirestoreWriteTimeout(Promise.all([
+      setDoc(
+        doc(db, 'users', userId, 'miraConversations', conversationId),
+        { language, escalationUrgency, updatedAt: serverTimestamp() },
+        { merge: true },
+      ),
+      addDoc(collection(db, 'users', userId, 'miraConversations', conversationId, 'messages'), {
+        role: message.role,
+        text: message.text,
+        source: message.source,
+        createdAt: serverTimestamp(),
+      }),
+    ]));
     return 'recorded';
   } catch {
     return savedOnDevice ? 'device-only' : 'unavailable';
