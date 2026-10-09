@@ -16,8 +16,7 @@ import { HealthHistory } from '../../../components/health/HealthHistory';
 const symptomMissing = { state: 'missing', data: [] };
 
 const overviewValue = (label: string) => {
-  const term = screen.getByText(label, { selector: 'dt' });
-  return term.parentElement?.querySelector('dd');
+  return screen.getByRole('tab', { name: new RegExp(label, 'i') });
 };
 
 describe('HealthHistory', () => {
@@ -82,6 +81,24 @@ describe('HealthHistory', () => {
     expect(await screen.findByText('Managing / OK')).toBeInTheDocument();
     expect(screen.getByText('Resting today')).toBeInTheDocument();
     expect(screen.queryByText(/6\s*\/\s*10/)).not.toBeInTheDocument();
+  });
+
+  it('switches history categories with pointer and keyboard controls', async () => {
+    const user = userEvent.setup();
+    render(<HealthHistory userId="patient-1" />);
+
+    const painTab = await screen.findByRole('tab', { name: /Pain & symptoms/i });
+    const hydrationTab = screen.getByRole('tab', { name: /Hydration/i });
+    expect(painTab).toHaveAttribute('aria-selected', 'true');
+
+    await user.click(hydrationTab);
+    expect(hydrationTab).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel', { name: /Hydration/i })).toBeVisible();
+
+    await user.keyboard('{ArrowRight}');
+    const checkInTab = screen.getByRole('tab', { name: /Check-ins/i });
+    expect(checkInTab).toHaveAttribute('aria-selected', 'true');
+    expect(checkInTab).toHaveFocus();
   });
 
   it('uses honest empty states and excludes medication adherence, AI, and Care Vault records', async () => {

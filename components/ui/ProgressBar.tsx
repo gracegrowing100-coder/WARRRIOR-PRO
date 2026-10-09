@@ -6,7 +6,7 @@ export interface ProgressBarProps extends Omit<React.HTMLAttributes<HTMLDivEleme
   max?: number;
   label: string;
   valueText?: string;
-  tone?: 'primary' | 'success' | 'warning' | 'danger';
+  tone?: 'primary' | 'success' | 'warning' | 'danger' | 'info';
 }
 
 const toneClasses = {
@@ -14,6 +14,7 @@ const toneClasses = {
   success: 'bg-status-success',
   warning: 'bg-status-warning',
   danger: 'bg-status-danger',
+  info: 'bg-status-info',
 };
 
 export const ProgressBar: React.FC<ProgressBarProps> = ({

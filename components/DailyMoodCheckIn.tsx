@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Clock, Edit3, MessageSquare } from 'lucide-react';
+import { Activity, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { firebaseService } from '../services/firebaseService';
 import { Button, Card } from './ui';
@@ -185,16 +185,24 @@ export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCh
 
   if (compact) {
     return (
-      <Card data-semantic>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-heading-3">Daily check-in</h2>
+      <Card data-semantic className="h-full border-line/80 shadow-surface" padding="lg">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-medical-50 text-action-accent">
+              <Activity size={22} />
+            </span>
+            <div>
+              <p className="text-caption font-bold uppercase tracking-[0.12em] text-action-accent">Your daily check-in</p>
+              <h2 className="mt-0.5 text-heading-3">How are you feeling?</h2>
+            </div>
+          </div>
           {savedEntry && !isEditing && <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)}>Edit</Button>}
         </div>
         {savedEntry && !isEditing ? (
-          <div className="mt-3 space-y-1">
-            <p className="flex items-center gap-2 font-medium text-foreground"><Check size={18} aria-hidden="true" />{savedEntry.emotion}</p>
-            <p className="text-small text-foreground-secondary">Logged today at {formattedSavedTime}</p>
-            {savedEntry.note && <p className="text-small text-foreground-secondary">{savedEntry.note}</p>}
+          <div className="mt-5 rounded-card bg-status-success-soft p-4">
+            <p className="flex items-center gap-2 text-body font-semibold text-foreground"><Check size={19} className="text-status-success-text" aria-hidden="true" />{savedEntry.emotion}</p>
+            <p className="mt-1 text-small text-foreground-secondary">Recorded at {formattedSavedTime}</p>
+            {savedEntry.note && <p className="mt-2 text-small text-foreground-secondary">{savedEntry.note}</p>}
             <p role="status" className="text-small text-foreground-secondary">
               {saveOutcome === 'recorded' && 'Saved to your account.'}
               {saveOutcome === 'partial' && 'Check-in saved to your account; the history copy is only on this device.'}
@@ -203,8 +211,8 @@ export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCh
             </p>
           </div>
         ) : (
-          <div className="mt-3 space-y-3">
-            <p className="text-small text-foreground-secondary">How are you feeling today?</p>
+          <div className="mt-5 space-y-3">
+            <p className="text-small text-foreground-secondary">Choose the option closest to how you feel now.</p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {MOOD_OPTIONS.map(option => (
                 <Button key={option.label} variant={selectedOption?.label === option.label ? 'primary' : 'secondary'} size="sm"
