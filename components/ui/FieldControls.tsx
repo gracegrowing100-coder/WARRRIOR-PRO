@@ -3,7 +3,7 @@ import { useFieldControlProps } from './FormField';
 import { cn } from './utils';
 
 const controlClasses = [
-  'min-h-11 w-full rounded-control border border-line-strong bg-surface px-3 text-body text-foreground',
+  'min-h-11 w-full rounded-control border border-line bg-surface px-3 text-body text-foreground',
   'placeholder:text-foreground-secondary disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-foreground',
   'aria-[invalid=true]:border-status-danger',
 ].join(' ');
