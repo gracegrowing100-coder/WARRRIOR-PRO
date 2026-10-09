@@ -520,9 +520,9 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
           </div>
         </header>
 
-        <div className="border-b border-line bg-medical-50 px-4 py-2.5 text-small text-foreground-secondary sm:px-5">
-          <span className="font-semibold text-foreground">Mira is an AI assistant, not a doctor.</span>{' '}
-          It can make mistakes and will tell you when human review is needed.
+        <div className="border-b border-line bg-medical-50 dark:bg-medical-900/20 px-4 py-2.5 text-small text-foreground-secondary dark:text-foreground sm:px-5">
+          <span className="font-semibold text-foreground dark:text-foreground">Mira is an AI assistant, not a doctor.</span>{' '}
+          <span className="text-foreground-secondary dark:text-foreground-secondary">It can make mistakes and will tell you when human review is needed.</span>
         </div>
 
         <div

@@ -19,6 +19,7 @@
   --medical-red-400: 240 90 110;
   --medical-red-100: 253 232 236;
   --medical-red-50: 255 244 246;
+  --medical-red-900: 165 25 42;
 
   --color-canvas: 247 249 252;
   --color-surface: 255 255 255;
@@ -78,26 +79,27 @@
   --color-surface-elevated: 16 42 76;
   --color-surface-subtle: 15 23 42;
   --color-text-primary: 248 250 252;
-  --color-text-secondary: 148 163 184;
+  --color-text-secondary: 163 184 203;
   --color-text-inverse: 7 20 38;
   --color-brand-surface: 16 42 76;
   --color-brand-foreground: 255 255 255;
   --color-border: 51 65 85;
   --color-border-strong: 71 85 105;
-  --color-action-primary: 253 164 175;
-  --color-action-primary-hover: 252 113 133;
-  --color-action-accent: 253 164 175;
-  --color-action-accent-hover: 252 113 133;
+  --color-action-primary: 251 113 133;
+  --color-action-primary-hover: 244 114 182;
+  --color-action-accent: 251 113 133;
+  --color-action-accent-hover: 244 114 182;
   --color-disabled-background: 30 41 59;
   --color-disabled-text: 100 116 139;
   --color-success-soft: 15 54 40;
   --color-warning-soft: 66 50 11;
-  --color-danger-soft: 80 30 45;
+  --color-danger-soft: 90 35 50;
   --color-info-soft: 20 45 91;
   --color-success-text: 74 222 128;
   --color-warning-text: 251 191 36;
-  --color-danger-text: 253 164 175;
+  --color-danger-text: 251 113 133;
   --color-info-text: 147 197 253;
+  --medical-red-900: 165 25 42;
 }
 
 .high-contrast {

@@ -21,6 +21,7 @@ module.exports = {
           600: 'rgb(var(--navy-600) / <alpha-value>)',
         },
         medical: {
+          900: 'rgb(var(--medical-red-900) / <alpha-value>)',
           700: 'rgb(var(--medical-red-700) / <alpha-value>)',
           600: 'rgb(var(--medical-red-600) / <alpha-value>)',
           500: 'rgb(var(--medical-red-500) / <alpha-value>)',
