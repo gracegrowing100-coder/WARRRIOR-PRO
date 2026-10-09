@@ -24,10 +24,10 @@ const CareDestination: React.FC<{
     <button
       type="button"
       onClick={onClick}
-      className="group flex min-h-20 w-full items-center gap-4 px-4 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus sm:px-5"
+      className="group flex min-h-20 w-full items-center gap-4 px-4 py-4 text-left transition-all duration-150 hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus sm:px-5"
       aria-label={`${actionLabel}: ${title}`}
     >
-      <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-card bg-medical-50 text-action-accent" aria-hidden="true">
+      <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-card bg-medical-50 text-action-accent shadow-subtle" aria-hidden="true">
         {icon}
       </span>
       <span className="min-w-0 flex-1">
@@ -37,7 +37,7 @@ const CareDestination: React.FC<{
         </span>
         <span className="mt-1 block max-w-xl text-small text-foreground-secondary">{description}</span>
       </span>
-      <span className="inline-flex shrink-0 items-center gap-1 text-small font-semibold text-action">
+      <span className="inline-flex shrink-0 items-center gap-1 text-small font-semibold text-action group-hover:text-action-accent transition-colors duration-150">
         <span className="hidden sm:inline">{actionLabel}</span>
         <ChevronRight size={19} aria-hidden="true" />
       </span>

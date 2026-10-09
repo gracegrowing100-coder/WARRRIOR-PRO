@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Bot, Check, MessageSquarePlus, Mic, Pause, Pencil, Play, RotateCcw, Send, Settings2, ShieldAlert, Sparkles, Square, Volume2 } from 'lucide-react';
+import { Check, HeartPulse, MessageSquarePlus, Mic, Pause, Pencil, Play, RotateCcw, Send, Settings2, ShieldAlert, Square, Volume2 } from 'lucide-react';
 import { Alert, Button, Card, FormField, IconButton, Modal, SelectInput, Textarea } from '../ui';
 import {
   MIRA_LANGUAGES,
@@ -483,7 +483,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
         <header className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-3 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-action-accent text-white shadow-sm">
-              <Bot size={22} />
+              <HeartPulse size={22} />
             </span>
             <div className="min-w-0">
               <h2 id="mira-heading" className="text-heading-3 text-foreground">Mira</h2>
@@ -521,7 +521,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
             <Card surface="subtle" className="mx-auto max-w-xl border-medical-100 shadow-none">
               <div className="flex items-start gap-3">
                 <span aria-hidden="true" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-medical-50 text-action-accent">
-                  <Sparkles size={19} />
+                  <Settings2 size={19} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <h3 className="text-body font-semibold text-foreground">Make Mira yours</h3>
@@ -545,7 +545,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
           {!loadingConversation && messages.length === 0 && (
             <div className="mx-auto max-w-md py-8 text-center">
               <span aria-hidden="true" className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-surface text-action-accent shadow-surface">
-                <Bot size={25} />
+                <HeartPulse size={25} />
               </span>
               <h3 className="mt-4 text-heading-3 text-foreground">How can I support you?</h3>
               <p className="mt-2 text-small text-foreground-secondary">Ask about daily sickle-cell support, hydration, pain, medication routines, or preparing for an appointment.</p>
@@ -559,7 +559,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
             if (isUrgentAssistant) {
               return (
                 <div key={message.id} className="flex max-w-[94%] items-end gap-2">
-                  <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-action-accent text-white"><Bot size={16} /></span>
+                  <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-action-accent text-white"><HeartPulse size={16} /></span>
                   <Alert tone="danger" title="This may need emergency care now" live="assertive" icon={<ShieldAlert size={20} />} className="min-w-0 flex-1">
                     <p className="whitespace-pre-wrap">{message.text || emergencyGuidance}</p>
                     <p className="mt-2 font-medium text-status-danger-text">Mira has not contacted anyone on your behalf. No appointment has been submitted, and nothing has been written to your health or medical records.</p>
@@ -582,7 +582,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
 
             return (
               <div key={message.id} className="flex max-w-[92%] items-end gap-2">
-                <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-medical-100 text-action-accent"><Bot size={16} /></span>
+                <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-medical-100 text-action-accent"><HeartPulse size={16} /></span>
                 <article className="min-w-0 rounded-[1.25rem] rounded-bl-md border border-line/60 bg-surface px-4 py-3 shadow-subtle">
                   <div className="flex items-center gap-2 text-caption font-medium text-foreground-secondary">
                     <span>Mira</span><span className="rounded-pill bg-medical-50 px-2 py-0.5 text-action-accent text-[10px]">AI</span>
@@ -597,7 +597,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
 
           {(status === 'sending' || status === 'thinking') && (
             <div role="status" aria-live="polite" className="flex items-end gap-2">
-              <span aria-hidden="true" className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-action-accent text-white"><Bot size={16} /></span>
+              <span aria-hidden="true" className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-action-accent text-white"><HeartPulse size={16} /></span>
               <div className="rounded-[1.25rem] rounded-bl-md border border-line bg-surface px-4 py-3 text-small text-foreground-secondary shadow-surface">
                 {STATUS_LABELS[status]}
               </div>
@@ -652,7 +652,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
 
         <form onSubmit={handleSend} className="border-t border-line/60 bg-surface px-3 py-3 sm:px-5" noValidate>
           <label htmlFor="mira-message-composer" className="sr-only">Your message to Mira</label>
-          <div className="flex items-end gap-1.5 rounded-[1.25rem] border border-line/60 bg-surface-subtle p-1.5 focus-within:border-action-accent focus-within:ring-2 focus-within:ring-medical-100 shadow-subtle">
+          <div className="flex items-end gap-1.5 rounded-xl border border-line/60 bg-surface-subtle p-1.5 focus-within:border-action-accent focus-within:ring-2 focus-within:ring-medical-100 shadow-floating transition-all duration-150">
             <Textarea
               id="mira-message-composer"
               rows={1}

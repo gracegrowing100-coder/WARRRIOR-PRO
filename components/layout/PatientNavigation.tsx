@@ -69,11 +69,11 @@ export const PatientNavigation: React.FC<PatientNavigationProps> = ({
             aria-current={isCurrent ? 'page' : undefined}
             onClick={() => onNavigate(id)}
             className={cn(
-              'flex min-h-14 min-w-0 touch-manipulation select-none flex-col items-center justify-center gap-0.5 rounded-control px-0',
+              'flex min-h-14 min-w-0 touch-manipulation select-none flex-col items-center justify-center gap-0.5 rounded-control px-0 transition-all duration-150',
               'text-[11px] leading-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2',
               'md:min-h-12 md:w-full md:flex-row md:justify-start md:gap-3 md:px-4 md:text-small',
               isCurrent
-                ? 'font-bold text-action-accent'
+                ? 'font-bold text-action-accent bg-medical-50/50'
                 : 'font-medium text-foreground-secondary hover:bg-surface-subtle hover:text-foreground',
             )}
           >

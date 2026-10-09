@@ -105,7 +105,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
       id="home-header-stats"
       aria-labelledby="todays-health-title"
       data-semantic
-      className="relative overflow-hidden border-medical-100 bg-surface shadow-none before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-action-accent"
+      className="relative overflow-hidden border-medical-100/60 bg-gradient-to-br from-medical-50 to-surface shadow-surface"
       padding="lg"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -124,9 +124,9 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
       </div>
 
       {hasTodayData ? (
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-card border border-line bg-surface-subtle p-4">
-            <div className="flex items-center gap-2 text-small text-foreground-secondary">
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-card border border-line/60 bg-surface p-4 shadow-subtle">
+            <div className="flex items-center gap-2 text-small font-medium text-foreground-secondary">
               <HeartPulse size={18} className="text-action-accent" aria-hidden="true" />
               <span>Recorded pain</span>
             </div>
@@ -134,8 +134,8 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
               {snapshot.painLevel === null ? 'Not recorded' : `${snapshot.painLevel} / 10`}
             </p>
           </div>
-          <div className="rounded-card border border-line bg-surface-subtle p-4">
-            <div className="flex items-center gap-2 text-small text-foreground-secondary">
+          <div className="rounded-card border border-line/60 bg-surface p-4 shadow-subtle">
+            <div className="flex items-center gap-2 text-small font-medium text-foreground-secondary">
               <Droplets size={18} className="text-status-info" aria-hidden="true" />
               <span>Hydration</span>
             </div>
@@ -153,8 +153,8 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
               </p>
             )}
           </div>
-          <div className="rounded-card border border-line bg-surface-subtle p-4">
-            <div className="flex items-center gap-2 text-small text-foreground-secondary">
+          <div className="rounded-card border border-line/60 bg-surface p-4 shadow-subtle">
+            <div className="flex items-center gap-2 text-small font-medium text-foreground-secondary">
               {snapshot.hasCheckIn ? <CheckCircle2 size={18} aria-hidden="true" /> : <CircleDashed size={18} aria-hidden="true" />}
               <span>Daily check-in</span>
             </div>

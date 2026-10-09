@@ -390,7 +390,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
         });
       }
 
-      setLoadingPhase("Entering protected Warrior Cell workspace...");
+      setLoadingPhase("Entering protected WARRIOR AI workspace...");
       await new Promise(resolve => setTimeout(resolve, 800));
 
       // 8. Finished & enter app
@@ -605,7 +605,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
 
               <div className="space-y-2">
                 <h3 className="text-white text-base font-extrabold uppercase tracking-widest font-sans">
-                  Warrior Cell Portal
+                  WARRIOR AI Portal
                 </h3>
                 <p className="text-slate-400 text-xs font-semibold">
                   Securing health database session...
@@ -648,8 +648,8 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
             W
           </div>
           <div>
-            <h1 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-tight leading-none mb-1">Warrior Cell</h1>
-            <span className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">Sickle Cell Wellness Hub</span>
+            <h1 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-tight leading-none mb-1">WARRIOR AI</h1>
+            <span className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">Sickle Cell Patient Support</span>
           </div>
         </div>
 

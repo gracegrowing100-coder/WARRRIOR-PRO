@@ -517,7 +517,7 @@ export function processOfflineQuery(
 // Full Offline UI Translations for Multi-Page Adaptation
 export const APP_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
   en: {
-    appName: "Warrior Cell",
+    appName: "WARRIOR AI",
     home: "Home",
     play: "Play",
     chat: "Chat",
@@ -540,7 +540,7 @@ export const APP_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>>
     speakPrompt: "Tap to Speak (Offline Voice)"
   },
   yo: {
-    appName: "Jagunjagun Ẹ̀jẹ̀",
+    appName: "WARRIOR AI",
     home: "Ilé",
     play: "Eré",
     chat: "Ọ̀rọ̀",
@@ -563,7 +563,7 @@ export const APP_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>>
     speakPrompt: "Tẹ́ẹ láti sọ̀rọ̀"
   },
   ha: {
-    appName: "Kwayar Halittar Jarumi",
+    appName: "WARRIOR AI",
     home: "Gida",
     play: "Wasa",
     chat: "Hira",
@@ -586,7 +586,7 @@ export const APP_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>>
     speakPrompt: "Danna don Magana"
   },
   ig: {
-    appName: "Mkpụrụ Ndụ Onye Dike",
+    appName: "WARRIOR AI",
     home: "Ụlọ",
     play: "Gwuo",
     chat: "Kparịta",

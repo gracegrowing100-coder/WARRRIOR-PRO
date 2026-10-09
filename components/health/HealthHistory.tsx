@@ -176,7 +176,7 @@ export const HealthHistory: React.FC<HealthHistoryProps> = ({ userId }) => {
         </dl>
       </section>
 
-      <section aria-labelledby="pain-symptom-history-title" className="space-y-4">
+      <section aria-labelledby="pain-symptom-history-title" className="space-y-5">
         <div>
           <h2 id="pain-symptom-history-title" className="text-heading-2 text-foreground">Pain &amp; symptoms</h2>
           <p className="mt-1 max-w-prose text-small text-foreground-secondary">Saved pain and symptom check-ins. A pain score of zero is a recorded value.</p>
@@ -189,14 +189,14 @@ export const HealthHistory: React.FC<HealthHistoryProps> = ({ userId }) => {
         ) : (
           <>
             <RecordedPainChart entries={history.symptoms} />
-            <Card as="section" padding="lg" className="shadow-none">
+            <Card as="section" padding="lg" className="shadow-subtle">
               <RecordedHistoryTimeline entries={history.symptoms} />
             </Card>
           </>
         )}
       </section>
 
-      <section aria-labelledby="hydration-history-title" className="space-y-4">
+      <section aria-labelledby="hydration-history-title" className="space-y-5">
         <div>
           <h2 id="hydration-history-title" className="text-heading-2 text-foreground">Hydration</h2>
           <p className="mt-1 max-w-prose text-small text-foreground-secondary">Only dates with a saved hydration record are shown.</p>
@@ -208,8 +208,8 @@ export const HealthHistory: React.FC<HealthHistoryProps> = ({ userId }) => {
             ? <StateMessage state="error" title="Hydration history is unavailable right now" description="Try loading Health history again." />
             : <StateMessage state="empty" title="No hydration entries recorded for this period" description="A recorded amount of 0.00 L will appear as an entry; missing dates remain blank." />
         ) : (
-          <Card padding="none" className="overflow-hidden shadow-none">
-            <ul className="divide-y divide-line" aria-label="Recorded hydration entries">
+          <Card padding="none" className="overflow-hidden shadow-subtle">
+            <ul className="divide-y divide-line/60" aria-label="Recorded hydration entries">
               {hydrationEntries.map((entry) => (
                 <li key={entry.dateStr} className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
                   <div>
@@ -224,7 +224,7 @@ export const HealthHistory: React.FC<HealthHistoryProps> = ({ userId }) => {
         )}
       </section>
 
-      <section aria-labelledby="check-in-history-title" className="space-y-4">
+      <section aria-labelledby="check-in-history-title" className="space-y-5">
         <div>
           <h2 id="check-in-history-title" className="text-heading-2 text-foreground">Daily check-ins</h2>
           <p className="mt-1 max-w-prose text-small text-foreground-secondary">Your selected check-in label and optional note. System-mapped numeric scores are not shown.</p>
@@ -236,8 +236,8 @@ export const HealthHistory: React.FC<HealthHistoryProps> = ({ userId }) => {
             ? <StateMessage state="error" title="Daily check-in history is unavailable right now" description="Try loading Health history again." />
             : <StateMessage state="empty" title="No daily check-ins recorded for this period" description="Saved daily check-ins will appear here." />
         ) : (
-          <Card padding="none" className="overflow-hidden shadow-none">
-            <ul className="divide-y divide-line" aria-label="Recorded daily check-ins">
+          <Card padding="none" className="overflow-hidden shadow-subtle">
+            <ul className="divide-y divide-line/60" aria-label="Recorded daily check-ins">
               {checkInEntries.map((entry) => (
                 <li key={entry.dateStr} className="px-4 py-4 sm:px-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">

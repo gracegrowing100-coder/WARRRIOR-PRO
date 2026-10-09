@@ -78,24 +78,26 @@
   --color-surface-elevated: 16 42 76;
   --color-surface-subtle: 15 23 42;
   --color-text-primary: 248 250 252;
-  --color-text-secondary: 203 213 225;
+  --color-text-secondary: 148 163 184;
   --color-text-inverse: 7 20 38;
   --color-brand-surface: 16 42 76;
   --color-brand-foreground: 255 255 255;
-  --color-border: 40 56 78;
+  --color-border: 51 65 85;
   --color-border-strong: 71 85 105;
-  --color-action-primary: 248 250 252;
-  --color-action-primary-hover: 226 232 240;
+  --color-action-primary: 253 164 175;
+  --color-action-primary-hover: 252 113 133;
+  --color-action-accent: 253 164 175;
+  --color-action-accent-hover: 252 113 133;
   --color-disabled-background: 30 41 59;
-  --color-disabled-text: 148 163 184;
-  --color-success-soft: 12 54 40;
-  --color-warning-soft: 66 45 11;
-  --color-danger-soft: 73 24 36;
+  --color-disabled-text: 100 116 139;
+  --color-success-soft: 15 54 40;
+  --color-warning-soft: 66 50 11;
+  --color-danger-soft: 80 30 45;
   --color-info-soft: 20 45 91;
-  --color-success-text: 134 239 172;
-  --color-warning-text: 253 230 138;
+  --color-success-text: 74 222 128;
+  --color-warning-text: 251 191 36;
   --color-danger-text: 253 164 175;
-  --color-info-text: 191 219 254;
+  --color-info-text: 147 197 253;
 }
 
 .high-contrast {
