@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Mail, 
-  Lock, 
-  User, 
-  Phone, 
-  Calendar, 
-  MapPin, 
-  Activity, 
-  ChevronRight, 
-  ChevronLeft, 
-  Check, 
-  Eye, 
-  EyeOff, 
-  LogIn, 
-  UserPlus, 
-  ShieldCheck, 
-  AlertCircle, 
-  Loader2, 
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import type { User as FirebaseUser } from 'firebase/auth';
+import {
+  Mail,
+  Lock,
+  User,
+  Phone,
+  Calendar,
+  MapPin,
+  Activity,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  Eye,
+  EyeOff,
+  LogIn,
+  UserPlus,
+  AlertCircle,
+  Loader2,
   Sparkles,
   Heart,
   Info,
@@ -41,15 +41,17 @@ import {
   triggerEmailVerification, 
   updateUserDisplayNameAndPhoto,
   loginWithGoogle,
-  configureAuthPersistence
+  configureAuthPersistence,
+  linkPendingGoogleCredential
 } from '../firebase-init';
 import { firebaseService } from '../services/firebaseService';
 
-const PRIVACY_DISCLAIMER_TEXT = "Pilot notice: Warrior AI is currently a prototype for product evaluation. Use sample information only. Do not enter real patient records until the clinic has approved the deployment, privacy terms, data-processing agreement, and security controls.";
+const PRIVACY_DISCLAIMER_TEXT = "Pilot version · For product evaluation. Use sample information only. Do not enter real patient records until clinic approval.";
 
 interface AuthFlowProps {
   onAuthSuccess: (user: any) => void;
   onOpenDemo: () => void;
+  initialNotice?: string | null;
 }
 
 // Genotype definitions matching clinical standards
@@ -106,7 +108,7 @@ const CLINICAL_GENOTYPES: GenotypeDefinition[] = [
   }
 ];
 
-export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo }) => {
+export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, initialNotice = null }) => {
   // Navigation screen states
   const [screen, setScreen] = useState<'landing' | 'login' | 'signup' | 'forgot' | 'onboarding'>('landing');
   
@@ -131,7 +133,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
 
   // Loading and feedback states
   const [isSubmit, setIsSubmit] = useState(false);
-  const [generalError, setGeneralError] = useState<string | null>(null);
+  const [generalError, setGeneralError] = useState<string | null>(initialNotice);
   const [generalSuccess, setGeneralSuccess] = useState<string | null>(null);
 
   // Form inputs
@@ -192,12 +194,13 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
 
   // Onboarding sequence state
   const [onboardingStep, setOnboardingStep] = useState(1);
-  const [scdType, setScdType] = useState('SS');
-  const [medicationsList, setMedicationsList] = useState<string[]>(['Folic Acid (Daily)']);
+  const [scdType, setScdType] = useState('');
+  const [medicationsList, setMedicationsList] = useState<string[]>([]);
   const [newCustomMed, setNewCustomMed] = useState('');
   const [crisisTriggersList, setCrisisTriggersList] = useState<string[]>([]);
-  const [targetHydration, setTargetHydration] = useState(3.8);
+  const [targetHydration, setTargetHydration] = useState(3.0);
   const [loadingPhase, setLoadingPhase] = useState<string | null>(null);
+  const resumedAuthenticatedUser = useRef(false);
 
   const PRESET_TRIGGERS = [
     "Sudden Atmospheric Cold (Thermal Shock)",
@@ -230,6 +233,41 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
     return null;
   };
 
+  const continueAfterAuthentication = useCallback(async (fbUser: FirebaseUser) => {
+    setLoadingPhase('Retrieving secure profile data...');
+    const profile = await firebaseService.getUserProfileState(fbUser.uid);
+
+    if (profile.state === 'recorded' || profile.state === 'cached') {
+      setLoadingPhase(null);
+      onAuthSuccess(fbUser);
+      return;
+    }
+
+    if (profile.state === 'missing') {
+      setFullName(fbUser.displayName || fbUser.email?.split('@')[0] || '');
+      setEmail(fbUser.email || '');
+      setScreen('onboarding');
+      setLoadingPhase(null);
+      return;
+    }
+
+    setLoadingPhase(null);
+    throw Object.assign(
+      new Error('We could not confirm your existing profile. Check your connection and try again.'),
+      { code: 'profile/unavailable' },
+    );
+  }, [onAuthSuccess]);
+
+  useEffect(() => {
+    const currentUser = auth.currentUser;
+    if (!currentUser || resumedAuthenticatedUser.current) return;
+    resumedAuthenticatedUser.current = true;
+
+    void continueAfterAuthentication(currentUser).catch(() => {
+      setGeneralError('We could not confirm your existing profile. Check your connection and try again.');
+    });
+  }, [continueAfterAuthentication]);
+
   // Safe Authentication submit
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -244,56 +282,20 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
     try {
       await configureAuthPersistence(rememberMe);
       const fbUser = await loginWithEmail(email, password);
+      await linkPendingGoogleCredential(fbUser);
       if (rememberMe) {
         localStorage.setItem('warrior_remembered_email', email);
       } else {
         localStorage.removeItem('warrior_remembered_email');
       }
 
-      setLoadingPhase("Retrieving secure profile data...");
-      const profile = await firebaseService.getUserProfile(fbUser.uid);
-      if (profile) {
-        setLoadingPhase("Success! Connecting to medical dashboard...");
-        await new Promise(resolve => setTimeout(resolve, 750));
-        setLoadingPhase(null);
-        onAuthSuccess(fbUser);
-      } else {
-        // If they don't have a profile for some reason, we can set up a default profile for them instantly too!
-        setLoadingPhase("Configuring fallback patient parameters...");
-        const userId = fbUser.uid;
-        const profilePayload = {
-          displayName: fullName || fbUser.displayName || email.split('@')[0],
-          role: 'Person with Sickle Cell Disease',
-          email: fbUser.email || email,
-          age: 25,
-          city: 'Not Specified',
-          bloodType: 'Not Specified',
-          scdType: 'SS',
-          streak: 0,
-          photoURL: fbUser.photoURL || '',
-          lastActiveDate: new Date().toLocaleDateString('sv')
-        };
-        await firebaseService.createUserProfile(userId, profilePayload);
-        await firebaseService.saveWaterLog(userId, new Date().toLocaleDateString('sv'), 0, 3.8);
-        await firebaseService.saveEmergencyInfo(userId, {
-          bloodType: 'O-positive (Pending)',
-          genotype: 'SS',
-          emergencyContactName: 'SCD Clinical Coordinator',
-          emergencyContactPhone: '+1 800-411-CARE',
-          primaryCaregiverName: 'Not recorded yet',
-          primaryCaregiverPhone: 'Not recorded yet',
-          allergies: 'None recorded',
-          currentMeds: 'Folic acid support',
-          customNotes: 'Target hydration: 3.8 Liters.'
-        });
-        setLoadingPhase("Welcome! Opening clinical portal...");
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setLoadingPhase(null);
-        onAuthSuccess(fbUser);
-      }
+      await continueAfterAuthentication(fbUser);
     } catch (err: any) {
       setLoadingPhase(null);
       const isHandledError = ['auth/wrong-password', 'auth/user-not-found', 'auth/invalid-credential', 'auth/invalid-email'].includes(err?.code);
+      if (typeof window !== 'undefined' && ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname) && isHandledError) {
+        console.info('[Auth] Password sign-in rejected.', { code: err?.code || 'unknown' });
+      }
       if (!isHandledError) {
         console.error("Authentication submit error:", err);
       }
@@ -302,6 +304,10 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
         errMsg = "We couldn't locate matching credentials. Please review the input and try again.";
       } else if (err.code === 'auth/network-request-failed') {
         errMsg = "Network Connection Issue: check your internet connection and reload.";
+      } else if (err.code === 'profile/unavailable') {
+        errMsg = "We could not confirm your existing profile. Check your connection and try again.";
+      } else if (err.code === 'auth/account-link-email-mismatch') {
+        errMsg = "The Google account does not match this signed-in account. No accounts or patient records were linked.";
       }
       setGeneralError(errMsg);
     } finally {
@@ -337,7 +343,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
         console.warn("Could not dispatch initial verification link:", e);
       }
 
-      setLoadingPhase("Initializing clinical parameters & rehydration thresholds...");
+      setLoadingPhase("Saving your account details...");
       
       const userId = fbUser.uid;
       const currentSelectedGenotype = userRole === 'Person with Sickle Cell Disease' ? scdType : 'N/A';
@@ -346,7 +352,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
         displayName: fullName || fbUser.displayName || 'Anonymous Warrior',
         role: userRole,
         email: fbUser.email || email,
-        age: dob ? Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : 25,
+        ...(dob ? { age: Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) } : {}),
         city: city || 'Not Specified',
         bloodType: 'Not Specified',
         scdType: currentSelectedGenotype,
@@ -360,12 +366,12 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
 
       setLoadingPhase("Activating daily medication reminders...");
 
-      // 5. Pre-populate medications list automatically based on selection or defaults
+      // 5. Save only medications deliberately selected by the user.
       if (medicationsList.length > 0) {
         for (const med of medicationsList) {
           await firebaseService.addMedication(userId, {
             name: med,
-            dosage: "1 dose",
+            dosage: "Not specified",
             time: "08:00",
             category: "Refinement Daily",
             checkedDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -374,25 +380,16 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
         }
       }
 
-      setLoadingPhase("Connecting emergency coordination protocols...");
+      // 6. Save an emergency contact only when the user supplied one. Hydration,
+      // allergy, medication and caregiver records are created in their own flows.
+      if (emergencyContactName.trim() || emergencyContactPhone.trim()) {
+        await firebaseService.saveEmergencyInfo(userId, {
+          emergencyContactName: emergencyContactName.trim(),
+          emergencyContactPhone: emergencyContactPhone.trim()
+        });
+      }
 
-      // 6. Initialize water level rehydration log
-      await firebaseService.saveWaterLog(userId, new Date().toLocaleDateString('sv'), 0, targetHydration);
-
-      // 7. Save the optional emergency contact supplied during onboarding
-      await firebaseService.saveEmergencyInfo(userId, {
-        bloodType: 'O-positive (Pending confirmation)',
-        genotype: currentSelectedGenotype,
-        emergencyContactName: emergencyContactName || 'SCD Clinical Coordinator',
-        emergencyContactPhone: emergencyContactPhone || '+1 800-411-CARE',
-        primaryCaregiverName: userRole === 'Caregiver / Parent' ? fullName : (emergencyContactName || 'Not recorded yet'),
-        primaryCaregiverPhone: userRole === 'Caregiver / Parent' ? `${phoneCode} ${phoneNumber}` : (emergencyContactPhone || 'Not recorded yet'),
-        allergies: 'None recorded',
-        currentMeds: medicationsList.join(', ') || 'Folic acid support',
-        customNotes: `Target medical liquid intake threshold: ${targetHydration} Liters. Registered pain trigger profiles: ${crisisTriggersList.join(', ') || 'General cold/dehydration'}`
-      });
-
-      setLoadingPhase("Entering protected Warrior Cell workspace...");
+      setLoadingPhase("Entering protected WARRIOR AI workspace...");
       await new Promise(resolve => setTimeout(resolve, 800));
 
       // 8. Finished & enter app
@@ -405,16 +402,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
         // Self-healing automatic login attempt
         try {
           const loggedInUser = await loginWithEmail(email, password);
-          const profile = await firebaseService.getUserProfile(loggedInUser.uid);
-          if (profile) {
-            setLoadingPhase("Welcome back! Entering Warrior Cell workspace...");
-            await new Promise(resolve => setTimeout(resolve, 750));
-            setLoadingPhase(null);
-            onAuthSuccess(loggedInUser);
-          } else {
-            setScreen('onboarding');
-            setLoadingPhase(null);
-          }
+          await continueAfterAuthentication(loggedInUser);
           return;
         } catch (loginErr: any) {
           setLoadingPhase(null);
@@ -450,57 +438,32 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
   // Google Provider flow
   const handleGoogleAuth = async () => {
     setGeneralError(null);
+    setGeneralSuccess(null);
     setIsSubmit(true);
     setLoadingPhase("Opening Google sign-in...");
     try {
       await configureAuthPersistence(true);
       const googleUser = await loginWithGoogle(false);
       if (googleUser) {
-        setLoadingPhase("Checking authorization credentials...");
-        const profile = await firebaseService.getUserProfile(googleUser.uid);
-        if (profile) {
-          setLoadingPhase("Welcome back! Entering Warrior Cell workspace...");
-          await new Promise(resolve => setTimeout(resolve, 750));
-          setLoadingPhase(null);
-          onAuthSuccess(googleUser);
-        } else {
-          setLoadingPhase("Setting up secure new clinician profile...");
-          const userId = googleUser.uid;
-          const profilePayload = {
-            displayName: googleUser.displayName || 'Anonymous Warrior',
-            role: 'Person with Sickle Cell Disease',
-            email: googleUser.email || '',
-            age: 25,
-            city: 'Not Specified',
-            bloodType: 'Not Specified',
-            scdType: 'SS',
-            streak: 0,
-            photoURL: googleUser.photoURL || '',
-            lastActiveDate: new Date().toLocaleDateString('sv')
-          };
-          await firebaseService.createUserProfile(userId, profilePayload);
-          await firebaseService.saveWaterLog(userId, new Date().toLocaleDateString('sv'), 0, 3.8);
-          await firebaseService.saveEmergencyInfo(userId, {
-            bloodType: 'O-positive (Pending confirmation)',
-            genotype: 'SS',
-            emergencyContactName: 'SCD Clinical Coordinator',
-            emergencyContactPhone: '+1 800-411-CARE',
-            primaryCaregiverName: 'Not recorded yet',
-            primaryCaregiverPhone: 'Not recorded yet',
-            allergies: 'None recorded',
-            currentMeds: 'Folic acid support',
-            customNotes: 'Target medical liquid intake threshold: 3.8 Liters.'
-          });
-          setLoadingPhase("Welcome! Redirecting to Warrior Cell App...");
-          await new Promise(resolve => setTimeout(resolve, 800));
-          setLoadingPhase(null);
-          onAuthSuccess(googleUser);
-        }
+        await continueAfterAuthentication(googleUser);
       }
     } catch (err: any) {
-      console.error(err);
       setLoadingPhase(null);
-      setGeneralError(err.message || "Institutional Single Sign-On had an issue. Please retry or sign in with your email.");
+      if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
+        setGeneralSuccess('Google sign-in was cancelled. You can try again when you are ready.');
+      } else if (err?.code === 'auth/account-exists-with-different-credential') {
+        const existingEmail = err?.customData?.email || '';
+        setEmail(existingEmail);
+        setScreen('login');
+        setGeneralError('This email already has a Warrior AI account. Sign in with its existing password to link Google to the same Firebase user. No patient records will be copied or merged.');
+      } else if (err?.code === 'profile/unavailable') {
+        setGeneralError('We could not confirm your existing profile. Check your connection and try again.');
+      } else if (err?.code === 'auth/unauthorized-domain') {
+        setGeneralError('Google sign-in is not enabled for this address. Open http://localhost:3000 and try again.');
+      } else {
+        console.error('Google authentication failed:', err);
+        setGeneralError('Google sign-in could not be completed. Please retry or sign in with your email.');
+      }
     } finally {
       setIsSubmit(false);
     }
@@ -543,7 +506,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
       displayName: fullName || auth.currentUser.displayName || 'Anonymous Warrior',
       role: userRole,
       email: auth.currentUser.email || email,
-      age: dob ? Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : 25,
+      ...(dob ? { age: Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) } : {}),
       city: city || 'Not Specified',
       bloodType: 'Not Specified',
       scdType: currentSelectedGenotype,
@@ -556,12 +519,12 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
       // 1. Create master client record
       await firebaseService.createUserProfile(userId, profilePayload);
 
-      // 2. Pre-populate medications list based on step selection
+      // 2. Save only medications deliberately selected in onboarding.
       if (medicationsList.length > 0) {
         for (const med of medicationsList) {
           await firebaseService.addMedication(userId, {
             name: med,
-            dosage: "1 dose",
+            dosage: "Not specified",
             time: "08:00",
             category: "Refinement Daily",
             checkedDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -570,23 +533,15 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
         }
       }
 
-      // 3. Initialize water level rehydration log
-      await firebaseService.saveWaterLog(userId, new Date().toLocaleDateString('sv'), 0, targetHydration);
+      // 3. Save an emergency contact only when one was explicitly supplied.
+      if (emergencyContactName.trim() || emergencyContactPhone.trim()) {
+        await firebaseService.saveEmergencyInfo(userId, {
+          emergencyContactName: emergencyContactName.trim(),
+          emergencyContactPhone: emergencyContactPhone.trim()
+        });
+      }
 
-      // 4. Save the optional emergency contact supplied during onboarding
-      await firebaseService.saveEmergencyInfo(userId, {
-        bloodType: 'O-positive (Pending confirmation)',
-        genotype: currentSelectedGenotype,
-        emergencyContactName: emergencyContactName || 'SCD Clinical Coordinator',
-        emergencyContactPhone: emergencyContactPhone || '+1 800-411-CARE',
-        primaryCaregiverName: userRole === 'Caregiver / Parent' ? fullName : (emergencyContactName || 'Not recorded yet'),
-        primaryCaregiverPhone: userRole === 'Caregiver / Parent' ? `${phoneCode} ${phoneNumber}` : (emergencyContactPhone || 'Not recorded yet'),
-        allergies: 'None recorded',
-        currentMeds: medicationsList.join(', ') || 'Folic acid support',
-        customNotes: `Target medical liquid intake threshold: ${targetHydration} Liters. Registered pain trigger profiles: ${crisisTriggersList.join(', ') || 'General cold/dehydration'}`
-      });
-
-      // 5. Complete
+      // 4. Complete
       onAuthSuccess(auth.currentUser);
     } catch (err: any) {
       console.error(err);
@@ -649,7 +604,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
 
               <div className="space-y-2">
                 <h3 className="text-white text-base font-extrabold uppercase tracking-widest font-sans">
-                  Warrior Cell Portal
+                  WARRIOR AI Portal
                 </h3>
                 <p className="text-slate-400 text-xs font-semibold">
                   Securing health database session...
@@ -692,21 +647,21 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
             W
           </div>
           <div>
-            <h1 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-tight leading-none mb-1">Warrior Cell</h1>
-            <span className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">Sickle Cell Wellness Hub</span>
+            <h1 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-tight leading-none mb-1">WARRIOR AI</h1>
+            <span className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">Sickle Cell Patient Support</span>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-900/55 rounded-full text-teal-700 dark:text-teal-400">
-            <ShieldCheck size={14} />
-            <span className="text-[10px] font-bold uppercase tracking-wider font-mono">Pilot privacy review pending</span>
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-medical-50 dark:bg-medical-900/20 border border-medical-100 dark:border-medical-900/30 rounded-full text-action-accent">
+            <Info size={14} />
+            <span className="text-[10px] font-semibold uppercase tracking-wider">Pilot version</span>
           </div>
-          
+
           <button
             onClick={toggleTheme}
             aria-label="Toggle visual contrast parameters"
-            className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-300 transition-all cursor-pointer"
+            className="p-2 rounded-full bg-surface-subtle hover:bg-surface border border-line text-foreground-secondary hover:text-foreground transition-all cursor-pointer"
           >
             {darkMode ? <Sun size={16} /> : <Moon size={16} />}
           </button>
@@ -715,54 +670,79 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
 
       {/* Main Container Card viewport */}
       <main className="flex-1 flex items-center justify-center p-4 md:p-8">
-        <div className="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden min-h-[500px] flex flex-col md:flex-row">
-          
-          {/* Aesthetic Educational Sidebar */}
-          <div className="hidden md:flex md:w-5/12 bg-slate-900 text-white p-10 flex-col justify-between relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-red-950/40 via-slate-900 to-slate-950 z-0"></div>
-            
-            {/* Soft decorative visual blur */}
-            <div className="absolute top-1/4 left-1/4 w-36 h-36 bg-red-650/15 rounded-full blur-[60px] animate-pulse z-0"></div>
+        <div className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden min-h-[550px] flex flex-col md:flex-row">
+
+          {/* Product Story Sidebar */}
+          <div className="hidden md:flex md:w-[55%] bg-gradient-to-br from-medical-50 to-white dark:from-slate-900 dark:to-slate-950 p-10 flex-col justify-between relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-action-accent/5 rounded-full blur-[80px]"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-action-accent/3 rounded-full blur-[60px]"></div>
 
             <div className="relative z-10 space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full text-[10px] font-black uppercase tracking-widest">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
-                Pilot product prototype
-              </div>
-              
-              <div className="space-y-3">
-                <h2 className="text-2xl font-black uppercase tracking-tight text-white leading-tight">
-                  Sickle Cell Monitoring Companion
-                </h2>
-                <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                  A proposed workspace for patients and caregivers to record symptoms, hydration, and medication information for review with their care team.
+              <div className="space-y-4">
+                <h1 className="text-4xl font-bold text-foreground tracking-tight leading-tight">
+                  Understand your health.<br />
+                  <span className="text-action-accent">Stay one step ahead.</span>
+                </h1>
+                <p className="text-body text-foreground-secondary leading-relaxed max-w-md">
+                  Track symptoms, hydration, medication and daily wellbeing, with Mira available when you need everyday support.
                 </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 pt-4">
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-line shadow-subtle">
+                  <div className="flex items-center gap-2 text-action-accent mb-1">
+                    <Activity size={16} />
+                    <span className="text-caption font-semibold">Track</span>
+                  </div>
+                  <p className="text-[10px] text-foreground-secondary">Daily health</p>
+                </div>
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-line shadow-subtle">
+                  <div className="flex items-center gap-2 text-action-accent mb-1">
+                    <Heart size={16} />
+                    <span className="text-caption font-semibold">Talk</span>
+                  </div>
+                  <p className="text-[10px] text-foreground-secondary">With Mira</p>
+                </div>
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-line shadow-subtle">
+                  <div className="flex items-center gap-2 text-action-accent mb-1">
+                    <Calendar size={16} />
+                    <span className="text-caption font-semibold">Prepare</span>
+                  </div>
+                  <p className="text-[10px] text-foreground-secondary">For care review</p>
+                </div>
               </div>
             </div>
 
-            <div className="relative z-10 space-y-4">
-              <div className="flex items-start gap-3.5 bg-slate-950/45 p-4 rounded-2xl border border-slate-800">
-                <Shield className="text-red-500 shrink-0 mt-0.5" size={18} />
-                <div className="space-y-1">
-                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-white">Evaluation safety boundary</h3>
-                  <p className="text-[10px] text-slate-400 leading-relaxed">
-                    Use synthetic information during evaluation. Production security, consent, retention, and clinic access controls still require formal review.
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-[10px] text-slate-500 flex items-center justify-between">
-                <span>Not a medical device</span>
-                <span>Not for emergency response</span>
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 text-small text-foreground-secondary">
+                <Info size={14} className="text-action-accent" />
+                <span>Pilot version · For product evaluation</span>
               </div>
             </div>
           </div>
 
           {/* Core Interactive Action Panel */}
           <div className="flex-1 p-6 sm:p-10 flex flex-col justify-center relative">
+            {/* Mobile Hero - Only visible on small screens */}
+            <div className="md:hidden mb-6 space-y-4">
+              <div className="space-y-2">
+                <h1 className="text-2xl font-bold text-foreground tracking-tight leading-tight">
+                  Understand your health.<br />
+                  <span className="text-action-accent">Stay one step ahead.</span>
+                </h1>
+                <p className="text-small text-foreground-secondary leading-relaxed">
+                  Track symptoms, hydration, medication and daily wellbeing, with Mira available when you need everyday support.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-caption text-foreground-secondary">
+                <Info size={12} className="text-action-accent" />
+                <span>Pilot version · For product evaluation</span>
+              </div>
+            </div>
+
             {generalSuccess && screen !== 'forgot' && (
-              <div className="mb-5 p-4 bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-900/55 rounded-2xl text-xs font-semibold text-teal-800 dark:text-teal-300 flex items-start gap-2.5" role="status">
-                <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-teal-600" />
+              <div className="mb-5 p-4 bg-medical-50 dark:bg-medical-900/20 border border-medical-100 dark:border-medical-900/30 rounded-xl text-small font-semibold text-foreground flex items-start gap-2.5" role="status">
+                <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-action-accent" />
                 <span>{generalSuccess}</span>
               </div>
             )}
@@ -776,52 +756,30 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   transition={{ duration: 0.2 }}
-                  className="space-y-8"
+                  className="space-y-6"
                 >
                   <div className="text-center md:text-left space-y-2">
-                    <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                      Monitor today. Review sooner.
-                    </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-6">
-                      Record daily symptoms and give the care team a clearer view between scheduled visits.
+                    <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+                      Welcome to WARRIOR AI
+                    </h2>
+                    <p className="text-body text-foreground-secondary leading-relaxed">
+                      Sign in to continue tracking your health journey.
                     </p>
                   </div>
 
-                  <div className="space-y-3.5">
+                  <div className="space-y-3">
                     <button
                       id="login-init-btn"
                       onClick={() => setScreen('login')}
-                      className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-red-200/50 dark:shadow-rose-950/20 hover:scale-[1.01] active:scale-95 transition-all cursor-pointer"
+                      className="w-full h-12 flex items-center justify-center gap-2 bg-action-accent hover:bg-action-accent-hover text-white rounded-xl font-semibold text-sm transition-all duration-150 shadow-subtle"
                     >
-                      <LogIn size={16} /> Sign in to your account
+                      <LogIn size={18} /> Sign in
                     </button>
-
-                    <button
-                      id="synthetic-demo-btn"
-                      onClick={() => handleQuickDemoAccess('Person with Sickle Cell Disease')}
-                      className="w-full h-12 flex items-center justify-center gap-2 bg-slate-900 border border-slate-950 dark:border-slate-800 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-black dark:hover:bg-slate-950/80 active:scale-95 transition-all cursor-pointer"
-                    >
-                      <Sparkles size={16} /> Open synthetic demo
-                    </button>
-
-                    <a
-                      href="mailto:support@warriorcell.org?subject=Warrior%20AI%20pilot%20access%20request"
-                      className="w-full h-12 flex items-center justify-center gap-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
-                    >
-                      <UserPlus size={16} /> Request pilot access
-                    </a>
-
-                    <div className="relative my-6 flex items-center justify-center">
-                      <div className="absolute inset-x-0 border-t border-slate-200 dark:border-slate-850"></div>
-                      <span className="relative px-3 bg-white dark:bg-slate-900 text-[10px] font-bold uppercase text-slate-400 tracking-wider">
-                        Or continue with
-                      </span>
-                    </div>
 
                     <button
                       id="google-init-btn"
                       onClick={handleGoogleAuth}
-                      className="w-full h-12 flex items-center justify-center gap-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-755 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl font-bold text-xs tracking-wide shadow-sm hover:scale-[1.01] transition-all cursor-pointer"
+                      className="w-full h-12 flex items-center justify-center gap-3 bg-white dark:bg-surface hover:bg-slate-50 dark:hover:bg-surface-subtle border border-line text-foreground rounded-xl font-medium text-sm transition-all duration-150"
                     >
                       <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -832,12 +790,40 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo })
                       Continue with Google
                     </button>
 
+                    <div className="relative my-4 flex items-center justify-center">
+                      <div className="absolute inset-x-0 border-t border-line"></div>
+                      <span className="relative px-3 bg-white dark:bg-surface text-caption text-foreground-secondary">
+                        or
+                      </span>
+                    </div>
+
+                    <button
+                      id="synthetic-demo-btn"
+                      onClick={() => handleQuickDemoAccess('Person with Sickle Cell Disease')}
+                      className="w-full h-11 flex items-center justify-center gap-2 text-foreground-secondary hover:text-foreground font-medium text-sm transition-colors duration-150"
+                    >
+                      <Sparkles size={16} /> Explore a demo
+                    </button>
+
+                    <a
+                      href="mailto:support@warriorcell.org?subject=Warrior%20AI%20pilot%20access%20request"
+                      className="w-full h-11 flex items-center justify-center gap-2 text-foreground-secondary hover:text-foreground font-medium text-sm transition-colors duration-150"
+                    >
+                      <UserPlus size={16} /> Request access
+                    </a>
+
+                    {generalError && (
+                      <div className="p-4 bg-medical-50 dark:bg-medical-900/20 border border-medical-100 dark:border-medical-900/30 rounded-xl text-small font-semibold text-foreground flex items-start gap-2.5" role="alert">
+                        <AlertCircle size={16} className="shrink-0 mt-0.5 text-action-accent" />
+                        <span>{generalError}</span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Accessible Privacy Alert Block */}
-                  <div className="p-4 bg-slate-50 dark:bg-slate-950/25 border border-slate-100 dark:border-slate-800 rounded-2xl flex gap-3">
-                    <Info className="text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" size={16} />
-                    <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">
+                  {/* Compact Privacy Notice */}
+                  <div className="p-3 bg-surface-subtle border border-line rounded-xl flex gap-2">
+                    <Info className="text-action-accent shrink-0 mt-0.5" size={14} />
+                    <p className="text-caption text-foreground-secondary leading-relaxed">
                       {PRIVACY_DISCLAIMER_TEXT}
                     </p>
                   </div>

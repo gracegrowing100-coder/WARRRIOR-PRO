@@ -5,29 +5,40 @@ import {
   ResponsiveContainer, Cell, ReferenceLine 
 } from 'recharts';
 import { firebaseService } from '../services/firebaseService';
+import { Button, Card, ProgressBar } from './ui';
 
 interface WaterTrackerProps {
   userId: string;
+  compact?: boolean;
 }
 
-export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId }) => {
+export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId, compact = false }) => {
   const [amount, setAmount] = useState(0); // in Liters
   const [goal, setGoal] = useState(3.0);   // in Liters
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<any[]>([]);
+  const [readState, setReadState] = useState<'recorded' | 'cached' | 'missing' | 'unavailable'>('missing');
+  const [saveMessage, setSaveMessage] = useState('');
 
   const todayStr = new Date().toLocaleDateString('sv'); // YYYY-MM-DD Safely
 
   const fetchHydration = async () => {
     setLoading(true);
-    const data = await firebaseService.getWaterLog(userId, todayStr);
-    if (data) {
-      setAmount(data.amount || 0);
-      setGoal(data.goal || 3.0);
-    }
-    const hist = await firebaseService.getWaterLogs7Days(userId);
-    if (hist) {
-      setHistory(hist);
+    try {
+      const result = await firebaseService.getWaterLog(userId, todayStr);
+      setReadState(result.state);
+      if (result.data) {
+        setAmount(result.data.amount);
+        setGoal(result.data.goal);
+      } else {
+        setAmount(0);
+        setGoal(3.0);
+      }
+      const hist = await firebaseService.getWaterLogs7Days(userId);
+      setHistory(hist || []);
+    } catch (error) {
+      console.warn('Hydration could not be loaded:', error);
+      setReadState('unavailable');
     }
     setLoading(false);
   };
@@ -46,8 +57,17 @@ export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId }) => {
 
   const addWater = async (liters: number) => {
     const nextAmount = Math.max(0, parseFloat((amount + liters).toFixed(2)));
-    setAmount(nextAmount);
-    await firebaseService.saveWaterLog(userId, todayStr, nextAmount, goal);
+    setSaveMessage('');
+    try {
+      const result = await firebaseService.saveWaterLog(userId, todayStr, nextAmount, goal);
+      setAmount(nextAmount);
+      setReadState(result.state === 'recorded' ? 'recorded' : 'cached');
+      setSaveMessage(result.state === 'recorded' ? 'Hydration saved to your account.' : 'Hydration saved on this device only.');
+    } catch (error) {
+      console.warn('Hydration could not be saved:', error);
+      setSaveMessage('Hydration could not be saved.');
+      return;
+    }
     
     // Play subtle audio cue for hydration
     try {
@@ -77,13 +97,44 @@ export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId }) => {
 
   const resetWater = async () => {
     if (window.confirm("Do you want to reset your hydration for today?")) {
-      setAmount(0);
-      await firebaseService.saveWaterLog(userId, todayStr, 0, goal);
+      setSaveMessage('');
+      try {
+        const result = await firebaseService.saveWaterLog(userId, todayStr, 0, goal);
+        setAmount(0);
+        setReadState(result.state === 'recorded' ? 'recorded' : 'cached');
+        setSaveMessage(result.state === 'recorded' ? 'Hydration reset saved to your account.' : 'Hydration reset saved on this device only.');
+      } catch (error) {
+        console.warn('Hydration reset could not be saved:', error);
+        setSaveMessage('Hydration reset could not be saved.');
+        return;
+      }
       setHistory(prev => prev.map(item => item.dateStr === todayStr ? { ...item, amount: 0 } : item));
     }
   };
 
   const percent = Math.min(100, Math.round((amount / goal) * 100));
+
+  if (compact) {
+    return (
+      <Card data-semantic className="border-line/70 shadow-none">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-heading-3">Hydration</h2>
+          {amount > 0 && <Button variant="ghost" size="sm" onClick={resetWater} aria-label="Reset hydration logs"><RotateCcw size={18} aria-hidden="true" /></Button>}
+        </div>
+        {loading ? <p role="status" className="mt-3 text-small text-foreground-secondary">Loading hydration…</p> : readState === 'missing' ? (
+          <p className="mt-3 text-small text-foreground-secondary">No hydration has been recorded today.</p>
+        ) : readState === 'unavailable' ? (
+          <p role="alert" className="mt-3 text-small text-status-warning-text">Today’s hydration could not be loaded.</p>
+        ) : (
+          <ProgressBar className="mt-3" value={amount} max={goal} label="Today's water" valueText={`${amount.toFixed(2)} L of ${goal.toFixed(2)} L`} />
+        )}
+        {saveMessage && <p role="status" className="mt-2 text-small text-foreground-secondary">{saveMessage}</p>}
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          {[0.25, 0.5, 0.75, 1].map(liters => <Button key={liters} variant="secondary" size="sm" onClick={() => addWater(liters)}>+{liters === 1 ? '1.0 Liter Bottle' : `${liters * 1000}ml`}</Button>)}
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-sm border border-gray-100 dark:border-slate-800/85 flex flex-col justify-between relative overflow-hidden transition-all duration-300">
@@ -117,6 +168,9 @@ export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId }) => {
         </div>
       ) : (
         <div className="space-y-6">
+          {readState === 'missing' && <p className="text-xs font-semibold text-gray-600 dark:text-slate-300">No hydration has been recorded today.</p>}
+          {readState === 'unavailable' && <p role="alert" className="text-xs font-semibold text-amber-700 dark:text-amber-300">Today’s hydration could not be loaded.</p>}
+          {saveMessage && <p role="status" className="text-xs font-semibold text-gray-600 dark:text-slate-300">{saveMessage}</p>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
             {/* Progress Display */}
             <div className="flex flex-col items-center">

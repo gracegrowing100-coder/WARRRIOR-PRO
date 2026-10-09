@@ -7,15 +7,19 @@ instructions in `../AGENTS.md`; it does not replace them.
 
 Read these before changing product behavior or UI:
 
-1. [`PRODUCT.md`](./PRODUCT.md) defines the product, users, MVP boundary, and
+1. [`docs/WARRIOR_AI_MASTER_PLAN.md`](./docs/WARRIOR_AI_MASTER_PLAN.md) is
+   the canonical product and architecture reference.
+2. [`docs/PATIENT_V1_ROADMAP.md`](./docs/PATIENT_V1_ROADMAP.md) holds
+   current Patient V1 delivery status and remaining work.
+3. [`PRODUCT.md`](./PRODUCT.md) defines the product, users, MVP boundary, and
    safety limits.
-2. [`../DESIGN.md`](../DESIGN.md) is the canonical visual and UX specification.
-3. [`docs/CURRENT_STATE.md`](./docs/CURRENT_STATE.md) records what exists now.
-4. [`docs/REQUIREMENTS.md`](./docs/REQUIREMENTS.md) classifies behavior as
+4. [`DESIGN.md`](./DESIGN.md) is the canonical visual and UX specification.
+5. [`docs/CURRENT_STATE.md`](./docs/CURRENT_STATE.md) records what exists now.
+6. [`docs/REQUIREMENTS.md`](./docs/REQUIREMENTS.md) classifies behavior as
    preserve, improve, refactor, add, or defer.
-5. [`docs/DATA_CONTRACTS.md`](./docs/DATA_CONTRACTS.md) protects Firebase,
+7. [`docs/DATA_CONTRACTS.md`](./docs/DATA_CONTRACTS.md) protects Firebase,
    local-storage, authentication, and API contracts.
-6. [`docs/REGRESSION_CHECKLIST.md`](./docs/REGRESSION_CHECKLIST.md) is the
+8. [`docs/REGRESSION_CHECKLIST.md`](./docs/REGRESSION_CHECKLIST.md) is the
    acceptance gate for every redesign phase.
 
 If these documents disagree with the implementation, verify the code and update
@@ -29,7 +33,10 @@ contracts to make a redesign easier.
 - Complete one phase in [`docs/REDESIGN_PLAN.md`](./docs/REDESIGN_PLAN.md) at a
   time.
 - Build shared design primitives before restyling individual feature screens.
-- Keep mobile navigation to no more than five persistent destinations.
+- Use the six approved top-level destinations: Home, Chat, Care, Community,
+  More, and Profile. Defer whether mobile shows all six persistently or five
+  activity destinations plus persistent Profile access in the header to Phase
+  2.2B usability validation.
 - Keep the emergency action available without making ordinary screens visually
   alarming.
 - Use Lucide icons for production controls. Do not introduce new emoji-based
@@ -232,3 +239,34 @@ structure and core interactions are stable.
 
 Final QA:
 Use Impeccable for UI/UX review and review-animations for motion review.
+
+## Project-local design tooling setup
+
+This repository uses two project-local skill systems.
+
+### Impeccable
+
+Install Impeccable using its dedicated installer:
+
+```bash
+npx impeccable install -y --providers=codex --scope=project
+```
+
+This creates the project-local Impeccable skill and Codex hook configuration.
+
+Do not install Impeccable through the generic `skills` CLI solely to add it to
+`skills-lock.json`. Impeccable is intentionally managed by its dedicated
+installer.
+
+### Emil Kowalski skills
+
+The remaining project-local design skills are managed through the `skills` CLI
+and recorded in `skills-lock.json`.
+
+Restore them using the compatible `skills` CLI install command:
+
+```bash
+npx skills install
+```
+
+Installed skill contents under `.agents/` are not version-controlled.

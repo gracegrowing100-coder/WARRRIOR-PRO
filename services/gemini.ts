@@ -1,5 +1,5 @@
 // Client-side wrappers proxying requests to the secure backend server.
-// Securely resolves API calls without exposing API keys to the browser, with 100% offline fallback.
+// Client requests are proxied through the backend. Only health advice has a local knowledge fallback.
 import { processOfflineQuery } from './offlineKnowledgeBase';
 
 export const generateHealthAdvice = async (query: string, userContext: string) => {
@@ -103,30 +103,7 @@ export const generatePatternInsights = async (
     return await response.json();
   } catch (error) {
     console.error("Pattern insights error:", error);
-    return {
-      headline: "Crises Cluster Pattern: Low Hydration (<2.0L) + Elevated Stress",
-      keyCorrelations: [
-        {
-          title: "Hydration & Pain Threshold Correlation",
-          description: "Over 70% of reported moderate-to-severe pain flares coincided with days where water intake dropped below 2.2 Liters.",
-          severity: "high",
-          confidence: "88%"
-        },
-        {
-          title: "Stress Burden as a Multiplier",
-          description: "When high stress or anxiety was logged simultaneously with cold sensitivity, pain intensity scores averaged 2.4 points higher.",
-          severity: "medium",
-          confidence: "82%"
-        },
-        {
-          title: "Hydration Shielding Effect",
-          description: "Days maintaining 3.0L+ fluid intake were associated with optimal wellness scores (average 8.2/10) and faster recovery from joint stiffness.",
-          severity: "positive",
-          confidence: "91%"
-        }
-      ],
-      actionableShield: "Prioritize drinking at least 750ml of warm fluids before midday and practice 5 minutes of 4-7-8 breathing to keep vascular tone dilated."
-    };
+    throw new Error('Generated pattern insights are unavailable.');
   }
 };
 
@@ -146,7 +123,6 @@ export const generateDoctorReport = async (
     return data.reportMarkdown;
   } catch (error) {
     console.error("Doctor report error:", error);
-    return `### SICKLE CELL CLINICAL MONITORING & CONSULTATION SUMMARY\n\n**Patient:** ${patientInfo?.name || 'Warrior'} | **Genotype:** ${patientInfo?.genotype || 'HbSS'} | **Reporting Window:** Last 30 Days\n\n#### 1. Executive Summary & Crisis Burden\n- **Reported Pain Crises:** ${summaryStats?.crisisCount || '1-2 episodes'} in the last 30 days\n- **Average Pain Intensity (VAS 0-10):** ${summaryStats?.avgPain || '3.4'} / 10\n- **Hydration Target Compliance:** ${summaryStats?.hydrationCompliance || '76%'} days meeting >= 3.0L goal\n- **General Clinical Trajectory:** Stable baseline with intermittent vaso-occlusive discomfort predominantly localized to lumbar spine and lower extremities.\n\n#### 2. Pattern Correlates & Trigger Distribution\n- **Primary Trigger:** Sub-optimal fluid intake (<2.2L/day) paired with rapid environmental temperature shifts.\n- **Secondary Trigger:** Emotional stress/fatigue amplifying vaso-occlusive pain perception.\n- **Hydration Response:** Statistically significant reduction in pain flares on days exceeding 3.0L fluid intake.\n\n#### 3. Medication & Therapeutic Maintenance\n- **Prescription Adherence:** Consistent daily adherence reported for Hydroxyurea and Folic Acid maintenance.\n- **Supplemental Hydration:** Self-directed electrolyte and warm fluid therapy initiated during acute twinges.\n\n#### 4. Suggested Discussion Items for Hematologist\n1. Evaluate current Hydroxyurea dosage relative to recent MCV, HbF%, and baseline absolute neutrophil counts.\n2. Review pain action plan and assess whether breakthrough analgesic protocol requires updates for rapid weather transitions.\n3. Schedule routine screening labs (Comprehensive Metabolic Panel, Reticulocyte Count, Urine Microalbumin).`;
+    throw new Error('Generated discussion summary is unavailable.');
   }
 };
-

@@ -15,7 +15,9 @@ import {
   updateProfile,
   setPersistence,
   browserLocalPersistence,
-  browserSessionPersistence
+  browserSessionPersistence,
+  linkWithCredential,
+  type AuthCredential
 } from 'firebase/auth';
 import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
@@ -34,6 +36,8 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
+let pendingGoogleLink: { credential: AuthCredential; email: string | null } | null = null;
+
 export const configureAuthPersistence = (rememberUser: boolean) => {
   return setPersistence(
     auth,
@@ -51,9 +55,37 @@ export const loginWithGoogle = async (useRedirect: boolean = false) => {
       return result.user;
     }
   } catch (error) {
-    console.error("Login failed:", error);
+    const authError = error as { code?: string; customData?: { email?: string } };
+    if (authError.code === 'auth/account-exists-with-different-credential') {
+      const credential = GoogleAuthProvider.credentialFromError(error as any);
+      if (credential) {
+        pendingGoogleLink = {
+          credential,
+          email: authError.customData?.email || null,
+        };
+      }
+    }
     throw error;
   }
+};
+
+export const linkPendingGoogleCredential = async (user: FirebaseUser) => {
+  if (!pendingGoogleLink) return false;
+
+  const pending = pendingGoogleLink;
+  const signedInEmail = user.email?.trim().toLowerCase() || null;
+  const pendingEmail = pending.email?.trim().toLowerCase() || null;
+  if (signedInEmail && pendingEmail && signedInEmail !== pendingEmail) {
+    pendingGoogleLink = null;
+    throw Object.assign(
+      new Error('The Google account does not match the signed-in account.'),
+      { code: 'auth/account-link-email-mismatch' },
+    );
+  }
+
+  await linkWithCredential(user, pending.credential);
+  pendingGoogleLink = null;
+  return true;
 };
 
 export const registerWithEmail = async (email: string, psw: string) => {
@@ -100,8 +132,8 @@ async function testConnection() {
   } catch (error: any) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.info(
-      "Firestore connection test: Operating in Offline Cache Mode. " +
-      "The app is fully functional offline; all data will sync when connectivity is restored."
+      "Firestore cloud connection check unavailable. " +
+      "Local fallback features may remain available; cloud sync was not verified."
     );
   }
 }

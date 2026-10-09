@@ -1,12 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Home, 
-  Gamepad2, 
-  MessageSquare, 
-  Video, 
-  Users, 
-  Megaphone, 
   User,
   Activity,
   Sun,
@@ -19,7 +13,7 @@ import {
 import { AnimatePresence } from 'motion/react';
 import Dashboard from './components/Dashboard';
 import GamesHub from './components/GamesHub';
-import ChatSystem from './components/ChatSystem';
+import ChatWorkspace from './components/ChatWorkspace';
 import Telemedicine from './components/Telemedicine';
 import Community from './components/Community';
 import Advocacy from './components/Advocacy';
@@ -29,16 +23,38 @@ import { EmergencyButton } from './components/EmergencyButton';
 import { AuthFlow } from './components/AuthFlow';
 import { OfflineWarriorAI } from './components/OfflineWarriorAI';
 import { SyntheticDemo } from './components/SyntheticDemo';
+import { CareHub } from './components/care';
+import {
+  AppHeader,
+  AppShell,
+  MoreMenu,
+  PageContainer,
+  PatientNavigation,
+  type PatientNavigationDestination,
+} from './components/layout';
 import { SupportedLanguage, APP_TRANSLATIONS } from './services/offlineKnowledgeBase';
+import { firebaseService } from './services/firebaseService';
 
-export type Page = 'home' | 'games' | 'chat' | 'telemedicine' | 'community' | 'advocacy';
+export type Page = 'home' | 'games' | 'chat' | 'care' | 'telemedicine' | 'community' | 'more' | 'advocacy';
+
+const pageFromHash = (): Page => {
+  const page = window.location.hash.replace('#/', '') as Page;
+  return (['home', 'games', 'chat', 'care', 'telemedicine', 'community', 'more', 'advocacy'] as Page[]).includes(page)
+    ? page
+    : 'home';
+};
 
 const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<Page>('home');
-  const [user, setUser] = useState(auth.currentUser);
+  const [currentPage, setCurrentPage] = useState<Page>(pageFromHash);
+  const [user, setUser] = useState<typeof auth.currentUser>(null);
   const [authResolved, setAuthResolved] = useState(false);
+  const [authStartupNotice, setAuthStartupNotice] = useState<string | null>(null);
   const [demoMode, setDemoMode] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+
+  // Mira handoff: the patient-approved summary used to prefill an appointment
+  // request. It is form state only — no request is created or sent from here.
+  const [miraAppointmentDraft, setMiraAppointmentDraft] = useState('');
   
   // Multilingual state (English, Yoruba, Hausa, Igbo)
   const [language, setLanguage] = useState<SupportedLanguage>(() => {
@@ -105,26 +121,62 @@ const App: React.FC = () => {
   }, [highContrast]);
 
   useEffect(() => {
-    const unsub = subscribeToAuth((u) => {
-      setUser(u);
+    let disposed = false;
+    let authRevision = 0;
+    let initialAuthStateHandled = false;
+    const authResolutionTimeout = window.setTimeout(() => {
+      if (disposed || initialAuthStateHandled) return;
+      setAuthStartupNotice('We could not verify your saved session in this browser. Please sign in again or use a standard browser for Google sign-in.');
       setAuthResolved(true);
+    }, 8_000);
+    const unsub = subscribeToAuth((u) => {
+      const revision = ++authRevision;
       // Sync dark mode & high contrast style when auth state updates
       const isDark = localStorage.getItem('warrior_theme') === 'dark';
       setDarkMode(isDark);
       const isHighContrast = localStorage.getItem('warrior_high_contrast') === 'true';
       setHighContrast(isHighContrast);
+
+      if (initialAuthStateHandled) {
+        // AuthFlow owns positive sign-in transitions so its UID/profile check
+        // cannot be bypassed by onAuthStateChanged firing first.
+        if (!u) {
+          setUser(null);
+          setAuthResolved(true);
+        }
+        return;
+      }
+
+      initialAuthStateHandled = true;
+      window.clearTimeout(authResolutionTimeout);
+      setAuthStartupNotice(null);
+      if (!u) {
+        setUser(null);
+        setAuthResolved(true);
+        return;
+      }
+
+      void firebaseService.getUserProfileState(u.uid).then((profile) => {
+        if (disposed || revision !== authRevision) return;
+        setUser(profile.state === 'recorded' || profile.state === 'cached' ? u : null);
+        setAuthResolved(true);
+      }).catch(() => {
+        if (disposed || revision !== authRevision) return;
+        setUser(null);
+        setAuthResolved(true);
+      });
     });
-    return () => unsub();
+    return () => {
+      disposed = true;
+      window.clearTimeout(authResolutionTimeout);
+      unsub();
+    };
   }, []);
 
 
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.replace('#/', '') as Page;
-      const validPages: Page[] = ['home', 'games', 'chat', 'telemedicine', 'community', 'advocacy'];
-      if (validPages.includes(hash)) {
-        setCurrentPage(hash);
-      }
+      setCurrentPage(pageFromHash());
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
@@ -165,13 +217,37 @@ const App: React.FC = () => {
 
   const t = APP_TRANSLATIONS[language] || APP_TRANSLATIONS.en;
 
+  const currentNavigationDestination: PatientNavigationDestination =
+    currentPage === 'telemedicine' || currentPage === 'care'
+      ? 'care'
+      : currentPage === 'games' || currentPage === 'advocacy' || currentPage === 'more'
+        ? 'more'
+        : currentPage;
+
   const renderPage = () => {
     switch (currentPage) {
       case 'home': return <Dashboard onNavigate={navigate} userId={user?.uid || ''} />;
       case 'games': return <GamesHub />;
-      case 'chat': return <ChatSystem />;
-      case 'telemedicine': return <Telemedicine />;
+      case 'chat': return (
+        <ChatWorkspace
+          userId={user?.uid || ''}
+          onContinueToAppointment={(approvedSummary) => {
+            setMiraAppointmentDraft(approvedSummary);
+            navigate('telemedicine');
+          }}
+        />
+      );
+      case 'care': return <CareHub userId={user?.uid || ''} onOpenAppointments={() => navigate('telemedicine')} />;
+      case 'telemedicine': return (
+        <Telemedicine
+          userId={user?.uid || ''}
+          initialReason={miraAppointmentDraft}
+          onInitialReasonConsumed={() => setMiraAppointmentDraft('')}
+          onBackToCare={() => navigate('care')}
+        />
+      );
       case 'community': return <Community />;
+      case 'more': return <MoreMenu onNavigate={navigate} />;
       case 'advocacy': return <Advocacy />;
       default: return <Dashboard onNavigate={navigate} userId={user?.uid || ''} />;
     }
@@ -194,119 +270,110 @@ const App: React.FC = () => {
   }
 
   if (!user) {
-    return <AuthFlow onAuthSuccess={(u) => setUser(u)} onOpenDemo={() => setDemoMode(true)} />;
+    return <AuthFlow initialNotice={authStartupNotice} onAuthSuccess={(u) => setUser(u)} onOpenDemo={() => setDemoMode(true)} />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-300">
+    <>
       <AnimatePresence>
         {showProfile && <UserProfile onClose={() => setShowProfile(false)} />}
       </AnimatePresence>
 
-      {/* Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 px-4 py-2 flex justify-around items-center z-50 md:top-0 md:bottom-auto md:flex-col md:w-20 md:h-screen md:py-8">
-        <NavItem onClick={() => navigate('home')} icon={<Home size={24} />} label={t.home} active={currentPage === 'home'} />
-        <NavItem onClick={() => navigate('games')} icon={<Gamepad2 size={24} />} label={t.play} active={currentPage === 'games'} />
-        <NavItem onClick={() => navigate('chat')} icon={<MessageSquare size={24} />} label={t.chat} active={currentPage === 'chat'} />
-        <NavItem onClick={() => navigate('telemedicine')} icon={<Video size={24} />} label={t.care} active={currentPage === 'telemedicine'} />
-        <NavItem onClick={() => navigate('community')} icon={<Users size={24} />} label={t.group} active={currentPage === 'community'} />
-        <NavItem onClick={() => navigate('advocacy')} icon={<Megaphone size={24} />} label={t.act} active={currentPage === 'advocacy'} />
-      </nav>
+      <AppShell
+        navigation={(
+          <PatientNavigation
+            currentDestination={currentNavigationDestination}
+            onNavigate={navigate}
+            labels={{
+              home: t.home,
+              chat: t.chat,
+              care: t.care,
+              community: language === 'en' ? 'Community' : t.group,
+              more: 'More',
+            }}
+          />
+        )}
+        header={(
+          <AppHeader
+            appName={t.appName}
+            connectivityLabel={isOffline ? 'Offline Mode (Local Knowledge)' : 'Live & Offline Protected'}
+            isOffline={isOffline}
+            onHome={() => navigate('home')}
+            actions={(
+              <div className="flex items-center justify-end gap-2 sm:gap-3">
+                {/* Multilingual Selector */}
+                <div className="flex min-h-11 items-center rounded-control border border-line bg-surface-subtle px-2">
+                  <Globe size={18} className="mr-1.5 shrink-0 text-foreground-secondary" />
+                  <select
+                    value={language}
+                    onChange={(e) => handleLanguageChange(e.target.value as SupportedLanguage)}
+                    className="min-h-11 bg-transparent text-body font-medium text-foreground focus-visible:outline-focus"
+                    aria-label="Select Language"
+                  >
+                    <option value="en">English</option>
+                    <option value="yo">Yorùbá</option>
+                    <option value="ha">Hausa</option>
+                    <option value="ig">Igbo</option>
+                  </select>
+                </div>
+                
+                {/* Real-time High Contrast Mode Toggle */}
+                <button
+                  onClick={toggleHighContrast}
+                  title="Toggle High Contrast Mode"
+                  aria-label="Toggle High Contrast Mode"
+                  data-ui-control
+                  aria-pressed={highContrast}
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-control border border-line ${highContrast ? 'bg-action text-foreground-inverse' : 'bg-surface-subtle text-foreground'}`}
+                >
+                  <Eye size={18} />
+                </button>
 
-      <main className="flex-1 pb-20 md:pb-0 md:ml-20 overflow-y-auto">
-        <header className="sticky top-0 bg-white dark:bg-slate-900 shadow-sm border-b border-gray-100 dark:border-slate-800 px-4 py-3 flex items-center justify-between z-40">
-          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate('home')}>
-            <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg shadow-red-200 dark:shadow-red-950/40">W</div>
-            <div>
-              <h1 className="text-lg md:text-xl font-black text-gray-800 dark:text-white tracking-tight">{t.appName}</h1>
-              <div className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${isOffline ? 'bg-amber-400' : 'bg-emerald-500 animate-pulse'}`}></span>
-                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                  {isOffline ? 'Offline Mode (Local Knowledge)' : 'Live & Offline Protected'}
-                </span>
+                {/* Real-time Theme Toggle */}
+                <button
+                  onClick={toggleTheme}
+                  aria-label="Toggle layout theme"
+                  data-ui-control
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-surface-subtle text-foreground"
+                >
+                  {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
+
               </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Multilingual Selector */}
-            <div className="flex items-center bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-2 py-1">
-              <Globe size={14} className="text-indigo-600 dark:text-indigo-400 mr-1.5 shrink-0" />
-              <select
-                value={language}
-                onChange={(e) => handleLanguageChange(e.target.value as SupportedLanguage)}
-                className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
-                aria-label="Select Language"
+            )}
+            accountAction={(
+              <button
+                type="button"
+                aria-label="Open profile"
+                aria-expanded={showProfile}
+                data-ui-control
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-control ${showProfile ? 'bg-action text-foreground-inverse' : 'bg-surface-subtle text-foreground'}`}
+                onClick={() => setShowProfile(true)}
               >
-                <option value="en">English</option>
-                <option value="yo">Yorùbá</option>
-                <option value="ha">Hausa</option>
-                <option value="ig">Igbo</option>
-              </select>
-            </div>
-            
-            {/* Real-time High Contrast Mode Toggle */}
-            <button
-              onClick={toggleHighContrast}
-              title="Toggle High Contrast Mode"
-              aria-label="Toggle High Contrast Mode"
-              className={`p-2 rounded-xl transition-all cursor-pointer border ${
-                highContrast 
-                  ? 'bg-yellow-400 text-black border-black font-black ring-2 ring-yellow-300' 
-                  : 'bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-300 border-transparent'
-              }`}
-            >
-              <Eye size={18} />
-            </button>
-
-            {/* Real-time Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              aria-label="Toggle layout theme"
-              className="p-2 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-300 transition-all cursor-pointer"
-            >
-              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-
-            <div 
-              className={`p-2 rounded-xl cursor-pointer transition-all ${showProfile ? 'bg-red-50 text-red-600 dark:bg-red-950/35 dark:text-red-400' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-800 dark:text-slate-300'}`}
-              onClick={() => setShowProfile(true)}
-            >
-              {user?.photoURL ? (
-                <img src={user.photoURL} alt="User" className="w-6 h-6 rounded-lg object-cover" />
-              ) : (
-                <User size={18} />
-              )}
-            </div>
-          </div>
-        </header>
-
-        <div className="p-4 max-w-5xl mx-auto">
-          {renderPage()}
-        </div>
-      </main>
+                {user?.photoURL ? (
+                  <img src={user.photoURL} alt="User" className="h-6 w-6 rounded-lg object-cover" />
+                ) : (
+                  <User size={18} />
+                )}
+              </button>
+            )}
+          />
+        )}
+      >
+        <PageContainer>{renderPage()}</PageContainer>
+      </AppShell>
 
       {/* Emergency Action & Offline Multilingual AI Companion */}
-      <EmergencyButton userId={user?.uid || ''} />
-      <OfflineWarriorAI 
-        currentLanguage={language} 
-        onLanguageChange={handleLanguageChange}
-        onNavigateToTool={handleToolNavigation}
-      />
-    </div>
+      <div data-semantic className="fixed bottom-[calc(4rem+var(--safe-area-bottom)+0.5rem)] right-3 z-50 flex h-11 items-center justify-end gap-2 md:inset-x-0 md:left-56 md:bottom-0 md:h-[calc(4rem+var(--safe-area-bottom))] md:gap-3 md:border-t md:border-line md:bg-surface md:px-4 md:pb-[var(--safe-area-bottom)]" aria-label="Patient support">
+        <EmergencyButton userId={user?.uid || ''} />
+        <OfflineWarriorAI
+          currentLanguage={language}
+          onLanguageChange={handleLanguageChange}
+          onNavigateToTool={handleToolNavigation}
+        />
+      </div>
+    </>
   );
 };
-
-const NavItem = ({ onClick, icon, label, active }: { onClick: () => void, icon: React.ReactNode, label: string, active: boolean }) => (
-  <button 
-    onClick={onClick}
-    className={`flex flex-col items-center gap-1 transition-all group ${active ? 'text-red-600 dark:text-red-400' : 'text-gray-400 hover:text-red-400'}`}
-  >
-    <div className={`p-2 rounded-xl transition-all ${active ? 'bg-red-50 dark:bg-red-950/20' : 'group-hover:bg-gray-50 dark:group-hover:bg-slate-800/60'}`}>
-      {icon}
-    </div>
-    <span className="text-[10px] font-black uppercase tracking-widest md:hidden">{label}</span>
-  </button>
-);
 
 export default App;

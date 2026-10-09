@@ -1,5 +1,12 @@
 # Phased redesign plan
 
+> **Status: HISTORICAL.** This phase plan covers the completed Phase 0–4
+> redesign work. Current delivery status and remaining Patient V1 work are
+> tracked in [PATIENT_V1_ROADMAP.md](./PATIENT_V1_ROADMAP.md); stable
+> product/architecture direction lives in
+> [WARRIOR_AI_MASTER_PLAN.md](./WARRIOR_AI_MASTER_PLAN.md). Where this
+> document conflicts with those, the newer architecture wins.
+
 The redesign proceeds one verified phase at a time. A phase is not complete
 until its code, responsive behavior, accessibility, data behavior, and relevant
 regression checks pass.
@@ -12,7 +19,7 @@ regression checks pass.
 - Use the patient MVP screens to establish the visual system.
 - Keep experimental AI separate from clinical MVP workflows.
 - End every phase with `npm run lint`, the relevant regression subset, console
-  review, responsive checks, and a visual review against `../../DESIGN.md`.
+  review, responsive checks, and a visual review against [`../DESIGN.md`](../DESIGN.md).
 
 ## Phase 0: Regression protection
 
@@ -39,7 +46,7 @@ Critical user flows have repeatable test evidence and existing data can be read.
 
 ### Goal
 
-Implement the reusable system from `../../DESIGN.md` without redesigning feature
+Implement the reusable system from [`../DESIGN.md`](../DESIGN.md) without redesigning feature
 screens yet.
 
 ### Work
@@ -63,13 +70,16 @@ keyboard, target-size, and mobile checks.
 
 ### Goal
 
-Introduce the five-destination information architecture while preserving every
+Introduce the six-destination information architecture while preserving every
 existing destination.
 
 ### Work
 
 - Central route map and initial-hash handling.
-- Mobile navigation: Home, Track, Care, Connect, More.
+- Target destinations: Home, Chat, Care, Community, More, and Profile.
+- Phase 2.2B mobile validation at 360px, 375px, 390px, and 430px to decide
+  between six persistent items or five activity items plus persistent Profile
+  access in the header.
 - Labelled desktop sidebar.
 - Simplified responsive header.
 - Notification, account, connectivity, and emergency placement.
@@ -239,7 +249,7 @@ Verify the product as one coherent system.
 ### Exit gate
 
 The full regression checklist passes, known exceptions are documented, and the
-patient experience satisfies the acceptance criteria in `../../DESIGN.md`.
+patient experience satisfies the acceptance criteria in [`../DESIGN.md`](../DESIGN.md).
 
 ## Deferred track: Clinician product
 
@@ -262,4 +272,3 @@ Crisis prediction, eye-based PCV estimation, multilingual clinical assistance,
 and research summarisation require separate data, validation, governance, and
 human-review plans. They must not block the patient monitoring redesign or be
 smuggled into it as ordinary UI components.
-

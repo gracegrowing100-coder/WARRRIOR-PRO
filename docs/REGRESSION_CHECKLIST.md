@@ -2,7 +2,8 @@
 
 Use this checklist at the end of every redesign phase. Mark an item only when it
 has current evidence. Record skipped or blocked items with a reason; do not treat
-“not tested” as “passed”.
+“not tested” as “passed”. Acceptance status for Patient V1 freeze is tracked in
+[PATIENT_V1_ROADMAP.md](./PATIENT_V1_ROADMAP.md).
 
 ## Build and baseline
 
@@ -19,7 +20,9 @@ has current evidence. Record skipped or blocked items with a reason; do not trea
 - [ ] Home, Games, Chat, Telemedicine, Community, and Advocacy remain reachable during migration.
 - [ ] Browser back/forward follows the visible screen state.
 - [ ] Unknown hashes produce a safe fallback or not-found state.
-- [ ] Mobile primary navigation has no more than five persistent destinations after Phase 2.
+- [ ] The six top-level destinations remain reachable after Phase 2; the mobile
+      presentation matches the approved Phase 2.2B outcome without shrinking
+      labels or interaction targets below accessibility requirements.
 - [ ] Desktop navigation has visible labels and a clear active state.
 - [ ] Emergency/help remains reachable from primary patient screens.
 
@@ -196,3 +199,73 @@ Known exceptions:
 Evidence links/screenshots:
 Decision: PASS / PASS WITH EXCEPTIONS / FAIL
 ```
+
+## Phase 4G completion record — 28 September 2026
+
+- Scope: Care navigation and appointment flow integrity; no visual redesign.
+- Typecheck: npm run lint passed.
+- Focused regression: 64 tests passed across 8 files.
+- Full regression: npm test passed once, 126 tests across 31 files.
+- Production build: npm run build passed once; large-bundle warning remains.
+- Browser: localhost:3000, existing authenticated session; no request submitted
+  or cancelled against the account. Keyboard entry/return verified for Medical
+  Records, Health History, and Appointments. Required date/time validation,
+  optional reason, review, edit, and return verified without saving.
+- Direct Care and Appointments reloads and browser back/forward verified.
+- Widths: 360px, 375px, 768px, 1200px; no horizontal overflow in Medical Records
+  entry, loaded Health History, appointment preferences, or review.
+- Console: no errors observed; existing daily-check-in Firestore permission
+  warnings remain, with unavailable state and reachable Back to Care.
+- Mocked contract coverage: cloud success, offline/permission failure, local-only
+  creation/cancellation, cancellation without a stored record, UID isolation,
+  duplicate-submit prevention, retained cancelled history, and editable handoff
+  reason with no persistence during review. Real network-offline mutation was
+  not exercised; tests simulate failures without writing account data.
+- Preserved limitations: successful cloud reads can replace device-only changes;
+  no replay queue. Vault internals, sample defaults, security wording, and legacy
+  tools remain deferred to the separate Care Vault phase. No screenshots added.
+- Decision: Phase 4G navigation and request architecture ready to freeze within
+  this scope; this is not clinical validation or a full Care Vault safety audit.
+
+## Phase 4H Medical Records verification — 29 September 2026
+
+- Focused: 26 tests across five files passed (Medical Records, CareHub, App Care
+  routing, UID/persistence contracts and PDF content).
+- TypeScript: npm run lint (tsc --noEmit) passed.
+- Browser subset: live authenticated empty state at 390px and 1200px; opens
+  from Care, Back to Care works, keyboard return works, no horizontal overflow.
+- Recorded-state browser checks used a temporary read-only service fixture at
+  both widths, including recorded zero and missing optional laboratory values.
+  No real account mutation, screenshot matrix, or fixture remains. No console
+  errors/warnings observed in checked tabs. Layout inspected via rendered DOM
+  and geometry; consolidated visual polish remains deferred.
+- Mocked coverage verifies UID A/B isolation, ignored global cache, preserved
+  unknown fields, zero/false, empty defaults, Firestore merge path, cloud/device
+  outcomes, total save failure, retry, add/edit/remove and focus restoration.
+- Limits: stored legacy samples lack provenance; no heuristic purge. Browser
+  local data is not encrypted, no replay queue or conflict resolution was added.
+  Future clinician verification, secure documents/OCR, biometrics and validated
+  prediction infrastructure remain deferred.
+- Final full suite ran once: 145 passed, 2 failed across 34 files (147 tests).
+  Both failures were in unchanged SymptomPainCheckIn: a 5-second timeout, then
+  a hydration assertion mismatch. Targeted rerun of that unchanged file passed
+  all 6 tests in 9 seconds. This is a full-run flakiness exception, not a claim
+  that the single full run was green. No timeout or product code was changed.
+- Production build ran once and passed; existing >500 kB chunk warning remains.
+- git diff --check passed. No dependency or lockfile changes.
+- Decision: architecture ready to freeze with the full-run test exception above;
+  this does not certify clinical correctness or production security.
+
+## Role and provenance boundary (Phase 4I planning)
+
+See [Role & Access Model](./ROLE_ACCESS_MODEL.md) before future role work.
+
+- [ ] Patient-entered Medical Records are never presented as clinician-verified.
+- [ ] Health History remains distinct from manually maintained Medical Records.
+- [ ] Generated/synthetic information is never promoted to recorded clinical facts.
+- [ ] Profile roles and chat moderation do not imply clinical or delegated access.
+- [ ] Appointment prefills/requests imply neither acceptance nor automatic submission/notification.
+- [ ] Future roles obtain approved access/provenance/consent rules and protect Patient V1.
+
+Phase 4I is documentation-only; these are future gates, not newly executed checks.
+No application behavior, persistence, rules or schemas changed.

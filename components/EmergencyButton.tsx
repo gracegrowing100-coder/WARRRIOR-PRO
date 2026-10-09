@@ -15,16 +15,19 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({ userId }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   
+  // Emergency information starts empty and is filled only from the patient's
+  // own stored record. Missing information stays missing; no sample contacts,
+  // allergies, medications or clinical notes are invented for real flows.
   const [emergencyInfo, setEmergencyInfo] = useState({
-    bloodType: 'O+',
-    genotype: 'SS',
-    emergencyContactName: 'Dr. Amina Yusuf (Specialist)',
-    emergencyContactPhone: '+234 812 345 6789',
-    primaryCaregiverName: 'Sarah Smith (Mother)',
-    primaryCaregiverPhone: '+234 803 111 2222',
-    allergies: 'Penicillin, Sulfa medications',
-    currentMeds: 'Hydroxyurea (500mg daily), Folic Acid (5mg)',
-    customNotes: 'Keep well hydrated. Avoid extreme cold temperature triggers. Administer IV fluids quickly.'
+    bloodType: '',
+    genotype: '',
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+    primaryCaregiverName: '',
+    primaryCaregiverPhone: '',
+    allergies: '',
+    currentMeds: '',
+    customNotes: ''
   });
 
   useEffect(() => {
@@ -58,16 +61,12 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({ userId }) => {
       <button
         id="emergency-fab"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-24 right-4 md:bottom-8 md:right-8 z-50 flex items-center justify-center gap-2 px-4 py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-2xl shadow-red-500/50 hover:shadow-red-600/60 transition-all active:scale-95 border-2 border-white focus:outline-none group cursor-pointer"
+        type="button"
+        data-ui-control
+        className="flex min-h-11 items-center justify-center gap-2 rounded-control bg-action-accent px-3 text-small font-semibold text-white hover:bg-action-accent-hover"
       >
-        <div className="relative">
-          <ShieldAlert className="w-5 h-5 animate-pulse" />
-          <span className="absolute -top-1 -right-1 flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-          </span>
-        </div>
-        <span className="font-black text-xs uppercase tracking-widest">Emergency HUD</span>
+        <ShieldAlert className="h-5 w-5" aria-hidden="true" />
+        <span>Emergency HUD</span>
       </button>
 
       {/* Modal Overlay */}
@@ -95,13 +94,15 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({ userId }) => {
                 </div>
                 <button
                   id="close-emergency-modal"
+                  type="button"
+                  aria-label="Close emergency information"
                   onClick={() => {
                     setIsOpen(false);
                     setIsEditing(false);
                   }}
-                  className="bg-black/20 hover:bg-black/30 p-2 rounded-full text-white transition-all outline-none"
+                  className="flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/20 p-2 text-white outline-none transition-all hover:bg-black/30"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="h-5 w-5" aria-hidden="true" />
                 </button>
               </div>
 
@@ -152,31 +153,49 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({ userId }) => {
                       <h4 className="text-xs font-black text-gray-900 dark:text-slate-400 uppercase tracking-widest">Emergency Contacts</h4>
                       
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <a
-                          href={`tel:${emergencyInfo.emergencyContactPhone}`}
-                          className="flex items-center justify-between p-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-2xl shadow-md transition-all active:scale-95 cursor-pointer group"
-                        >
-                          <div className="min-w-0">
-                            <span className="text-[8px] font-bold text-red-100 uppercase tracking-wider block">Hematologist / Doc</span>
-                            <span className="font-extrabold text-xs block truncate mt-0.5">{emergencyInfo.emergencyContactName}</span>
+                        {emergencyInfo.emergencyContactPhone ? (
+                          <a
+                            href={`tel:${emergencyInfo.emergencyContactPhone}`}
+                            className="flex items-center justify-between p-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-2xl shadow-md transition-all active:scale-95 cursor-pointer group"
+                          >
+                            <div className="min-w-0">
+                              <span className="text-[8px] font-bold text-red-100 uppercase tracking-wider block">Hematologist / Doc</span>
+                              <span className="font-extrabold text-xs block truncate mt-0.5">{emergencyInfo.emergencyContactName || emergencyInfo.emergencyContactPhone}</span>
+                            </div>
+                            <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">
+                              <Phone className="w-4 h-4 text-white fill-white" />
+                            </div>
+                          </a>
+                        ) : (
+                          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-850 border border-dashed border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 rounded-2xl">
+                            <div className="min-w-0">
+                              <span className="text-[8px] font-bold uppercase tracking-wider block">Hematologist / Doc</span>
+                              <span className="font-extrabold text-xs block truncate mt-0.5">Not recorded yet</span>
+                            </div>
                           </div>
-                          <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">
-                            <Phone className="w-4 h-4 text-white fill-white" />
-                          </div>
-                        </a>
+                        )}
 
-                        <a
-                          href={`tel:${emergencyInfo.primaryCaregiverPhone}`}
-                          className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-2xl shadow-md transition-all active:scale-95 cursor-pointer group"
-                        >
-                          <div className="min-w-0">
-                            <span className="text-[8px] font-bold text-blue-100 uppercase tracking-wider block">Caregiver / Relative</span>
-                            <span className="font-extrabold text-xs block truncate mt-0.5">{emergencyInfo.primaryCaregiverName}</span>
+                        {emergencyInfo.primaryCaregiverPhone ? (
+                          <a
+                            href={`tel:${emergencyInfo.primaryCaregiverPhone}`}
+                            className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-2xl shadow-md transition-all active:scale-95 cursor-pointer group"
+                          >
+                            <div className="min-w-0">
+                              <span className="text-[8px] font-bold text-blue-100 uppercase tracking-wider block">Caregiver / Relative</span>
+                              <span className="font-extrabold text-xs block truncate mt-0.5">{emergencyInfo.primaryCaregiverName || emergencyInfo.primaryCaregiverPhone}</span>
+                            </div>
+                            <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">
+                              <Phone className="w-4 h-4 text-white fill-white" />
+                            </div>
+                          </a>
+                        ) : (
+                          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-850 border border-dashed border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 rounded-2xl">
+                            <div className="min-w-0">
+                              <span className="text-[8px] font-bold uppercase tracking-wider block">Caregiver / Relative</span>
+                              <span className="font-extrabold text-xs block truncate mt-0.5">Not recorded yet</span>
+                            </div>
                           </div>
-                          <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">
-                            <Phone className="w-4 h-4 text-white fill-white" />
-                          </div>
-                        </a>
+                        )}
                       </div>
                     </div>
 

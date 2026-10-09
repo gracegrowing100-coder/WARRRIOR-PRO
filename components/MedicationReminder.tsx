@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Pill, Plus, Trash2, CheckCircle2, Clock, AlertCircle, X, Check, Volume2, BellRing, BellOff, ShieldAlert } from 'lucide-react';
 import { firebaseService } from '../services/firebaseService';
+import { Button, Card, Modal } from './ui';
 
 interface Medication {
   id: string;
@@ -13,13 +14,16 @@ interface Medication {
 
 interface MedicationProps {
   userId: string;
+  compact?: boolean;
 }
 
-export const MedicationReminder: React.FC<MedicationProps> = ({ userId }) => {
+export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact = false }) => {
+  const [showFullSchedule, setShowFullSchedule] = useState(false);
   const [meds, setMeds] = useState<Medication[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [operationMessage, setOperationMessage] = useState('');
   
   // Alarm state
   const [activeAlarmMed, setActiveAlarmMed] = useState<Medication | null>(null);
@@ -172,21 +176,9 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId }) => {
   const fetchMeds = async () => {
     setLoading(true);
     const data = await firebaseService.getMedications(userId);
-    if (!data || data.length === 0) {
-      // Seed some default medications if user has absolutely empty setup
-      const defaults = [
-        { name: 'Hydroxyurea', dosage: '500mg', time: '08:00', frequency: 'Once Daily', lastTakenDate: '' },
-        { name: 'Folic Acid', dosage: '5mg', time: '12:00', frequency: 'Once Daily', lastTakenDate: '' }
-      ];
-      const saved: Medication[] = [];
-      for (const def of defaults) {
-        const added = await firebaseService.addMedication(userId, def);
-        if (added) saved.push(added as Medication);
-      }
-      setMeds(saved);
-    } else {
-      setMeds(data as Medication[]);
-    }
+    // An empty medication list stays empty. No sample or default medication is
+    // ever created as Patient data; existing stored medications still load.
+    setMeds((data as Medication[]) || []);
     setLoading(false);
   };
 
@@ -196,12 +188,11 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId }) => {
 
   const handleToggleTaken = async (medId: string, currentlyTaken: boolean) => {
     const updatedDate = currentlyTaken ? '' : todayStr;
-    
-    // Optimistic UI
-    setMeds(prev => prev.map(m => m.id === medId ? { ...m, lastTakenDate: updatedDate } : m));
-    
+    setOperationMessage('');
     try {
-      await firebaseService.updateMedication(userId, medId, { lastTakenDate: updatedDate });
+      const result = await firebaseService.updateMedication(userId, medId, { lastTakenDate: updatedDate });
+      setMeds(prev => prev.map(m => m.id === medId ? { ...m, lastTakenDate: updatedDate } : m));
+      setOperationMessage(result.state === 'recorded' ? 'Medication status saved to your account.' : 'Medication status saved on this device only.');
       
       // Play a little check-mark notification noise
       if (!currentlyTaken) {
@@ -227,8 +218,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId }) => {
       }
     } catch (e) {
       console.error(e);
-      // Revert on error
-      fetchMeds();
+      setOperationMessage('Medication status could not be saved.');
     }
   };
 
@@ -237,26 +227,82 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId }) => {
     if (!newMed.name || !newMed.dosage) return;
     
     setLoading(true);
-    await firebaseService.addMedication(userId, {
-      ...newMed,
-      lastTakenDate: ''
-    });
-    
-    setNewMed({ name: '', dosage: '', time: '08:00', frequency: 'Once Daily' });
-    setShowAddForm(false);
-    fetchMeds();
+    setOperationMessage('');
+    try {
+      const result = await firebaseService.addMedication(userId, {
+        ...newMed,
+        lastTakenDate: ''
+      });
+      setNewMed({ name: '', dosage: '', time: '08:00', frequency: 'Once Daily' });
+      setShowAddForm(false);
+      setOperationMessage(result.state === 'recorded' ? 'Medication saved to your account.' : 'Medication saved on this device only.');
+      await fetchMeds();
+    } catch (error) {
+      console.error(error);
+      setOperationMessage('Medication could not be saved.');
+      setLoading(false);
+    }
   };
 
   const handleDeleteMed = async (medId: string) => {
     if (window.confirm("Are you sure you want to remove this medication from your schedule?")) {
       setLoading(true);
-      await firebaseService.deleteMedication(userId, medId);
-      fetchMeds();
+      setOperationMessage('');
+      try {
+        const result = await firebaseService.deleteMedication(userId, medId);
+        setOperationMessage(result.state === 'recorded' ? 'Medication removed from your account.' : 'Medication removed on this device only.');
+        await fetchMeds();
+      } catch (error) {
+        console.error(error);
+        setOperationMessage('Medication could not be removed.');
+        setLoading(false);
+      }
     }
   };
 
+  const takenTodayCount = meds.filter((med) => med.lastTakenDate === todayStr).length;
+  const pendingTodayCount = meds.length - takenTodayCount;
+  const compactMedications = meds
+    .filter((med) => med.lastTakenDate !== todayStr)
+    .slice(0, 2);
+
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-sm border border-gray-100 dark:border-slate-800/80 flex flex-col relative overflow-hidden transition-all duration-300">
+    <div className={compact ? 'relative' : 'bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-sm border border-gray-100 dark:border-slate-800/80 flex flex-col relative overflow-hidden transition-all duration-300'}>
+      {compact && <Card data-semantic className="border-line/70 shadow-none">
+        <h2 className="text-heading-3">Medication</h2>
+        <p className="mt-1 text-small text-foreground-secondary">
+          {takenTodayCount} taken · {pendingTodayCount} pending today
+        </p>
+        {operationMessage && <p role="status" className="mt-2 text-small text-foreground-secondary">{operationMessage}</p>}
+        {loading ? <p role="status" className="mt-3 text-small">Loading medication…</p> : (
+          <ul className="mt-3 divide-y divide-line">
+            {(showFullSchedule ? meds : compactMedications).map(med => {
+              const taken = med.lastTakenDate === todayStr;
+              return <li key={med.id} className="flex items-start gap-3 py-3">
+                <Button variant={taken ? 'primary' : 'secondary'} size="sm" aria-label={`Mark ${med.name} ${med.dosage} at ${med.time} as ${taken ? 'not taken' : 'taken'}`} aria-pressed={taken}
+                  onClick={() => handleToggleTaken(med.id, taken)}><Check size={18} aria-hidden="true" /></Button>
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-small font-semibold">{med.name}</p>
+                  <p className="text-small text-foreground-secondary">{med.dosage} · {med.time}</p>
+                  <p className={`text-small ${taken ? 'text-status-success-text' : 'text-foreground-secondary'}`}>{taken ? 'Taken' : 'Pending'}</p>
+                </div>
+                {showFullSchedule && <Button variant="ghost" size="sm" aria-label={`Delete ${med.name} ${med.dosage} at ${med.time}`} onClick={() => handleDeleteMed(med.id)}><Trash2 size={18} aria-hidden="true" /></Button>}
+              </li>;
+            })}
+          </ul>
+        )}
+        {!loading && meds.length > 0 && meds.every(m => m.lastTakenDate === todayStr) && !showFullSchedule && <p className="mt-3 text-small text-status-success-text">All listed medication is marked taken today.</p>}
+        <Button variant="ghost" size="sm" className="mt-2" aria-expanded={showFullSchedule} onClick={() => setShowFullSchedule(!showFullSchedule)}>
+          {showFullSchedule ? 'Show daily summary' : `View full schedule (${meds.length})`}
+        </Button>
+        {showFullSchedule && <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
+          {!notificationsEnabled ? <Button variant="secondary" size="sm" onClick={requestNotificationPermission}>Enable alerts</Button> : <span className="self-center text-small text-status-success-text">Alerts active</span>}
+          <Button variant="secondary" size="sm" onClick={triggerTestAlarm}>Test Alarm</Button>
+          <Button size="sm" onClick={() => setShowAddForm(true)}>Add medication</Button>
+        </div>}
+      </Card>}
+      {!compact && <div>
+      {operationMessage && <p role="status" className="mb-3 text-xs font-semibold text-gray-600 dark:text-slate-300">{operationMessage}</p>}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
@@ -326,6 +372,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId }) => {
                 <div className="flex items-center gap-3">
                   {/* Status checkbox button */}
                   <button
+                    aria-label={`Mark ${med.name} as ${isTaken ? 'not taken' : 'taken'}`}
                     onClick={() => handleToggleTaken(med.id, isTaken)}
                     className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all border-2 cursor-pointer ${isTaken ? 'bg-green-600 border-green-600 text-white' : 'bg-white dark:bg-slate-805 border-gray-200 dark:border-slate-700 hover:border-red-500 text-transparent'}`}
                   >
@@ -350,6 +397,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId }) => {
                   </span>
                   
                   <button 
+                    aria-label={`Delete ${med.name}`}
                     onClick={() => handleDeleteMed(med.id)}
                     className="p-2 text-gray-300 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/25 rounded-xl transition-all cursor-pointer"
                   >
@@ -362,6 +410,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId }) => {
         </div>
       )}
 
+      </div>}
       {/* Very Loud Medication Alarm Modal Overlay */}
       {isAlarmRinging && activeAlarmMed && (
         <div className="fixed inset-0 bg-red-950/90 backdrop-blur-md z-50 p-6 flex flex-col items-center justify-center animate-in fade-in duration-200">
@@ -406,7 +455,19 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId }) => {
       )}
 
       {/* Slide-Up Overlay Add Form Modal */}
-      {showAddForm && (
+      {showAddForm && compact && (
+        <Modal open onOpenChange={setShowAddForm} title="Add Scheduled Medication" closeLabel="Close medication form" size="sm">
+            <form onSubmit={handleCreateMed} className="mt-4 space-y-4">
+              {(['name', 'dosage', 'time', 'frequency'] as const).map(field => <label key={field} className="block text-small font-medium">
+                {{name: 'Medication Name', dosage: 'Dosage', time: 'Reminder Time', frequency: 'Frequency'}[field]}
+                <input required data-ui-field data-ui type={field === 'time' ? 'time' : 'text'} value={newMed[field]} onChange={e => setNewMed(p => ({...p, [field]: e.target.value}))}
+                  className="mt-1 min-h-11 w-full rounded-control border border-line-strong bg-surface px-3 text-body text-foreground" />
+              </label>)}
+              <div className="flex flex-wrap gap-3"><Button variant="secondary" onClick={() => setShowAddForm(false)}>Cancel</Button><Button type="submit">Save Schedule</Button></div>
+            </form>
+        </Modal>
+      )}
+      {showAddForm && !compact && (
         <div className="absolute inset-0 bg-white/95 dark:bg-slate-900/98 backdrop-blur-sm z-30 p-6 flex flex-col justify-center animate-in fade-in duration-200">
           <div className="flex justify-between items-center mb-4">
             <h4 className="font-black text-gray-800 dark:text-white text-sm uppercase tracking-wider">Add Scheduled Medication</h4>

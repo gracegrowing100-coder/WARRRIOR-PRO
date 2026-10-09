@@ -42,7 +42,7 @@ Navigation uses custom hash state rather than React Router, although
 |---|---|---|
 | `#/home` | Patient dashboard | `Dashboard` |
 | `#/games` | Games and education | `GamesHub` |
-| `#/chat` | Chat and peer-support surfaces | `ChatSystem` |
+| `#/chat` | Mira assistant and separate community chat | `ChatWorkspace` |
 | `#/telemedicine` | Appointments and remote-care concepts | `Telemedicine` |
 | `#/community` | Community and support centres | `Community` |
 | `#/advocacy` | Advocacy and research content | `Advocacy` |
@@ -51,9 +51,70 @@ The mobile shell renders all six destinations in a fixed bottom bar. At the
 Tailwind `md` breakpoint it becomes an 80px-wide left rail. The header remains
 sticky and the main content is constrained to `max-w-5xl`.
 
-Known routing defect: `App.tsx` registers a `hashchange` listener but does not
-apply the existing hash when the app first mounts. Opening a deep link can show
-Home until another navigation action occurs.
+Phase 4G: `App.tsx` initializes from the existing hash and handles subsequent
+hash changes without adding history entries. Direct Care and appointment links
+open their requested destination. Unknown hashes fall back to Home.
+
+Phase P4: Chat opens a workspace with Mira as the default patient assistant and
+the existing community chat as a separate tab. Mira is explicitly AI, uses an
+authenticated server API, keeps conversations outside clinical collections,
+and pre-fills appointment requests only after patient review. Deterministic
+urgent guidance does not depend on the AI provider. Text and supported voice
+modalities share one conversation pipeline; provider-limited languages remain
+labelled unavailable. Gemini 3.5 Transcribe is the primary speech-to-text path
+for all five supported languages. Generated-audio live checks returned non-empty
+transcripts for English, Hausa, Igbo, Yorùbá and Nigerian Pidgin. YarnGPT remains
+the primary text-to-speech path for those languages and a speech-to-text fallback
+except for Hausa, where its prior human-sample transcript was unusable. Transient
+YarnGPT transport/provider failures use bounded retries. ASR upload replays use
+one short wait and the same idempotency key; if YarnGPT still has not returned a
+job, the verified Gemini path can take over without exhausting the route timeout.
+Gemini text replies prioritize the consistently responsive Flash-Lite model with
+a 12-second attempt, followed by eight- and seven-second fallbacks. The combined
+27-second budget stays inside the route's 30-second limit, so an overloaded model
+cannot consume the entire fallback window.
+Patients can start a new Mira chat without deleting the prior conversation. The
+next message creates a fresh conversation ID so earlier safety context is not
+sent with the new request.
+
+P4.5 H1 adds server-safe TypeScript contracts and strict runtime validators for
+a future hematology intelligence layer. The foundation distinguishes clinical
+intent, topic and urgency; preserves patient-entered or patient-maintained
+provenance and missing/stale state; and defines versioned knowledge modules,
+retrieval and structured-result shapes. No clinical knowledge content,
+patient-data retrieval, prompt integration, provider integration or runtime
+behavior was added. The product still has no clinician-confirmed provenance
+system; these contracts are preparatory for later separately reviewed phases.
+
+P4.5 H2 adds a dormant patient-context builder and an adapter over the existing
+UID-scoped Firebase/local fallback services. It produces a bounded snapshot with
+profile facts plus only the medication, recent health-history, selected Medical
+Records or appointment categories relevant to the requested topic and intent.
+The builder strips account/contact identifiers, document IDs, free-text notes
+outside the selected clinical field and raw storage metadata. It preserves
+recorded, cached, device-only, missing and unavailable states without allowing a
+failed source to discard the rest of the snapshot. H2 is not imported by the
+current Mira route or provider, so no patient context is sent to Gemini yet.
+
+P4.5 H3 replaces the expanding red-flag regex list with 12 independently
+testable sickle-cell safety categories. Clear chest pain, breathing difficulty,
+neurological warnings, seizure or unconsciousness, fever or infection, severe
+or worsening pain, inability to retain fluids, priapism and mental-health crisis
+language use deterministic urgent handling. Confusion or severe weakness,
+sudden pallor or splenic concern, and pregnancy warning language use a hybrid
+specialist-review path. Medication-selection and dose-change requests also go
+to specialist review without medication advice.
+
+The server evaluates the current patient turn first. Recent patient turns can
+confirm that the same concern continues, but an older red flag cannot make an
+unrelated new message urgent. Obvious negated, preventive and historical uses
+are suppressed conservatively. The model may raise urgency but cannot lower a
+deterministic urgent result. English, Nigerian Pidgin, Yoruba, Igbo and Hausa
+have small deterministic cue sets for clear severe-pain, fever and breathing
+expressions. The non-English cues are covered by synthetic code tests but still
+require native-language and clinical review; they do not represent full
+linguistic validation. H3 adds no diagnosis, clinical knowledge modules or H2
+patient-context injection.
 
 ## Existing screens and feature surfaces
 
@@ -61,8 +122,10 @@ Home until another navigation action occurs.
 
 - Logged-out product landing screen.
 - Email/password login and registration.
-- Google popup login. A redirect-capable helper is exported, but the current UI
-  always requests the popup path and does not process a redirect result.
+- Google popup login. Redirect support is exported but not used by the current
+  UI because embedded browser environments may not complete the cross-origin
+  OAuth handoff. The startup session loader falls back to the sign-in screen
+  after eight seconds if Firebase auth initialization does not resolve.
 - Password reset.
 - Remember-email option and local/session authentication persistence.
 - Signup collects profile, role, medication, hydration, and emergency details in
@@ -81,7 +144,8 @@ The current Home screen includes all of the following in one long page:
 - Hydration tracker.
 - Medication reminders.
 - Seven-day mood and hydration chart.
-- AI pattern insights and doctor-report generation.
+- Experimental generated pattern insights and discussion-summary generation,
+  mounted only after its collapsed tool is opened.
 - Scheduled reminders.
 - Caregiver widget.
 - Thirty-day pain chart.
@@ -101,6 +165,11 @@ The current Home screen includes all of the following in one long page:
 - Mood journal, daily check-in, and trend aggregation.
 - Streak and XP updates attached to some logging actions.
 
+Daily check-in, hydration and medication surfaces now expose recorded,
+device-only/partial and failed outcomes where supported. Hydration reads keep
+missing, unavailable and genuine recorded zero distinct. Medication mutations
+update visible state only after a service result; an empty list remains valid.
+
 For an authenticated user, after the symptom Firestore upsert succeeds, saving a
 symptom log calls the pain-log and water-log services and then updates the
 streak. The guest path stores the symptom locally and updates the local streak,
@@ -110,7 +179,10 @@ be protected and made explicit during redesign work.
 
 ### Appointments and notifications
 
-- Appointment creation, listing, and cancellation exist within Telemedicine.
+- Appointment request creation, listing, and cancellation exist within
+  Telemedicine/Appointments. These are preferred dates and times, not confirmed
+  bookings. Home deterministically selects the earliest future request (with
+  stable past/legacy fallbacks) and uses `Requested for ...` wording.
 - Browser notification permission, scheduled reminder creation, enable/disable,
   deletion, and test notification exist.
 - Reminder checks run from a component interval while that surface is mounted;
@@ -135,9 +207,10 @@ Care Vault contains symptoms, mood, hydration, predictive analysis, an ER
 toolkit, diagnostics, procedures, medications, labs, and a clinical passport.
 It is implemented as one component of roughly 2,000 lines.
 
-Emergency information, caregiver information, and the ER toolkit use seeded
-defaults when no stored record exists. These defaults look like real patient
-data and must not be mistaken for verified user information.
+Emergency and designated-caregiver information remain empty when no scoped
+record exists. Legacy global values remain guest-only and are not attached to an
+authenticated patient. The legacy ER toolkit remains outside the current
+Medical Records production boundary.
 
 The caregiver SOS action opens a prefilled `sms:` draft, but immediately labels
 that draft as dispatched. The browser cannot verify that the user sent or that a
@@ -158,9 +231,13 @@ recipient received the message.
 Clinician-related concepts exist, but a production clinician product does not:
 
 - Signup includes a healthcare-professional role.
-- Chat includes seeded clinician channels and moderation controls.
-- Telemedicine displays seeded professional profiles.
-- Patient reports can be generated.
+- Chat moderation concepts remain, but seeded community conversations are
+  explicitly labelled synthetic; the named hematology persona, scripted reply,
+  and emergency-dispatch channel are removed from the Patient flow.
+- Telemedicine is the appointment-request surface and does not display provider
+  availability or clinician confirmation.
+- AI-generated patient discussion summaries remain experimental and are labelled
+  as generated, informational, and not clinician-verified clinical records.
 - The synthetic demo contains a nurse queue and approval action.
 
 There is no enforced clinician authorization model, assigned patient list,
@@ -169,10 +246,10 @@ application shell. All authenticated roles currently reach the same main app.
 
 ## Styling and responsive behavior
 
-Tailwind uses class-based dark mode. The configuration extends a small number of
-red and slate values and one radius, but does not yet contain the semantic navy,
+Tailwind uses class-based dark mode. The configuration extends a small number
+of red and slate values and one radius, but does not yet contain the semantic navy,
 medical-red, spacing, shadow, typography, or health-state tokens required by
-`../../DESIGN.md`.
+[`../DESIGN.md`](../DESIGN.md).
 
 Global CSS imports Inter, Bangers, and JetBrains Mono from Google Fonts. Fonts
 are also requested in `index.html`, which duplicates the network dependency.
@@ -220,7 +297,10 @@ replay of every failed cloud write.
 Fallback reads are also not merge reads: for several features, a successful
 empty Firestore response replaces or ignores an existing global local cache.
 Local data is generally consulted on guest or error paths, with feature-specific
-exceptions such as mood history and reminders.
+exceptions such as mood history and reminders. Authenticated medication,
+hydration, pain, symptom, emergency and designated-caregiver fallbacks are
+scoped by UID. Legacy unscoped values remain stored for guest compatibility but
+are never attached to an authenticated account.
 
 Firestore is initialized with long-polling auto-detection, not an explicit
 persistent IndexedDB cache. The connection-test console message that says the
@@ -252,15 +332,16 @@ The audited application produced:
 - Recharts warnings where responsive containers temporarily measured `-1` width
   or height.
 
-The current `firestore.rules` file includes the established patient
-subcollections but does not include explicit rules for `moodLogs`,
-`dailyMoodCheckIns`, or `reminderSettings`.
+The current `firestore.rules` source includes owner-only matches for the
+established patient subcollections, including `moodLogs`,
+`dailyMoodCheckIns`, `reminderSettings`, and Mira conversations. Deployment to
+the named Firestore database remains pending verification.
 
-Because `saveDailyMoodCheckIn` writes a local daily record and then calls
-`saveMoodLog` before attempting the daily Firestore document, a permission
-failure on `moodLogs` can reject the method before the daily Firestore write and
-streak update. The local daily and mood-history records have already been
-written, but the UI may not show its success state.
+`saveDailyMoodCheckIn` now attempts the daily Firestore document even when the
+optional mood-history write fails. The returned result distinguishes the daily
+record from history and the UI reports recorded, device-only/partial, or failed
+outcomes. Until the reconciled rules are deployed, the live rules can still
+make mood data device-only; no replay queue exists.
 
 ## Known technical debt
 
@@ -268,23 +349,25 @@ written, but the UI may not show its success state.
   `Telemedicine`, `Community`, and `Dashboard`.
 - Thin shared domain typing and extensive use of `any`.
 - No reusable `components/ui` or feature-boundary structure.
-- No automated unit, integration, accessibility, or end-to-end tests.
+- Focused Vitest component and persistence-contract coverage exists; there is
+  still no complete end-to-end or accessibility automation suite.
 - Installed React Router is unused.
 - Hard-coded element IDs and delayed scrolling connect some quick actions.
-- Global local-storage keys such as `warrior_meds` and `warrior_pain` are not
-  scoped by user and can mix cached data across accounts on one browser.
 - Firestore profile documents under `users/{uid}` can currently be read by any
   signed-in user, while create/update are owner-restricted. Whether clinic staff
   should ever read another profile requires an explicit authorization model.
-- Seeded medication, emergency, clinician, and Care Vault data can look real.
+- Synthetic and generated values remain in separately tracked legacy/experimental
+  surfaces, including charts and generated reports. Real account setup,
+  medication empty states, emergency information, scheduled reminders and the
+  designated-caregiver widget no longer seed sample patient records.
 - The symptom modal can display “synchronized successfully” without a distinct
   cloud acknowledgement, and the caregiver SMS draft can be labelled
   “dispatched” without delivery confirmation.
 - Constant pulse, bounce, gradients, and red surfaces conflict with the design
   specification.
 - Some icon controls have no accessible name.
-- Several clinical-sounding claims and confidence percentages are not backed by
-  a validated model.
+- Legacy predictive tools outside the recorded clinical boundary still require
+  validation and governance before production clinical claims are possible.
 
 ## Experimental features
 
@@ -293,10 +376,70 @@ AI pattern confidence, AI counselling, and any future eye-based PCV estimate as
 experimental. They must remain separated from the clinical MVP and use
 synthetic data until validation and governance requirements are met.
 
+The current generated pattern/discussion-summary surface does not substitute
+fallback statistics or profile facts when data or the API is unavailable. It
+does not show model confidence as clinical confidence or save generated output
+into Health History or Medical Records. Collapsed Home tools do not mount until
+opened.
+
+## P1–P3 pre-freeze repair (30 September 2026)
+
+Persistence truthfulness now covers daily check-in, hydration and medication
+without adding a general synchronization framework. Patient-visible success is
+based on explicit service results. Appointment presentation is request-only and
+chronological by preferred date. Seeded professional impersonation and fabricated
+AI/report fallbacks are removed from current Patient flows. Focused contract and
+component tests cover these boundaries. P4 subsequently established Mira as the
+Patient V1 assistant while retaining community chat as a separate surface.
+
 ## Related documents
 
+- [Master plan](./WARRIOR_AI_MASTER_PLAN.md)
+- [Patient V1 roadmap](./PATIENT_V1_ROADMAP.md)
 - [Product definition](../PRODUCT.md)
 - [Requirements](./REQUIREMENTS.md)
 - [Information architecture](./INFORMATION_ARCHITECTURE.md)
 - [Data contracts](./DATA_CONTRACTS.md)
 - [Redesign plan](./REDESIGN_PLAN.md)
+
+## Phase 4G targeted Care audit (28 September 2026)
+
+Care provides recorded Health History, appointment requests, and Medical Records.
+Medical Records wraps the existing Care Vault with Back to Care and a warning
+about setup/sample information. Vault internals remain legacy scope for Phase 8.
+Health History and appointment back controls remain available outside loading
+and error content. Telemedicine now wraps Appointments, with explicit review,
+submit, persistent result, details, and cancellation confirmation. initialReason
+is editable form state only; review does not save it. Cloud permission failures
+after a local appointment write now report device-only recording. Cancellation
+reports whether the cloud or only this device was updated. A later successful
+cloud read can still replace device-only changes; no replay queue was added.
+
+## Phase 4H Medical Records (29 September 2026)
+
+Supersedes the Phase 4G Vault deferral above. CareVault is now a compatibility
+wrapper around MedicalRecords, including its existing Home entry. Seven areas:
+health background; medications and therapies; procedures and hospital care;
+laboratory records; immunizations; care information; factual health summary PDF.
+All are patient-maintained, not clinician-verified. Add/edit/remove use existing
+fields and persistence paths; missing information stays empty. Loading, retry,
+empty, cached, save-success and save-failure states are explicit. Back to Care
+remains outside those states.
+
+Fake PIN/biometrics, security claims, filename OCR, synthetic charts, prediction,
+and seeded fallback profiles no longer appear in Medical Records. Old stored
+fields remain intact, including excluded crisis/attachment metadata. Persisted
+legacy samples have no reliable provenance; a review warning remains in screen
+and export. No heuristic purge, backend migration or new demo UI was added.
+Authenticated fallback is UID-scoped; global legacy data stays guest-only and
+is never silently imported. Device-only saves have no eventual-sync promise.
+Health History, Home medication workflow, Appointments, auth, navigation,
+Emergency HUD and Offline AI were not redesigned. See DATA_CONTRACTS for limits.
+
+## Phase 4I role planning boundary
+
+Patient V1 remains the current implementation priority. Future Caregiver,
+Clinician and distinct Administrator boundaries are documented in
+[Role & Access Model](./ROLE_ACCESS_MODEL.md). Existing profile role labels,
+caregiver contacts and chat moderators do not establish delegated patient access
+or clinician verification. Phase 4I changes documentation only.

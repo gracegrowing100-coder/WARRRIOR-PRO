@@ -211,16 +211,14 @@ export const OfflineWarriorAI: React.FC<{
       <button
         id="offline-warrior-ai-floating-trigger"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-20 right-4 z-40 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white p-3.5 rounded-full shadow-2xl border-2 border-white/20 flex items-center gap-2 cursor-pointer group transition-all duration-300 hover:scale-105 active:scale-95"
+        type="button"
+        data-ui-control
+        aria-label="Open Offline AI"
+        className="flex min-h-11 items-center gap-2 rounded-control border border-line-strong bg-surface px-3 text-small font-semibold text-foreground hover:bg-surface-subtle"
         title="Open Offline Multilingual AI Companion"
       >
-        <div className="relative">
-          <Bot size={22} className="animate-bounce" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 border-2 border-red-700 rounded-full animate-pulse"></span>
-        </div>
-        <span className="text-xs font-black tracking-wide hidden sm:inline pr-1">
-          Warrior AI <span className="text-[10px] opacity-80 font-mono bg-black/30 px-1.5 py-0.5 rounded">OFFLINE</span>
-        </span>
+        <Bot size={20} aria-hidden="true" />
+        <span className="hidden sm:inline">Offline AI</span>
       </button>
 
       {/* Main Drawer / Modal */}
@@ -285,13 +283,15 @@ export const OfflineWarriorAI: React.FC<{
                   </button>
 
                   <button
+                    type="button"
+                    aria-label="Close Offline AI"
                     onClick={() => {
                       if (isSpeaking) window.speechSynthesis.cancel();
                       setIsOpen(false);
                     }}
-                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition cursor-pointer"
+                    className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-xl p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
                   >
-                    <X size={18} />
+                    <X size={18} aria-hidden="true" />
                   </button>
                 </div>
               </div>

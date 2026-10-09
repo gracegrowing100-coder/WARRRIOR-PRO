@@ -1,9 +1,11 @@
+import { isRecord, mergeMedicalRecords, type MedicalRecordData } from './medicalRecords';
 
 import { 
   collection, 
   doc, 
   setDoc, 
   getDoc, 
+  getDocFromServer,
   getDocs, 
   updateDoc, 
   deleteDoc,
@@ -62,8 +64,245 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   }
 }
 
+export type HealthHistoryReadState = 'recorded' | 'cached' | 'missing' | 'unavailable';
+
+export type UserProfileReadState = 'recorded' | 'cached' | 'missing' | 'unavailable';
+
+export interface UserProfileReadResult {
+  state: UserProfileReadState;
+  data: DocumentData | null;
+}
+
+export interface HealthHistoryRecord<T> {
+  dateStr: string;
+  state: HealthHistoryReadState;
+  data: T | null;
+}
+
+export interface HealthHistoryCollection<T> {
+  state: HealthHistoryReadState;
+  data: T[];
+}
+
+export type PersistenceWriteState = 'recorded' | 'device-only';
+
+export interface PersistenceWriteResult<T> {
+  state: PersistenceWriteState;
+  data: T;
+}
+
+export interface HydrationReadResult {
+  state: HealthHistoryReadState;
+  data: HydrationHistoryData | null;
+}
+
+export interface HydrationHistoryData {
+  amount: number;
+  goal: number;
+}
+
+export interface DailyCheckInHistoryData {
+  emoji?: string;
+  emotion?: string;
+  note?: string;
+  dateStr?: string;
+  timestamp?: string;
+  updatedAt?: string;
+  score?: number;
+}
+
+export interface SymptomHistoryData {
+  id?: string;
+  userId?: string;
+  painLevel: number;
+  symptoms?: string[];
+  triggers?: string[];
+  waterIntake?: number;
+  dateStr: string;
+  timestamp?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface PainHistoryData {
+  id?: string;
+  userId?: string;
+  painLevel: number;
+  triggers?: string[];
+  dateStr: string;
+  timestamp?: unknown;
+  updatedAt?: unknown;
+}
+
+export interface MedicationScheduleData {
+  id?: string;
+  name?: unknown;
+  dosage?: unknown;
+  time?: unknown;
+  frequency?: unknown;
+  lastTakenDate?: unknown;
+  active?: unknown;
+  isActive?: unknown;
+  status?: unknown;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+  [key: string]: unknown;
+}
+
+export interface HydrationContextData {
+  amount?: unknown;
+  goal?: unknown;
+  timestamp?: unknown;
+  updatedAt?: unknown;
+}
+
+export type AppointmentReadState = 'recorded' | 'cached' | 'empty' | 'unavailable';
+
+export interface AppointmentRecord {
+  id: string;
+  bookedDate?: string;
+  bookedTime?: string;
+  patientNote?: string;
+  status?: string;
+  doctorName?: string;
+  doctorSpecialty?: string;
+  formattedCreatedAt?: string;
+  createdAt?: unknown;
+  [key: string]: unknown;
+}
+
+export interface AppointmentCollectionResult {
+  state: AppointmentReadState;
+  data: AppointmentRecord[];
+}
+
+const LEGACY_APPOINTMENT_CACHE_KEY = 'warrior_appointments';
+
+function getAppointmentCacheKey(userId: string) {
+  return userId ? `${LEGACY_APPOINTMENT_CACHE_KEY}_${userId}` : LEGACY_APPOINTMENT_CACHE_KEY;
+}
+
+// Patient health caches are scoped by authenticated UID so two accounts on one
+// device can never read or overwrite each other's cached clinical values.
+// Guest (signed-out) sessions keep the legacy unscoped keys for compatibility.
+// Legacy unscoped data is never attached to an authenticated account and never
+// deleted: its ownership cannot be proven, so it stays quarantined.
+function getHealthCacheKey(baseKey: string, userId: string) {
+  return userId ? `${baseKey}_${userId}` : baseKey;
+}
+
+function getWaterCacheKey(userId: string, dateStr: string) {
+  return userId ? `water_${userId}_${dateStr}` : `water_${dateStr}`;
+}
+
+// Same-date upserts may only match an entry owned by the acting account.
+// A bare date match once let account B update account A's cached clinical
+// values while retaining account A's identity.
+function getCacheEntryOwner(userId: string) {
+  return userId || 'guest';
+}
+
+function isOwnedCacheEntry(entry: any, owner: string) {
+  return (entry?.userId || 'guest') === owner;
+}
+
+function readAppointmentCache(cacheKey: string): AppointmentRecord[] | null {
+  const cached = localStorage.getItem(cacheKey);
+  if (cached === null) return null;
+
+  try {
+    const parsed: unknown = JSON.parse(cached);
+    return Array.isArray(parsed) ? parsed as AppointmentRecord[] : null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadAppointments(userId: string): Promise<AppointmentCollectionResult> {
+  const cacheKey = getAppointmentCacheKey(userId);
+
+  if (!userId) {
+    const cached = readAppointmentCache(cacheKey) ?? [];
+    return { state: cached.length > 0 ? 'recorded' : 'empty', data: cached };
+  }
+
+  const path = `users/${userId}/appointments`;
+  try {
+    const q = query(collection(db, path), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    const appointments = snapshot.docs.map((appointmentDocument) => {
+      const data = appointmentDocument.data();
+      let bookedAtStr = '';
+      if (data.createdAt) {
+        if (typeof data.createdAt.toDate === 'function') {
+          bookedAtStr = data.createdAt.toDate().toLocaleDateString();
+        } else if (data.createdAt.seconds) {
+          bookedAtStr = new Date(data.createdAt.seconds * 1000).toLocaleDateString();
+        } else {
+          bookedAtStr = String(data.createdAt);
+        }
+      }
+      return {
+        id: appointmentDocument.id,
+        ...data,
+        formattedCreatedAt: bookedAtStr,
+      } as AppointmentRecord;
+    });
+    localStorage.setItem(cacheKey, JSON.stringify(appointments));
+    return {
+      state: appointments.length > 0 ? 'recorded' : 'empty',
+      data: appointments,
+    };
+  } catch (error) {
+    console.warn('Firestore appointments list failed, using UID-scoped cache:', error);
+    const cached = readAppointmentCache(cacheKey);
+    return cached === null
+      ? { state: 'unavailable', data: [] }
+      : { state: 'cached', data: cached };
+  }
+}
+
 export const firebaseService = {
   // --- User Profiles ---
+  async getUserProfileState(userId: string): Promise<UserProfileReadResult> {
+    if (!userId) return { state: 'unavailable', data: null };
+
+    const path = `users/${userId}`;
+    const cacheKey = `user_profile_${userId}`;
+    const profileRef = doc(db, path);
+    try {
+      const profileSnapshot = await getDocFromServer(profileRef);
+      if (!profileSnapshot.exists()) {
+        return { state: 'missing', data: null };
+      }
+
+      const data = profileSnapshot.data();
+      localStorage.setItem(cacheKey, JSON.stringify(data));
+      return { state: 'recorded', data };
+    } catch (error) {
+      console.warn('Firestore profile verification failed, checking the UID-scoped cache:', error);
+      try {
+        const cachedSnapshot = await getDoc(profileRef);
+        if (cachedSnapshot.exists()) {
+          const data = cachedSnapshot.data();
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          return { state: 'cached', data };
+        }
+      } catch {
+        // Continue to the existing UID-scoped local fallback below.
+      }
+
+      const cached = localStorage.getItem(cacheKey);
+      if (!cached) return { state: 'unavailable', data: null };
+
+      try {
+        return { state: 'cached', data: JSON.parse(cached) as DocumentData };
+      } catch {
+        localStorage.removeItem(cacheKey);
+        return { state: 'unavailable', data: null };
+      }
+    }
+  },
+
   async getUserProfile(userId: string) {
     if (!userId) return null;
     const path = `users/${userId}`;
@@ -702,9 +941,46 @@ export const firebaseService = {
   },
 
   // --- Medications ---
-  async getMedications(userId: string) {
+  async getMedicationScheduleResult(userId: string): Promise<HealthHistoryCollection<MedicationScheduleData>> {
+    const cacheKey = getHealthCacheKey('warrior_meds', userId);
+    let cached: MedicationScheduleData[] = [];
+    try {
+      const parsed: unknown = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+      cached = Array.isArray(parsed) ? parsed as MedicationScheduleData[] : [];
+    } catch {
+      cached = [];
+    }
+
     if (!userId) {
-      const cached = localStorage.getItem('warrior_meds');
+      return cached.length > 0
+        ? { state: 'cached', data: cached }
+        : { state: 'missing', data: [] };
+    }
+
+    const path = `users/${userId}/medications`;
+    try {
+      const q = query(collection(db, path), orderBy('time', 'asc'));
+      const snapshot = await getDocs(q);
+      const medications = snapshot.docs.map(entry => ({
+        id: entry.id,
+        ...entry.data(),
+      } as MedicationScheduleData));
+      localStorage.setItem(cacheKey, JSON.stringify(medications));
+      return medications.length > 0
+        ? { state: 'recorded', data: medications }
+        : { state: 'missing', data: [] };
+    } catch (error) {
+      console.warn('Firestore medication schedule failed, using matching cache:', error);
+      return cached.length > 0
+        ? { state: 'cached', data: cached }
+        : { state: 'unavailable', data: [] };
+    }
+  },
+
+  async getMedications(userId: string) {
+    const cacheKey = getHealthCacheKey('warrior_meds', userId);
+    if (!userId) {
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : [];
     }
     const path = `users/${userId}/medications`;
@@ -712,23 +988,24 @@ export const firebaseService = {
       const q = query(collection(db, path), orderBy('time', 'asc'));
       const snapshot = await getDocs(q);
       const meds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      localStorage.setItem('warrior_meds', JSON.stringify(meds));
+      localStorage.setItem(cacheKey, JSON.stringify(meds));
       return meds;
     } catch (error) {
       console.warn("Firestore medications failed, using cache:", error);
-      const cached = localStorage.getItem('warrior_meds');
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : [];
     }
   },
 
   async addMedication(userId: string, data: any) {
+    const cacheKey = getHealthCacheKey('warrior_meds', userId);
     if (!userId) {
-      const cached = localStorage.getItem('warrior_meds');
+      const cached = localStorage.getItem(cacheKey);
       const meds = cached ? JSON.parse(cached) : [];
       const newMed = { id: Math.random().toString(36).substring(2, 9), ...data };
       meds.push(newMed);
-      localStorage.setItem('warrior_meds', JSON.stringify(meds));
-      return newMed;
+      localStorage.setItem(cacheKey, JSON.stringify(meds));
+      return { state: 'device-only' as const, data: newMed };
     }
     const path = `users/${userId}/medications`;
     try {
@@ -737,53 +1014,113 @@ export const firebaseService = {
         createdAt: serverTimestamp()
       });
       const newMed = { id: docRef.id, ...data };
-      const cached = localStorage.getItem('warrior_meds');
+      const cached = localStorage.getItem(cacheKey);
       const meds = cached ? JSON.parse(cached) : [];
       meds.push(newMed);
-      localStorage.setItem('warrior_meds', JSON.stringify(meds));
-      return newMed;
+      localStorage.setItem(cacheKey, JSON.stringify(meds));
+      return { state: 'recorded' as const, data: newMed };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
+      throw error;
     }
   },
 
   async updateMedication(userId: string, medId: string, data: any) {
-    const cached = localStorage.getItem('warrior_meds');
+    const cacheKey = getHealthCacheKey('warrior_meds', userId);
+    const cached = localStorage.getItem(cacheKey);
     if (cached) {
       let meds = JSON.parse(cached);
       meds = meds.map((m: any) => m.id === medId ? { ...m, ...data } : m);
-      localStorage.setItem('warrior_meds', JSON.stringify(meds));
+      localStorage.setItem(cacheKey, JSON.stringify(meds));
     }
-    if (!userId) return;
+    if (!userId) {
+      if (cached) return { state: 'device-only' as const, data: { id: medId, ...data } };
+      throw new Error('Medication update could not be saved');
+    }
     const path = `users/${userId}/medications/${medId}`;
     try {
       await updateDoc(doc(db, path), data);
+      return { state: 'recorded' as const, data: { id: medId, ...data } };
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
+      try {
+        handleFirestoreError(error, OperationType.UPDATE, path);
+      } catch { /* A confirmed local update is still device-only. */ }
+      if (cached) return { state: 'device-only' as const, data: { id: medId, ...data } };
+      throw error;
     }
   },
 
   async deleteMedication(userId: string, medId: string) {
-    const cached = localStorage.getItem('warrior_meds');
+    const cacheKey = getHealthCacheKey('warrior_meds', userId);
+    const cached = localStorage.getItem(cacheKey);
     if (cached) {
       let meds = JSON.parse(cached);
       meds = meds.filter((m: any) => m.id !== medId);
-      localStorage.setItem('warrior_meds', JSON.stringify(meds));
+      localStorage.setItem(cacheKey, JSON.stringify(meds));
     }
-    if (!userId) return;
+    if (!userId) {
+      if (cached) return { state: 'device-only' as const, data: { id: medId } };
+      throw new Error('Medication removal could not be saved');
+    }
     const path = `users/${userId}/medications/${medId}`;
     try {
       await deleteDoc(doc(db, path));
+      return { state: 'recorded' as const, data: { id: medId } };
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, path);
+      try {
+        handleFirestoreError(error, OperationType.DELETE, path);
+      } catch { /* A confirmed local removal is still device-only. */ }
+      if (cached) return { state: 'device-only' as const, data: { id: medId } };
+      throw error;
     }
   },
 
   // --- Water Intake ---
-  async getWaterLog(userId: string, dateStr: string) {
+  async getHydrationContextHistory(
+    userId: string,
+    dateStrs: string[],
+  ): Promise<Array<HealthHistoryRecord<HydrationContextData>>> {
+    return Promise.all(dateStrs.map(async (dateStr) => {
+      const cacheKey = getWaterCacheKey(userId, dateStr);
+      let cached: HydrationContextData | null = null;
+      try {
+        const parsed: unknown = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+        cached = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+          ? parsed as HydrationContextData
+          : null;
+      } catch {
+        cached = null;
+      }
+
+      if (!userId) {
+        return cached
+          ? { dateStr, state: 'cached' as const, data: cached }
+          : { dateStr, state: 'missing' as const, data: null };
+      }
+
+      const path = `users/${userId}/waterLogs/${dateStr}`;
+      try {
+        const snapshot = await getDoc(doc(db, path));
+        if (!snapshot.exists()) return { dateStr, state: 'missing' as const, data: null };
+        const data = snapshot.data() as HydrationContextData;
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+        return { dateStr, state: 'recorded' as const, data };
+      } catch (error) {
+        console.warn(`Firestore hydration context failed for ${dateStr}:`, error);
+        return cached
+          ? { dateStr, state: 'cached' as const, data: cached }
+          : { dateStr, state: 'unavailable' as const, data: null };
+      }
+    }));
+  },
+
+  async getWaterLog(userId: string, dateStr: string): Promise<HydrationReadResult> {
+    const cacheKey = getWaterCacheKey(userId, dateStr);
     if (!userId) {
-      const cached = localStorage.getItem(`water_${dateStr}`);
-      return cached ? JSON.parse(cached) : { amount: 0, goal: 3.0 };
+      const cached = localStorage.getItem(cacheKey);
+      return cached
+        ? { state: 'recorded', data: JSON.parse(cached) }
+        : { state: 'missing', data: null };
     }
     const path = `users/${userId}/waterLogs/${dateStr}`;
     try {
@@ -791,30 +1128,51 @@ export const firebaseService = {
       const snapshot = await getDoc(docRef);
       if (snapshot.exists()) {
         const data = snapshot.data();
-        localStorage.setItem(`water_${dateStr}`, JSON.stringify(data));
-        return { amount: data.amount || 0, goal: data.goal || 3.0 };
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+        return {
+          state: 'recorded',
+          data: {
+            amount: typeof data.amount === 'number' ? data.amount : 0,
+            goal: typeof data.goal === 'number' ? data.goal : 3.0,
+          },
+        };
       }
-      return { amount: 0, goal: 3.0 };
+      return { state: 'missing', data: null };
     } catch (error) {
       console.warn("Firestore hydration failed, using cache:", error);
-      const cached = localStorage.getItem(`water_${dateStr}`);
-      return cached ? JSON.parse(cached) : { amount: 0, goal: 3.0 };
+      const cached = localStorage.getItem(cacheKey);
+      return cached
+        ? { state: 'cached', data: JSON.parse(cached) }
+        : { state: 'unavailable', data: null };
     }
   },
 
   async saveWaterLog(userId: string, dateStr: string, amount: number, goal: number) {
     const data = { amount, goal, updatedAt: serverTimestamp() };
-    localStorage.setItem(`water_${dateStr}`, JSON.stringify({ amount, goal }));
+    const resultData = { amount, goal };
+    let savedLocally = false;
+    try {
+      localStorage.setItem(getWaterCacheKey(userId, dateStr), JSON.stringify(resultData));
+      savedLocally = true;
+    } catch (error) {
+      console.warn('Hydration local save failed:', error);
+    }
     if (!userId) {
-      await this.updateStreak(userId);
-      return;
+      try { await this.updateStreak(userId); } catch { /* Optional streak update. */ }
+      if (savedLocally) return { state: 'device-only' as const, data: resultData };
+      throw new Error('Hydration could not be saved');
     }
     const path = `users/${userId}/waterLogs/${dateStr}`;
     try {
       await setDoc(doc(db, path), data);
-      await this.updateStreak(userId);
+      try { await this.updateStreak(userId); } catch { /* Hydration is already confirmed. */ }
+      return { state: 'recorded' as const, data: resultData };
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, path);
+      try {
+        handleFirestoreError(error, OperationType.WRITE, path);
+      } catch { /* A confirmed local write remains device-only. */ }
+      if (savedLocally) return { state: 'device-only' as const, data: resultData };
+      throw error;
     }
   },
 
@@ -832,18 +1190,101 @@ export const firebaseService = {
         return {
           dateStr,
           label,
-          amount: log ? log.amount : 0,
-          goal: log ? log.goal : 3.0
+          state: log.state,
+          amount: log.data?.amount ?? null,
+          goal: log.data?.goal ?? null
         };
       })());
     }
     return Promise.all(promises);
   },
 
+  async getHydrationHistory(userId: string, dateStrs: string[]): Promise<Array<HealthHistoryRecord<HydrationHistoryData>>> {
+    return Promise.all(dateStrs.map(async (dateStr) => {
+      const cacheKey = getWaterCacheKey(userId, dateStr);
+      const historyCacheKey = userId ? `health_history_water_${userId}_${dateStr}` : cacheKey;
+      let cached: HydrationHistoryData | null = null;
+      try {
+        const cachedValue = localStorage.getItem(historyCacheKey);
+        cached = cachedValue ? JSON.parse(cachedValue) : null;
+      } catch {
+        cached = null;
+      }
+
+      if (!userId) {
+        return cached
+          ? { dateStr, state: 'recorded' as const, data: cached }
+          : { dateStr, state: 'missing' as const, data: null };
+      }
+
+      const path = `users/${userId}/waterLogs/${dateStr}`;
+      try {
+        const snapshot = await getDoc(doc(db, path));
+        if (snapshot.exists()) {
+          const value = snapshot.data();
+          const data = {
+            amount: typeof value.amount === 'number' ? value.amount : 0,
+            goal: typeof value.goal === 'number' ? value.goal : 3.0,
+          };
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          localStorage.setItem(historyCacheKey, JSON.stringify(data));
+          return { dateStr, state: 'recorded' as const, data };
+        }
+        return { dateStr, state: 'missing' as const, data: null };
+      } catch (error) {
+        console.warn(`Firestore hydration history failed for ${dateStr}:`, error);
+        return cached
+          ? { dateStr, state: 'cached' as const, data: cached }
+          : { dateStr, state: 'unavailable' as const, data: null };
+      }
+    }));
+  },
+
   // --- Pain Logs (Trends) ---
-  async getPainLogs(userId: string) {
+  async getPainHistory(userId: string, startDateStr?: string): Promise<HealthHistoryCollection<PainHistoryData>> {
+    const cacheKey = getHealthCacheKey('warrior_pain', userId);
+    let cached: PainHistoryData[] = [];
+    try {
+      const parsed: unknown = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+      cached = Array.isArray(parsed) ? parsed as PainHistoryData[] : [];
+    } catch {
+      cached = [];
+    }
+    const inWindow = (entry: PainHistoryData) => !startDateStr || entry.dateStr >= startDateStr;
+    const cachedWindow = cached.filter(inWindow);
+
     if (!userId) {
-      const cached = localStorage.getItem('warrior_pain');
+      return cachedWindow.length > 0
+        ? { state: 'cached', data: cachedWindow }
+        : { state: 'missing', data: [] };
+    }
+
+    const path = `users/${userId}/painLogs`;
+    try {
+      const constraints = startDateStr
+        ? [where('dateStr', '>=', startDateStr), orderBy('dateStr', 'asc')]
+        : [orderBy('dateStr', 'asc')];
+      const q = query(collection(db, path), ...constraints);
+      const snapshot = await getDocs(q);
+      const logs = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() } as PainHistoryData));
+      localStorage.setItem(cacheKey, JSON.stringify(startDateStr
+        ? [...cached.filter(entry => !inWindow(entry)), ...logs]
+        : logs));
+      return logs.length > 0
+        ? { state: 'recorded', data: logs }
+        : { state: 'missing', data: [] };
+    } catch (error) {
+      console.warn('Firestore pain history failed, using matching cache:', error);
+      return cachedWindow.length > 0
+        ? { state: 'cached', data: cachedWindow }
+        : { state: 'unavailable', data: [] };
+    }
+  },
+
+  async getPainLogs(userId: string) {
+    const cacheKey = getHealthCacheKey('warrior_pain', userId);
+    if (!userId) {
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : [];
     }
     const path = `users/${userId}/painLogs`;
@@ -851,28 +1292,32 @@ export const firebaseService = {
       const q = query(collection(db, path), orderBy('dateStr', 'asc'));
       const snapshot = await getDocs(q);
       const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      localStorage.setItem('warrior_pain', JSON.stringify(logs));
+      localStorage.setItem(cacheKey, JSON.stringify(logs));
       return logs;
     } catch (error) {
       console.warn("Firestore pain logs failed, using cache:", error);
-      const cached = localStorage.getItem('warrior_pain');
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : [];
     }
   },
 
   async addPainLog(userId: string, painLevel: number, dateStr: string, triggers: string[] = []) {
+    const owner = getCacheEntryOwner(userId);
     const data = { painLevel, dateStr, triggers, timestamp: serverTimestamp() };
-    const cached = localStorage.getItem('warrior_pain');
+    const cacheKey = getHealthCacheKey('warrior_pain', userId);
+    const cached = localStorage.getItem(cacheKey);
     const logs = cached ? JSON.parse(cached) : [];
-    
-    // Check if entry for dateStr already exists, to update it, or add new
-    const existingIndex = logs.findIndex((l: any) => l.dateStr === dateStr);
+
+    // Check if an entry for dateStr already exists for THIS account, to update
+    // it, or add a new one. Date-only matching once allowed one account's write
+    // to overwrite another account's cached same-day pain values.
+    const existingIndex = logs.findIndex((l: any) => l.dateStr === dateStr && isOwnedCacheEntry(l, owner));
     if (existingIndex !== -1) {
-      logs[existingIndex] = { ...logs[existingIndex], painLevel, triggers };
+      logs[existingIndex] = { ...logs[existingIndex], userId: owner, painLevel, triggers };
     } else {
-      logs.push({ id: Math.random().toString(36).substring(2, 9), ...data, timestamp: new Date().toISOString() });
+      logs.push({ id: Math.random().toString(36).substring(2, 9), userId: owner, ...data, timestamp: new Date().toISOString() });
     }
-    localStorage.setItem('warrior_pain', JSON.stringify(logs));
+    localStorage.setItem(cacheKey, JSON.stringify(logs));
 
     if (!userId) {
       await this.updateStreak(userId);
@@ -897,8 +1342,9 @@ export const firebaseService = {
 
   // --- Symptom Logs ---
   async getSymptomLogs(userId: string) {
+    const cacheKey = getHealthCacheKey('warrior_symptom_logs', userId);
     if (!userId) {
-      const cached = localStorage.getItem('warrior_symptom_logs');
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : [];
     }
     const path = `users/${userId}/symptomLogs`;
@@ -906,18 +1352,62 @@ export const firebaseService = {
       const q = query(collection(db, path), orderBy('dateStr', 'asc'));
       const snapshot = await getDocs(q);
       const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      localStorage.setItem('warrior_symptom_logs', JSON.stringify(logs));
+      localStorage.setItem(cacheKey, JSON.stringify(logs));
       return logs;
     } catch (error) {
       console.warn("Firestore symptom logs failed, using cache:", error);
-      const cached = localStorage.getItem('warrior_symptom_logs');
+      const cached = localStorage.getItem(cacheKey);
       return cached ? JSON.parse(cached) : [];
     }
   },
 
+  async getSymptomHistory(userId: string, startDateStr?: string): Promise<HealthHistoryCollection<SymptomHistoryData>> {
+    let cached: SymptomHistoryData[] = [];
+    try {
+      const cachedValue = localStorage.getItem(getHealthCacheKey('warrior_symptom_logs', userId));
+      const parsed = cachedValue ? JSON.parse(cachedValue) : [];
+      // Authenticated caches are already isolated by UID. Do not reject older
+      // legitimate records solely because they predate the userId field.
+      cached = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      cached = [];
+    }
+
+    const inWindow = (entry: SymptomHistoryData) => !startDateStr || entry.dateStr >= startDateStr;
+    const cachedWindow = cached.filter(inWindow);
+
+    if (!userId) {
+      return cachedWindow.length > 0
+        ? { state: 'recorded', data: cachedWindow }
+        : { state: 'missing', data: [] };
+    }
+
+    const path = `users/${userId}/symptomLogs`;
+    try {
+      const constraints = startDateStr
+        ? [where('dateStr', '>=', startDateStr), orderBy('dateStr', 'asc')]
+        : [orderBy('dateStr', 'asc')];
+      const q = query(collection(db, path), ...constraints);
+      const snapshot = await getDocs(q);
+      const logs = snapshot.docs.map(entry => ({ id: entry.id, ...entry.data() } as SymptomHistoryData));
+      localStorage.setItem(getHealthCacheKey('warrior_symptom_logs', userId), JSON.stringify(startDateStr
+        ? [...cached.filter(entry => !inWindow(entry)), ...logs]
+        : logs));
+      return logs.length > 0
+        ? { state: 'recorded', data: logs }
+        : { state: 'missing', data: [] };
+    } catch (error) {
+      console.warn('Firestore symptom history failed, using matching cache:', error);
+      return cachedWindow.length > 0
+        ? { state: 'cached', data: cachedWindow }
+        : { state: 'unavailable', data: [] };
+    }
+  },
+
   async addSymptomLog(userId: string, painLevel: number, symptoms: string[], triggers: string[], waterIntake: number, dateStr: string) {
+    const owner = getCacheEntryOwner(userId);
     const data = { 
-      userId: userId || 'guest',
+      userId: owner,
       painLevel, 
       symptoms, 
       triggers, 
@@ -926,9 +1416,14 @@ export const firebaseService = {
       timestamp: serverTimestamp() 
     };
 
-    const cached = localStorage.getItem('warrior_symptom_logs');
+    const cacheKey = getHealthCacheKey('warrior_symptom_logs', userId);
+    const cached = localStorage.getItem(cacheKey);
     const logs = cached ? JSON.parse(cached) : [];
-    const existingIndex = logs.findIndex((l: any) => l.dateStr === dateStr);
+
+    // Same-date upserts must only match an entry owned by the acting account.
+    // Date-only matching once let account B update account A's cached clinical
+    // values while the cache kept attributing them to account A.
+    const existingIndex = logs.findIndex((l: any) => l.dateStr === dateStr && isOwnedCacheEntry(l, owner));
     
     const localData = { 
       ...data, 
@@ -937,11 +1432,11 @@ export const firebaseService = {
     };
 
     if (existingIndex !== -1) {
-      logs[existingIndex] = { ...logs[existingIndex], painLevel, symptoms, triggers, waterIntake };
+      logs[existingIndex] = { ...logs[existingIndex], userId: owner, painLevel, symptoms, triggers, waterIntake };
     } else {
       logs.push(localData);
     }
-    localStorage.setItem('warrior_symptom_logs', JSON.stringify(logs));
+    localStorage.setItem(cacheKey, JSON.stringify(logs));
 
     if (!userId) {
       await this.updateStreak(userId);
@@ -1053,21 +1548,16 @@ export const firebaseService = {
   },
 
   // --- Emergency Info ---
+  // Missing emergency information stays missing: no seeded contacts, allergies,
+  // medications or clinical notes are invented for real Patient flows. Cached
+  // emergency data is UID-scoped for authenticated accounts; guest sessions keep
+  // the legacy unscoped key. Legacy unscoped data is never attached to an
+  // authenticated account and never deleted.
   async getEmergencyInfo(userId: string) {
-    const defaultInfo = {
-      bloodType: 'O+',
-      genotype: 'SS',
-      emergencyContactName: 'Dr. Amina Yusuf (Specialist)',
-      emergencyContactPhone: '+234 812 345 6789',
-      primaryCaregiverName: 'Sarah Smith (Mother)',
-      primaryCaregiverPhone: '+234 803 111 2222',
-      allergies: 'Penicillin, Sulfa medications',
-      currentMeds: 'Hydroxyurea (500mg daily), Folic Acid (5mg)',
-      customNotes: 'Keep well hydrated. Avoid extreme cold temperature triggers. Administer IV fluids quickly'
-    };
+    const cacheKey = getHealthCacheKey('warrior_emergency', userId);
     if (!userId) {
-      const cached = localStorage.getItem('warrior_emergency');
-      return cached ? JSON.parse(cached) : defaultInfo;
+      const cached = localStorage.getItem(cacheKey);
+      return cached ? JSON.parse(cached) : {};
     }
     const path = `users/${userId}/emergencyInfo/summary`;
     try {
@@ -1075,19 +1565,19 @@ export const firebaseService = {
       const snapshot = await getDoc(docRef);
       if (snapshot.exists()) {
         const data = snapshot.data();
-        localStorage.setItem('warrior_emergency', JSON.stringify(data));
+        localStorage.setItem(cacheKey, JSON.stringify(data));
         return data;
       }
-      return defaultInfo;
+      return {};
     } catch (error) {
       console.warn("Firestore emergency info failed, fallback:", error);
-      const cached = localStorage.getItem('warrior_emergency');
-      return cached ? JSON.parse(cached) : defaultInfo;
+      const cached = localStorage.getItem(cacheKey);
+      return cached ? JSON.parse(cached) : {};
     }
   },
 
   async saveEmergencyInfo(userId: string, data: any) {
-    localStorage.setItem('warrior_emergency', JSON.stringify(data));
+    localStorage.setItem(getHealthCacheKey('warrior_emergency', userId), JSON.stringify(data));
     if (!userId) return;
     const path = `users/${userId}/emergencyInfo/summary`;
     try {
@@ -1102,39 +1592,12 @@ export const firebaseService = {
 
   // --- Doctor Appointments ---
   async getAppointments(userId: string) {
-    if (!userId) {
-      const cached = localStorage.getItem('warrior_appointments');
-      return cached ? JSON.parse(cached) : [];
-    }
-    const path = `users/${userId}/appointments`;
-    try {
-      const q = query(collection(db, path), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-      const apps = snapshot.docs.map(doc => {
-        const data = doc.data();
-        let bookedAtStr = '';
-        if (data.createdAt) {
-          if (typeof data.createdAt.toDate === 'function') {
-            bookedAtStr = data.createdAt.toDate().toLocaleDateString();
-          } else if (data.createdAt.seconds) {
-            bookedAtStr = new Date(data.createdAt.seconds * 1000).toLocaleDateString();
-          } else {
-            bookedAtStr = String(data.createdAt);
-          }
-        }
-        return { 
-          id: doc.id, 
-          ...data,
-          formattedCreatedAt: bookedAtStr
-        };
-      });
-      localStorage.setItem('warrior_appointments', JSON.stringify(apps));
-      return apps;
-    } catch (error) {
-      console.warn("Firestore appointments list failed, using cache:", error);
-      const cached = localStorage.getItem('warrior_appointments');
-      return cached ? JSON.parse(cached) : [];
-    }
+    const result = await loadAppointments(userId);
+    return result.data;
+  },
+
+  async getAppointmentRequests(userId: string) {
+    return loadAppointments(userId);
   },
 
   async addAppointment(userId: string, data: any) {
@@ -1144,10 +1607,10 @@ export const firebaseService = {
       createdAt: new Date().toISOString()
     };
 
-    const cached = localStorage.getItem('warrior_appointments');
-    const apps = cached ? JSON.parse(cached) : [];
+    const cacheKey = getAppointmentCacheKey(userId);
+    const apps = readAppointmentCache(cacheKey) ?? [];
     apps.unshift({ id: localId, ...appointmentObj });
-    localStorage.setItem('warrior_appointments', JSON.stringify(apps));
+    localStorage.setItem(cacheKey, JSON.stringify(apps));
 
     if (!userId) return { id: localId, ...appointmentObj };
 
@@ -1158,81 +1621,93 @@ export const firebaseService = {
         createdAt: serverTimestamp()
       });
       const updatedApps = apps.map((a: any) => a.id === localId ? { ...a, id: docRef.id } : a);
-      localStorage.setItem('warrior_appointments', JSON.stringify(updatedApps));
+      localStorage.setItem(cacheKey, JSON.stringify(updatedApps));
       return { id: docRef.id, ...data };
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
+      // The local write already succeeded, including when cloud permission is denied.
+      console.warn('Appointment request saved on this device; cloud recording failed:', error);
     }
   },
 
   async cancelAppointment(userId: string, appId: string) {
-    const cached = localStorage.getItem('warrior_appointments');
+    const cacheKey = getAppointmentCacheKey(userId);
+    const cached = readAppointmentCache(cacheKey);
     if (cached) {
-      let apps = JSON.parse(cached);
-      apps = apps.map((a: any) => a.id === appId ? { ...a, status: 'Cancelled' } : a);
-      localStorage.setItem('warrior_appointments', JSON.stringify(apps));
+      const apps = cached.map((appointment) => appointment.id === appId
+        ? { ...appointment, status: 'Cancelled' }
+        : appointment);
+      localStorage.setItem(cacheKey, JSON.stringify(apps));
     }
 
-    if (!userId) return;
+    const savedLocally = Boolean(cached?.some((appointment) => appointment.id === appId));
+    if (!userId) {
+      if (!savedLocally) throw new Error('Appointment request not found on this device');
+      return { state: 'device-only' as const };
+    }
     const path = `users/${userId}/appointments/${appId}`;
     try {
       await updateDoc(doc(db, path), { status: 'Cancelled' });
+      return { state: 'recorded' as const };
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
+      if (!savedLocally) throw error;
+      console.warn('Appointment cancellation saved on this device; cloud update failed:', error);
+      return { state: 'device-only' as const };
     }
   },
 
   // --- Care Vault Medical History ---
-  async getCareVault(userId: string) {
-    const defaultVault = {
-      primaryDiagnosis: 'Sickle Cell Disease (HbSS)',
-      otherConditions: ['Asthma'],
-      allergies: 'Penicillin, Sulfa drugs',
-      surgeries: [
-        { id: 'surg-1', name: 'Splenectomy', date: '2021-04-12', hospital: 'St. Jude General Hospital' }
-      ],
-      hospitalizations: [
-        { id: 'hosp-1', reason: 'Vaso-occlusive Crisis (VOC)', date: '2024-01-15', durationDays: 5, notes: 'Treated with IV fluids, oxygen, and continuous patient-controlled analgesia.' }
-      ],
-      transfusions: [
-        { id: 'trans-1', date: '2023-11-20', volumeMl: 350, reactionNotes: 'None. Simple red blood cell exchange.' }
-      ],
-      immunizations: ['Pneumococcal Vaccine', 'Meningococcal Vaccine', 'Hepatitis B', 'Annual Influenza Nose Spray']
+  // Authenticated reads NEVER consume the ambiguous legacy global cache.
+  async getCareVaultResult(userId: string): Promise<{
+    data: MedicalRecordData;
+    state: 'recorded' | 'cached' | 'empty' | 'unavailable';
+  }> {
+    const cacheKey = userId ? 'warrior_carevault_' + userId : 'warrior_carevault';
+    const readCache = (): MedicalRecordData | null => {
+      try {
+        const parsed: unknown = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+        return isRecord(parsed) ? parsed : null;
+      } catch { return null; }
     };
-
     if (!userId) {
-      const cached = localStorage.getItem('warrior_carevault');
-      return cached ? JSON.parse(cached) : defaultVault;
+      const cached = readCache();
+      return { data: cached ?? {}, state: cached ? 'cached' : 'empty' };
     }
-    const path = `users/${userId}/careVault/medicalHistory`;
     try {
-      const docRef = doc(db, path);
-      const snapshot = await getDoc(docRef);
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-        localStorage.setItem('warrior_carevault', JSON.stringify(data));
-        return data;
-      }
-      return defaultVault;
-    } catch (error) {
-      console.warn("Firestore care vault failed, fallback:", error);
-      const cached = localStorage.getItem('warrior_carevault');
-      return cached ? JSON.parse(cached) : defaultVault;
+      const snapshot = await getDoc(doc(db, 'users/' + userId + '/careVault/medicalHistory'));
+      const data = snapshot.exists() ? snapshot.data() : {};
+      if (!isRecord(data)) throw new Error('Invalid medical records');
+      try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch { /* Cloud read remains usable. */ }
+      return { data, state: snapshot.exists() ? 'recorded' : 'empty' };
+    } catch {
+      const cached = readCache();
+      return cached ? { data: cached, state: 'cached' } : { data: {}, state: 'unavailable' };
     }
   },
 
-  async saveCareVault(userId: string, data: any) {
-    localStorage.setItem('warrior_carevault', JSON.stringify(data));
-    if (!userId) return;
-    const path = `users/${userId}/careVault/medicalHistory`;
+  async getCareVault(userId: string) {
+    const result = await this.getCareVaultResult(userId);
+    if (result.state === 'unavailable') throw new Error('Medical records unavailable');
+    return result.data;
+  },
+
+  async saveCareVault(userId: string, patch: MedicalRecordData): Promise<{ state: 'recorded' | 'device-only' }> {
+    const cacheKey = userId ? 'warrior_carevault_' + userId : 'warrior_carevault';
+    let savedLocally = false;
     try {
-      await setDoc(doc(db, path), {
-        ...data,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, path);
+      const cached: unknown = JSON.parse(localStorage.getItem(cacheKey) || '{}');
+      localStorage.setItem(cacheKey, JSON.stringify(mergeMedicalRecords(isRecord(cached) ? cached : {}, patch)));
+      savedLocally = true;
+    } catch { /* Still attempt the cloud write if device storage is unavailable. */ }
+    if (userId) {
+      try {
+        await setDoc(doc(db, 'users/' + userId + '/careVault/medicalHistory'), {
+          ...patch, updatedAt: serverTimestamp(),
+        }, { merge: true });
+        return { state: 'recorded' };
+      } catch { /* Return only the storage outcome we can confirm. */ }
     }
+    if (savedLocally) return { state: 'device-only' };
+    throw new Error('Medical records could not be saved');
   },
 
   // --- Mood & Mental Wellness Logs ---
@@ -1252,9 +1727,18 @@ export const firebaseService = {
     const cachedStr = localStorage.getItem(`warrior_mood_logs_${userId || 'guest'}`);
     let logs = cachedStr ? JSON.parse(cachedStr) : [];
     logs = [newLog, ...logs];
-    localStorage.setItem(`warrior_mood_logs_${userId || 'guest'}`, JSON.stringify(logs));
+    let savedLocally = false;
+    try {
+      localStorage.setItem(`warrior_mood_logs_${userId || 'guest'}`, JSON.stringify(logs));
+      savedLocally = true;
+    } catch (error) {
+      console.warn('Mood history local save failed:', error);
+    }
 
-    if (!userId) return newLog;
+    if (!userId) {
+      if (savedLocally) return { state: 'device-only' as const, data: newLog };
+      throw new Error('Mood history could not be saved');
+    }
 
     const path = `users/${userId}/moodLogs`;
     try {
@@ -1262,10 +1746,13 @@ export const firebaseService = {
         ...entry,
         createdAt: serverTimestamp()
       });
-      return { id: docRef.id, ...entry };
+      return { state: 'recorded' as const, data: { id: docRef.id, ...entry } };
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
-      return newLog;
+      try {
+        handleFirestoreError(error, OperationType.CREATE, path);
+      } catch { /* A confirmed local history write remains device-only. */ }
+      if (savedLocally) return { state: 'device-only' as const, data: newLog };
+      throw error;
     }
   },
 
@@ -1306,19 +1793,32 @@ export const firebaseService = {
       updatedAt: new Date().toISOString()
     };
 
-    localStorage.setItem(`warrior_daily_mood_${userId || 'guest'}_${dateStr}`, JSON.stringify(payload));
+    let savedLocally = false;
+    try {
+      localStorage.setItem(`warrior_daily_mood_${userId || 'guest'}_${dateStr}`, JSON.stringify(payload));
+      savedLocally = true;
+    } catch (error) {
+      console.warn('Daily check-in local save failed:', error);
+    }
 
     // Also add to historical mood logs for holistic longitudinal tracking
-    await this.saveMoodLog(userId, {
-      emotion: `${moodData.emoji} ${moodData.emotion}`,
-      intensity: moodData.score,
-      symptoms: moodData.score <= 4 ? ['Low Energy / Discomfort'] : [],
-      journalText: moodData.note || `Daily check-in: ${moodData.emotion} (${moodData.score}/10)`
-    });
+    let historyState: PersistenceWriteState | 'failed' = 'failed';
+    try {
+      const historyResult = await this.saveMoodLog(userId, {
+        emotion: `${moodData.emoji} ${moodData.emotion}`,
+        intensity: moodData.score,
+        symptoms: moodData.score <= 4 ? ['Low Energy / Discomfort'] : [],
+        journalText: moodData.note || `Daily check-in: ${moodData.emotion} (${moodData.score}/10)`
+      });
+      historyState = historyResult.state;
+    } catch (error) {
+      console.warn('Daily check-in history copy failed:', error);
+    }
 
     if (!userId) {
-      await this.updateStreak(userId);
-      return payload;
+      try { await this.updateStreak(userId); } catch { /* Optional streak update. */ }
+      if (savedLocally) return { state: 'device-only' as const, data: payload, historyState };
+      throw new Error('Daily check-in could not be saved');
     }
 
     const path = `users/${userId}/dailyMoodCheckIns/${dateStr}`;
@@ -1327,12 +1827,15 @@ export const firebaseService = {
         ...payload,
         serverTime: serverTimestamp()
       });
-      await this.updateStreak(userId);
-      return payload;
+      try { await this.updateStreak(userId); } catch { /* Check-in is already confirmed. */ }
+      return { state: 'recorded' as const, data: payload, historyState };
     } catch (error) {
       console.warn("Firestore saveDailyMoodCheckIn fallback:", error);
-      handleFirestoreError(error, OperationType.WRITE, path);
-      return payload;
+      try {
+        handleFirestoreError(error, OperationType.WRITE, path);
+      } catch { /* A confirmed local check-in remains device-only. */ }
+      if (savedLocally) return { state: 'device-only' as const, data: payload, historyState };
+      throw error;
     }
   },
 
@@ -1355,6 +1858,41 @@ export const firebaseService = {
       console.warn("Firestore getDailyMoodCheckIn fallback:", error);
       return localData;
     }
+  },
+
+  async getDailyCheckInHistory(userId: string, dateStrs: string[]): Promise<Array<HealthHistoryRecord<DailyCheckInHistoryData>>> {
+    return Promise.all(dateStrs.map(async (dateStr) => {
+      const cacheKey = `warrior_daily_mood_${userId || 'guest'}_${dateStr}`;
+      let cached: DailyCheckInHistoryData | null = null;
+      try {
+        const cachedValue = localStorage.getItem(cacheKey);
+        cached = cachedValue ? JSON.parse(cachedValue) : null;
+      } catch {
+        cached = null;
+      }
+
+      if (!userId) {
+        return cached
+          ? { dateStr, state: 'recorded' as const, data: cached }
+          : { dateStr, state: 'missing' as const, data: null };
+      }
+
+      const path = `users/${userId}/dailyMoodCheckIns/${dateStr}`;
+      try {
+        const snapshot = await getDoc(doc(db, path));
+        if (snapshot.exists()) {
+          const data = snapshot.data() as DailyCheckInHistoryData;
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          return { dateStr, state: 'recorded' as const, data };
+        }
+        return { dateStr, state: 'missing' as const, data: null };
+      } catch (error) {
+        console.warn(`Firestore daily check-in history failed for ${dateStr}:`, error);
+        return cached
+          ? { dateStr, state: 'cached' as const, data: cached }
+          : { dateStr, state: 'unavailable' as const, data: null };
+      }
+    }));
   },
 
   // --- 7-Day Mood & Hydration Trends Aggregator ---
@@ -1381,7 +1919,7 @@ export const firebaseService = {
 
       // If no explicit mood checkin, check if there's a pain log for that day to infer wellness (10 - painLevel)
       if (moodScore === null) {
-        const cachedPain = localStorage.getItem('warrior_pain');
+        const cachedPain = localStorage.getItem(getHealthCacheKey('warrior_pain', userId));
         const painLogs = cachedPain ? JSON.parse(cachedPain) : [];
         const foundPain = painLogs.find((p: any) => p.dateStr === dateStr);
         if (foundPain) {
@@ -1396,8 +1934,9 @@ export const firebaseService = {
         dateStr,
         dayLabel,
         displayDate,
-        waterAmount: waterLog ? parseFloat((waterLog.amount || 0).toFixed(2)) : 0,
-        waterGoal: waterLog ? waterLog.goal || 3.0 : 3.0,
+        waterAmount: waterLog.data ? parseFloat(waterLog.data.amount.toFixed(2)) : null,
+        waterGoal: waterLog.data?.goal ?? null,
+        hydrationState: waterLog.state,
         moodScore: moodScore !== null ? moodScore : 7.0, // baseline placeholder for smooth chart rendering if unlogged
         hasMoodLogged: moodScore !== null,
         moodEmoji,
@@ -1410,18 +1949,10 @@ export const firebaseService = {
 
   // --- Scheduled Reminders Persistence ---
   async getScheduledReminders(userId: string) {
-    const defaultReminders = [
-      { id: 'rem-med-1', title: 'Hydroxyurea Daily Dose', type: 'medication', time: '08:00', enabled: true, details: '500mg with breakfast' },
-      { id: 'rem-hyd-1', title: 'Mid-Morning Hydration Boost', type: 'hydration', time: '11:00', enabled: true, details: 'Drink 500ml of warm water' },
-      { id: 'rem-chk-1', title: 'Afternoon Pain & Wellness Check-in', type: 'checkin', time: '14:30', enabled: true, details: 'Record symptoms & resting level' },
-      { id: 'rem-med-2', title: 'Evening Folic Acid & Hydration', type: 'medication', time: '20:00', enabled: true, details: 'Folic acid 5mg + 350ml water' },
-      { id: 'rem-chk-2', title: 'Nighttime Cellular Recovery', type: 'checkin', time: '22:00', enabled: false, details: 'Bedtime relaxation & warmth check' }
-    ];
-
     const cached = localStorage.getItem(`warrior_reminders_${userId || 'guest'}`);
     if (cached) return JSON.parse(cached);
 
-    if (!userId) return defaultReminders;
+    if (!userId) return [];
 
     const path = `users/${userId}/reminderSettings/config`;
     try {
@@ -1431,10 +1962,10 @@ export const firebaseService = {
         localStorage.setItem(`warrior_reminders_${userId}`, JSON.stringify(data));
         return data;
       }
-      return defaultReminders;
+      return [];
     } catch (error) {
       console.warn("Firestore getScheduledReminders fallback:", error);
-      return defaultReminders;
+      return [];
     }
   },
 
@@ -1453,4 +1984,3 @@ export const firebaseService = {
     }
   }
 };
-
