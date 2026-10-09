@@ -1,5 +1,5 @@
 import React from 'react';
-import { Droplets, HeartPulse } from 'lucide-react';
+import { Droplets } from 'lucide-react';
 import type { HealthHistoryReadState, SymptomHistoryData } from '../../services/firebaseService';
 
 export interface RecordedSymptomEntry extends SymptomHistoryData {
@@ -22,32 +22,31 @@ const OptionalList: React.FC<{ label: string; values?: string[] }> = ({ label, v
   return (
     <div>
       <dt className="text-small font-medium text-foreground-secondary">{label}</dt>
-      <dd className="mt-1 text-body text-foreground">{values.join(', ')}</dd>
+      <dd className="mt-2 flex flex-wrap gap-1.5">
+        {values.map((value) => (
+          <span key={value} className="rounded-pill bg-surface-subtle px-2.5 py-1 text-small text-foreground">{value}</span>
+        ))}
+      </dd>
     </div>
   );
 };
 
 export const RecordedHistoryTimeline: React.FC<RecordedHistoryTimelineProps> = ({ entries }) => (
-  <ol className="divide-y divide-line" aria-label="Recorded pain and symptom entries">
+  <ol className="mt-2 divide-y divide-line" aria-label="Recorded pain and symptom entries">
     {entries.map((entry) => (
-      <li key={entry.dateStr} className="py-5 first:pt-0 last:pb-0">
+      <li key={entry.dateStr} className="py-4 first:pt-3 last:pb-0">
         <article aria-labelledby={`history-entry-${entry.dateStr}`}>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 id={`history-entry-${entry.dateStr}`} className="text-heading-3 text-foreground">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h4 id={`history-entry-${entry.dateStr}`} className="text-body font-semibold text-foreground">
                 {formatDate(entry.dateStr)}
-              </h3>
-              <p className="mt-1 inline-flex items-center gap-2 text-body font-semibold text-foreground">
-                <HeartPulse size={18} aria-hidden="true" className="text-action-accent" />
-                Pain: {entry.painLevel} / 10
-              </p>
+              </h4>
+              {entry.sourceState === 'cached' && <span className="mt-1 block text-small font-medium text-status-info-text">Saved on this device</span>}
             </div>
-            {entry.sourceState === 'cached' && (
-              <span className="text-small font-medium text-status-info-text">Saved on this device</span>
-            )}
+            <span className="inline-flex min-h-9 shrink-0 items-center rounded-pill bg-medical-50 px-3 text-small font-semibold tabular-nums text-action-accent">Pain: {entry.painLevel} / 10</span>
           </div>
 
-          <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+          <dl className="mt-3 grid gap-3 sm:grid-cols-2">
             <OptionalList label="Symptoms" values={entry.symptoms} />
             <OptionalList label="Possible triggers" values={entry.triggers} />
             {typeof entry.waterIntake === 'number' && (

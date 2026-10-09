@@ -26,6 +26,14 @@ vi.mock('../../components/MoodHydrationTrendsChart', () => ({ MoodHydrationTrend
 vi.mock('../../components/ScheduledRemindersManager', () => ({ ScheduledRemindersManager: ({ userId }: { userId: string }) => `Reminders for ${userId}` }));
 vi.mock('../../components/PatternInsightsDoctorReport', () => ({ PatternInsightsDoctorReport: ({ userId }: { userId: string }) => `Pattern report for ${userId}` }));
 vi.mock('../../components/home', () => ({
+  HomeActionHub: ({ onLogHealth, onOpenMira, onOpenCare }: { onLogHealth: () => void; onOpenMira: () => void; onOpenCare: () => void }) => (
+    <section>
+      <h2>Record how you feel</h2>
+      <button onClick={onLogHealth}>Log symptoms and pain</button>
+      <button onClick={onOpenMira}>Ask Mira</button>
+      <button onClick={onOpenCare}>Open Care</button>
+    </section>
+  ),
   TodaysHealthCard: () => <section data-testid="todays-health">Today&apos;s Health</section>,
   RecentHealthSummary: () => <section data-testid="recent-health">Recent health summary</section>,
   UpcomingAppointmentCard: ({ onOpenCare }: { onOpenCare: () => void }) => <button data-testid="appointment" onClick={onOpenCare}>Appointment</button>,
@@ -73,7 +81,7 @@ describe('Patient Home critical rendering', () => {
       screen.getByRole('heading', { name: /Good (morning|afternoon|evening)/i }),
       screen.getByTestId('todays-health'),
       screen.getByText('Daily mood for patient-1'),
-      screen.getByRole('heading', { name: 'Pain & symptoms' }),
+      screen.getByRole('heading', { name: 'Record how you feel' }),
       container.querySelector('#water-intake-tracker-module') as HTMLElement,
       container.querySelector('#medication-reminder-card') as HTMLElement,
       screen.getByTestId('recent-health'),
@@ -135,9 +143,13 @@ describe('Patient Home critical rendering', () => {
 
     render(<Dashboard userId="patient-1" onNavigate={onNavigate} />);
     await userEvent.click(screen.getByTestId('appointment'));
+    await userEvent.click(screen.getByRole('button', { name: 'Ask Mira' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Open Care' }));
     await userEvent.click(screen.getByRole('button', { name: 'Get help' }));
 
-    expect(onNavigate).toHaveBeenCalledWith('care');
+    expect(onNavigate).toHaveBeenNthCalledWith(1, 'care');
+    expect(onNavigate).toHaveBeenNthCalledWith(2, 'chat');
+    expect(onNavigate).toHaveBeenNthCalledWith(3, 'care');
     expect(emergencyClick).toHaveBeenCalledTimes(1);
     emergency.remove();
   });

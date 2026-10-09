@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, CircleDashed, Droplets, HeartPulse, RefreshCw } from 'lucide-react';
 import { firebaseService } from '../../services/firebaseService';
-import { Alert, Button, Card, HealthStatusBadge, ProgressBar, Skeleton } from '../ui';
+import { Alert, Button, Card, Skeleton } from '../ui';
 
 interface TodaysHealthCardProps {
   userId: string;
   refreshKey?: number;
+  onStartCheckIn?: () => void;
 }
 
 interface TodaySnapshot {
@@ -32,7 +33,7 @@ const formatUpdatedTime = (value: string | null) => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refreshKey = 0 }) => {
+export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refreshKey = 0, onStartCheckIn }) => {
   const [snapshot, setSnapshot] = useState<TodaySnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -111,6 +112,9 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
   const waterValueText = snapshot.waterAmount !== null && snapshot.waterGoal !== null
     ? `${snapshot.waterAmount.toFixed(2)} L of ${snapshot.waterGoal.toFixed(2)} L`
     : '';
+  const hydrationPercentage = snapshot.waterAmount !== null && snapshot.waterGoal !== null && snapshot.waterGoal > 0
+    ? Math.min(Math.max((snapshot.waterAmount / snapshot.waterGoal) * 100, 0), 100)
+    : 0;
 
   return (
     <Card
@@ -118,65 +122,73 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
       id="home-header-stats"
       aria-labelledby="todays-health-title"
       data-semantic
-      className="relative h-full overflow-hidden border-line/80 bg-surface shadow-surface"
+      className="relative h-full overflow-hidden border-0 bg-gradient-to-br from-navy-950 via-navy-900 to-navy-800 text-white shadow-floating"
       padding="lg"
     >
-      <span className="absolute inset-y-0 left-0 w-1 bg-action-accent" aria-hidden="true" />
+      <span className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-white/[0.04]" aria-hidden="true" />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-caption font-bold uppercase tracking-[0.14em] text-action-accent">Today&apos;s health</p>
-          <h2 id="todays-health-title" className="mt-2 text-heading-1 text-foreground">
+        <div className="relative">
+          <p className="text-small font-semibold text-medical-100">Today&apos;s health</p>
+          <h2 id="todays-health-title" className="mt-1 text-heading-1 text-white">
             {snapshot.moodLabel || (hasTodayData ? 'Your day at a glance' : 'Ready when you are')}
           </h2>
-          <p className="mt-1 text-small text-foreground-secondary">
+          <p className="mt-1 text-small text-slate-150">
             {updatedTime ? `Last check-in at ${updatedTime}` : 'Based only on what you recorded today.'}
           </p>
         </div>
-        <HealthStatusBadge
-          tone={snapshot.hasCheckIn ? 'success' : 'neutral'}
-          icon={snapshot.hasCheckIn ? <CheckCircle2 size={16} /> : <CircleDashed size={16} />}
-          className="w-fit"
-        >
+        <span className="relative inline-flex min-h-9 w-fit items-center gap-2 rounded-pill bg-white/10 px-3 text-small font-semibold text-white ring-1 ring-inset ring-white/15">
+          {snapshot.hasCheckIn ? <CheckCircle2 size={16} className="text-status-success" /> : <CircleDashed size={16} className="text-medical-100" />}
           {snapshot.hasCheckIn ? 'Check-in recorded' : 'Check-in due'}
-        </HealthStatusBadge>
+        </span>
       </div>
 
       {hasTodayData ? (
-        <dl className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="rounded-card bg-surface-subtle p-4 sm:p-5">
-            <div className="flex items-center gap-2 text-small font-medium text-foreground-secondary">
-              <HeartPulse size={18} className="text-action-accent" aria-hidden="true" />
+        <dl className="relative mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-card bg-white/[0.08] p-4 ring-1 ring-inset ring-white/10 sm:p-5">
+            <div className="flex items-center gap-2 text-small font-medium text-slate-150">
+              <HeartPulse size={18} className="text-medical-100" aria-hidden="true" />
               <dt>Recorded pain</dt>
             </div>
-            <dd className="mt-2 text-heading-1 tabular-nums text-foreground">
+            <dd className="mt-2 text-heading-1 tabular-nums text-white">
               {snapshot.painLevel === null ? 'Not recorded' : `${snapshot.painLevel} / 10`}
             </dd>
           </div>
-          <div className="rounded-card bg-status-info-soft/60 p-4 sm:p-5">
-            <div className="flex items-center gap-2 text-small font-medium text-foreground-secondary">
-              <Droplets size={18} className="text-status-info" aria-hidden="true" />
+          <div className="rounded-card bg-white/[0.08] p-4 ring-1 ring-inset ring-white/10 sm:p-5">
+            <div className="flex items-center gap-2 text-small font-medium text-slate-150">
+              <Droplets size={18} className="text-sky-300" aria-hidden="true" />
               <dt>Hydration</dt>
             </div>
             {snapshot.waterAmount !== null && snapshot.waterGoal !== null ? (
-              <ProgressBar
-                value={snapshot.waterAmount}
-                max={snapshot.waterGoal}
-                label="Today’s hydration"
-                valueText={waterValueText}
-                tone="info"
-                className="mt-2"
-              />
+              <dd className="mt-2">
+                <span className="block text-heading-3 tabular-nums text-white">{waterValueText}</span>
+                <span
+                  role="progressbar"
+                  aria-label="Today’s hydration"
+                  aria-valuemin={0}
+                  aria-valuemax={snapshot.waterGoal}
+                  aria-valuenow={snapshot.waterAmount}
+                  aria-valuetext={waterValueText}
+                  className="mt-3 block h-2 overflow-hidden rounded-pill bg-white/15"
+                >
+                  <span aria-hidden="true" className="block h-full rounded-pill bg-sky-300" style={{ width: `${hydrationPercentage}%` }} />
+                </span>
+              </dd>
             ) : (
-              <dd className="mt-2 text-body font-semibold text-foreground">
+              <dd className="mt-2 text-body font-semibold text-white">
                 {snapshot.hydrationState === 'unavailable' ? 'Unavailable' : 'Not recorded'}
               </dd>
             )}
           </div>
         </dl>
       ) : (
-        <div className="mt-5 rounded-card border border-dashed border-line-strong bg-medical-50 p-4">
-          <p className="text-body font-semibold text-foreground">Start with today&apos;s check-in</p>
-          <p className="mt-1 text-small text-foreground-secondary">Nothing has been recorded for today yet. Your check-in is the next step.</p>
+        <div className="relative mt-5 rounded-card bg-white/[0.08] p-4 ring-1 ring-inset ring-white/10">
+          <p className="text-body font-semibold text-white">Start with today&apos;s check-in</p>
+          <p className="mt-1 max-w-md text-small text-slate-150">Nothing has been recorded for today yet. A quick check-in helps organize your day.</p>
+          {onStartCheckIn ? (
+            <Button variant="accent" size="md" className="mt-4 w-full sm:w-fit" onClick={onStartCheckIn}>
+              Start check-in
+            </Button>
+          ) : null}
         </div>
       )}
     </Card>

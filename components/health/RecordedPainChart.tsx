@@ -39,7 +39,11 @@ export const RecordedPainChart: React.FC<RecordedPainChartProps> = ({ entries })
   const chartHeight = HEIGHT - TOP - BOTTOM;
 
   return (
-    <figure className="overflow-hidden rounded-card border border-line bg-surface-subtle p-4">
+    <figure className="overflow-hidden rounded-card border border-line bg-surface p-4 shadow-none sm:p-5">
+      <div className="mb-2 flex items-baseline justify-between gap-4">
+        <h3 className="text-heading-3 text-foreground">Last 10 pain entries</h3>
+        <span className="text-caption text-foreground-secondary">0–10 scale</span>
+      </div>
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         className="h-auto min-h-52 w-full"
@@ -79,7 +83,7 @@ export const RecordedPainChart: React.FC<RecordedPainChartProps> = ({ entries })
           );
         })}
       </svg>
-      <figcaption className="mt-2 text-small text-foreground-secondary">
+      <figcaption className="mt-1 text-small text-foreground-secondary">
         Each marker is a saved entry. Dates without an entry are left blank.
       </figcaption>
       <ul className="sr-only">

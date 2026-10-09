@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, HeartPulse, LifeBuoy } from 'lucide-react';
+import { ChevronDown, LifeBuoy } from 'lucide-react';
 import { Page } from '../App';
 import { WaterIntakeTracker } from './WaterIntakeTracker';
 import { MedicationReminder } from './MedicationReminder';
@@ -12,8 +12,8 @@ import { MoodHydrationTrendsChart } from './MoodHydrationTrendsChart';
 import { ScheduledRemindersManager } from './ScheduledRemindersManager';
 import { PatternInsightsDoctorReport } from './PatternInsightsDoctorReport';
 import { SymptomPainCheckIn } from './health';
-import { RecentHealthSummary, TodaysHealthCard, UpcomingAppointmentCard } from './home';
-import { Button, Card } from './ui';
+import { HomeActionHub, RecentHealthSummary, TodaysHealthCard, UpcomingAppointmentCard } from './home';
+import { Button } from './ui';
 import { firebaseService } from '../services/firebaseService';
 import { auth } from '../firebase-init';
 
@@ -95,6 +95,17 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
     void fetchProfileAndStats(true);
   };
 
+  const scrollToHomeSection = (sectionId: string) => {
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+
+    const reducedMotion = typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    section.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+    const firstControl = section.querySelector<HTMLElement>('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    firstControl?.focus({ preventScroll: true });
+  };
+
   const firstName = profileName.trim().split(/\s+/)[0] || 'Warrior';
   const currentHour = new Date().getHours();
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
@@ -110,42 +121,29 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
       </header>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(18rem,0.9fr)] lg:items-stretch">
-        <TodaysHealthCard userId={userId} refreshKey={refreshPain} />
-        <section aria-label="Daily check-in" className="min-w-0">
+        <TodaysHealthCard
+          userId={userId}
+          refreshKey={refreshPain}
+          onStartCheckIn={() => scrollToHomeSection('daily-check-in-card')}
+        />
+        <section id="daily-check-in-card" aria-label="Daily check-in" className="min-w-0 scroll-mt-24">
           <DailyMoodCheckIn compact userId={userId} onCheckInSaved={() => setRefreshPain(prev => prev + 1)} />
         </section>
       </div>
 
-      <Card as="section" aria-labelledby="pain-symptoms-title" surface="subtle" className="border-medical-100 bg-medical-50/60 shadow-none" padding="lg">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-start gap-3">
-            <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-surface text-action-accent shadow-subtle">
-              <HeartPulse size={22} />
-            </span>
-            <div>
-              <p className="text-caption font-bold uppercase tracking-[0.12em] text-action-accent">Quick health entry</p>
-              <h2 id="pain-symptoms-title" className="mt-0.5 text-heading-3">Pain &amp; symptoms</h2>
-              <p className="mt-1 max-w-xl text-small text-foreground-secondary">Record pain, symptoms, triggers, and related water intake.</p>
-            </div>
-          </div>
-          <Button
-            variant="primary"
-            size="lg"
-            aria-label="Log symptoms and pain"
-            leadingIcon={<HeartPulse size={19} />}
-            className="w-full shrink-0 sm:w-auto"
-            onClick={() => setIsModalOpen(true)}
-          >
-            Log health entry
-          </Button>
-        </div>
-      </Card>
+      <HomeActionHub
+        onLogHealth={() => setIsModalOpen(true)}
+        onAddWater={() => scrollToHomeSection('water-intake-tracker-module')}
+        onReviewMedication={() => scrollToHomeSection('medication-reminder-card')}
+        onOpenMira={() => onNavigate('chat')}
+        onOpenCare={() => onNavigate('care')}
+      />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start">
-        <section id="water-intake-tracker-module" aria-label="Hydration">
+        <section id="water-intake-tracker-module" aria-label="Hydration" className="scroll-mt-24">
           <WaterIntakeTracker compact userId={userId} />
         </section>
-        <section id="medication-reminder-card" aria-label="Medication">
+        <section id="medication-reminder-card" aria-label="Medication" className="scroll-mt-24">
           <MedicationReminder compact userId={userId} />
         </section>
       </div>

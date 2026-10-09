@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const service = vi.hoisted(() => ({
@@ -42,6 +43,16 @@ describe('TodaysHealthCard', () => {
 
     resolveCheckIn(null);
     expect(await screen.findByText(/Nothing has been recorded for today yet/i)).toBeInTheDocument();
+  });
+
+  it('guides a patient with no records into the existing daily check-in', async () => {
+    const onStartCheckIn = vi.fn();
+    service.getDailyMoodCheckIn.mockResolvedValue(null);
+
+    render(<TodaysHealthCard userId="patient-1" onStartCheckIn={onStartCheckIn} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Start check-in' }));
+    expect(onStartCheckIn).toHaveBeenCalledTimes(1);
   });
 
   it('shows a recoverable unavailable state when a getter rejects', async () => {
