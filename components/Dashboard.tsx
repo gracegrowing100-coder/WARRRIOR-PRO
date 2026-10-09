@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, Heart, LifeBuoy } from 'lucide-react';
+import { ChevronDown, HeartPulse, LifeBuoy } from 'lucide-react';
 import { Page } from '../App';
 import { WaterIntakeTracker } from './WaterIntakeTracker';
 import { MedicationReminder } from './MedicationReminder';
@@ -95,39 +95,51 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
     void fetchProfileAndStats(true);
   };
 
+  const firstName = profileName.trim().split(/\s+/)[0] || 'Warrior';
+  const currentHour = new Date().getHours();
+  const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
+
   return (
-    <div data-semantic className="space-y-6 pb-4">
-      <header className="space-y-1 px-1">
-        <p className="text-small font-medium text-foreground-secondary">
+    <div data-semantic className="space-y-5 pb-4 sm:space-y-6">
+      <header className="px-1 pb-1">
+        <p className="text-small font-semibold text-action-accent">
           {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
-        <h1 className="text-heading-1 text-foreground">Welcome back, {profileName}</h1>
-        <p className="max-w-2xl text-body text-foreground-secondary">Here is what you have recorded and what you can do today.</p>
+        <h1 className="mt-1 text-heading-1 text-foreground">{greeting}, {firstName}</h1>
+        <p className="mt-1 max-w-2xl text-body text-foreground-secondary">Your health, routines, and next steps for today.</p>
       </header>
 
-      <TodaysHealthCard userId={userId} refreshKey={refreshPain} />
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(18rem,0.9fr)] lg:items-stretch">
+        <TodaysHealthCard userId={userId} refreshKey={refreshPain} />
+        <section aria-label="Daily check-in" className="min-w-0">
+          <DailyMoodCheckIn compact userId={userId} onCheckInSaved={() => setRefreshPain(prev => prev + 1)} />
+        </section>
+      </div>
 
-      <section aria-label="Daily check-in">
-        <DailyMoodCheckIn compact userId={userId} onCheckInSaved={() => setRefreshPain(prev => prev + 1)} />
-      </section>
-
-      <section aria-labelledby="pain-symptoms-title" className="space-y-3">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 id="pain-symptoms-title" className="text-heading-2">Pain &amp; symptoms</h2>
-            <p className="mt-1 max-w-prose text-small text-foreground-secondary">Record pain, symptoms, possible triggers, and related water intake in one check-in.</p>
+      <Card as="section" aria-labelledby="pain-symptoms-title" surface="subtle" className="border-medical-100 bg-medical-50/60 shadow-none" padding="lg">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-surface text-action-accent shadow-subtle">
+              <HeartPulse size={22} />
+            </span>
+            <div>
+              <p className="text-caption font-bold uppercase tracking-[0.12em] text-action-accent">Quick health entry</p>
+              <h2 id="pain-symptoms-title" className="mt-0.5 text-heading-3">Pain &amp; symptoms</h2>
+              <p className="mt-1 max-w-xl text-small text-foreground-secondary">Record pain, symptoms, triggers, and related water intake.</p>
+            </div>
           </div>
           <Button
             variant="primary"
             size="lg"
-            leadingIcon={<Heart size={19} />}
-            className="shrink-0"
+            aria-label="Log symptoms and pain"
+            leadingIcon={<HeartPulse size={19} />}
+            className="w-full shrink-0 sm:w-auto"
             onClick={() => setIsModalOpen(true)}
           >
-            Log symptoms and pain
+            Log health entry
           </Button>
         </div>
-      </section>
+      </Card>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start">
         <section id="water-intake-tracker-module" aria-label="Hydration">

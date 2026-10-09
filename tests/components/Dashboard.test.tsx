@@ -49,7 +49,7 @@ describe('Patient Home critical rendering', () => {
   it('renders the target Home hierarchy and retains compatibility tools', async () => {
     const { container } = render(<Dashboard userId="patient-1" onNavigate={vi.fn()} />);
 
-    expect(await screen.findByRole('heading', { name: 'Welcome back, Tayo' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening), Tayo/ })).toBeInTheDocument();
     expect(document.body).toHaveTextContent('Hydration for patient-1');
     expect(document.body).toHaveTextContent('Medication for patient-1');
     expect(document.body).toHaveTextContent('Daily mood for patient-1');
@@ -70,7 +70,7 @@ describe('Patient Home critical rendering', () => {
     expect(document.body).toHaveTextContent('Pattern report for patient-1');
 
     const ordered = [
-      screen.getByRole('heading', { name: /Welcome back/i }),
+      screen.getByRole('heading', { name: /Good (morning|afternoon|evening)/i }),
       screen.getByTestId('todays-health'),
       screen.getByText('Daily mood for patient-1'),
       screen.getByRole('heading', { name: 'Pain & symptoms' }),

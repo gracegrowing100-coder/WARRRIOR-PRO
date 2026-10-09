@@ -268,14 +268,23 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
 
   return (
     <div className={compact ? 'relative' : 'bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-sm border border-gray-100 dark:border-slate-800/80 flex flex-col relative overflow-hidden transition-all duration-300'}>
-      {compact && <Card data-semantic className="border-line/70 shadow-none">
-        <h2 className="text-heading-3">Medication</h2>
-        <p className="mt-1 text-small text-foreground-secondary">
-          {takenTodayCount} taken · {pendingTodayCount} pending today
-        </p>
+      {compact && <Card data-semantic className="h-full border-line/80 shadow-surface" padding="lg">
+        <div className="flex items-center gap-3">
+          <span aria-hidden="true" className="inline-flex h-11 w-11 items-center justify-center rounded-control bg-medical-50 text-action-accent">
+            <Pill size={22} />
+          </span>
+          <div>
+            <p className="text-caption font-bold uppercase tracking-[0.12em] text-action-accent">Today&apos;s schedule</p>
+            <h2 className="mt-0.5 text-heading-3">Medication</h2>
+          </div>
+        </div>
+        <div className="mt-5 flex items-baseline justify-between gap-4 rounded-card bg-surface-subtle px-4 py-3">
+          <p className="text-small font-semibold text-foreground">Daily progress</p>
+          <p className="text-small tabular-nums text-foreground-secondary">{takenTodayCount} taken · {pendingTodayCount} pending</p>
+        </div>
         {operationMessage && <p role="status" className="mt-2 text-small text-foreground-secondary">{operationMessage}</p>}
         {loading ? <p role="status" className="mt-3 text-small">Loading medication…</p> : (
-          <ul className="mt-3 divide-y divide-line">
+          <ul className="mt-3 divide-y divide-line/70">
             {(showFullSchedule ? meds : compactMedications).map(med => {
               const taken = med.lastTakenDate === todayStr;
               return <li key={med.id} className="flex items-start gap-3 py-3">
@@ -292,7 +301,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
           </ul>
         )}
         {!loading && meds.length > 0 && meds.every(m => m.lastTakenDate === todayStr) && !showFullSchedule && <p className="mt-3 text-small text-status-success-text">All listed medication is marked taken today.</p>}
-        <Button variant="ghost" size="sm" className="mt-2" aria-expanded={showFullSchedule} onClick={() => setShowFullSchedule(!showFullSchedule)}>
+        <Button variant="ghost" size="sm" className="mt-3" aria-expanded={showFullSchedule} onClick={() => setShowFullSchedule(!showFullSchedule)}>
           {showFullSchedule ? 'Show daily summary' : `View full schedule (${meds.length})`}
         </Button>
         {showFullSchedule && <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">

@@ -10,6 +10,8 @@ interface TodaysHealthCardProps {
 
 interface TodaySnapshot {
   hasCheckIn: boolean;
+  moodLabel: string | null;
+  updatedAt: string | null;
   painLevel: number | null;
   waterAmount: number | null;
   waterGoal: number | null;
@@ -22,6 +24,13 @@ interface PainLog {
 }
 
 const getTodayKey = () => new Date().toLocaleDateString('sv');
+
+const formatUpdatedTime = (value: string | null) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
 
 export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refreshKey = 0 }) => {
   const [snapshot, setSnapshot] = useState<TodaySnapshot | null>(null);
@@ -40,9 +49,12 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
         firebaseService.getWaterLog(userId, today),
       ]);
       const todayPain = (painLogs as PainLog[]).find((entry) => entry.dateStr === today);
+      const recordedCheckIn = checkIn as { emotion?: string; timestamp?: string } | null;
 
       setSnapshot({
         hasCheckIn: Boolean(checkIn),
+        moodLabel: recordedCheckIn?.emotion || null,
+        updatedAt: recordedCheckIn?.timestamp || null,
         painLevel: typeof todayPain?.painLevel === 'number' ? todayPain.painLevel : null,
         waterAmount: water.data?.amount ?? null,
         waterGoal: water.data?.goal ?? null,
@@ -95,6 +107,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
   }
 
   const hasTodayData = snapshot.hasCheckIn || snapshot.painLevel !== null || snapshot.waterAmount !== null;
+  const updatedTime = formatUpdatedTime(snapshot.updatedAt);
   const waterValueText = snapshot.waterAmount !== null && snapshot.waterGoal !== null
     ? `${snapshot.waterAmount.toFixed(2)} L of ${snapshot.waterGoal.toFixed(2)} L`
     : '';
@@ -105,39 +118,44 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
       id="home-header-stats"
       aria-labelledby="todays-health-title"
       data-semantic
-      className="relative overflow-hidden border-medical-100/60 bg-gradient-to-br from-medical-50 to-surface shadow-surface"
+      className="relative h-full overflow-hidden border-line/80 bg-surface shadow-surface"
       padding="lg"
     >
+      <span className="absolute inset-y-0 left-0 w-1 bg-action-accent" aria-hidden="true" />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-caption font-bold uppercase tracking-[0.14em] text-action-accent">Your day at a glance</p>
-          <h2 id="todays-health-title" className="mt-1 text-heading-2 text-foreground">Today&apos;s health</h2>
-          <p className="mt-1 text-small text-foreground-secondary">Based only on what you recorded today.</p>
+          <p className="text-caption font-bold uppercase tracking-[0.14em] text-action-accent">Today&apos;s health</p>
+          <h2 id="todays-health-title" className="mt-2 text-heading-1 text-foreground">
+            {snapshot.moodLabel || (hasTodayData ? 'Your day at a glance' : 'Ready when you are')}
+          </h2>
+          <p className="mt-1 text-small text-foreground-secondary">
+            {updatedTime ? `Last check-in at ${updatedTime}` : 'Based only on what you recorded today.'}
+          </p>
         </div>
         <HealthStatusBadge
           tone={snapshot.hasCheckIn ? 'success' : 'neutral'}
           icon={snapshot.hasCheckIn ? <CheckCircle2 size={16} /> : <CircleDashed size={16} />}
           className="w-fit"
         >
-          {snapshot.hasCheckIn ? 'Check-in complete' : 'Check-in due'}
+          {snapshot.hasCheckIn ? 'Check-in recorded' : 'Check-in due'}
         </HealthStatusBadge>
       </div>
 
       {hasTodayData ? (
-        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-card border border-line/60 bg-surface p-4 shadow-subtle">
+        <dl className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-card bg-surface-subtle p-4 sm:p-5">
             <div className="flex items-center gap-2 text-small font-medium text-foreground-secondary">
               <HeartPulse size={18} className="text-action-accent" aria-hidden="true" />
-              <span>Recorded pain</span>
+              <dt>Recorded pain</dt>
             </div>
-            <p className="mt-2 text-heading-2 tabular-nums text-foreground">
+            <dd className="mt-2 text-heading-1 tabular-nums text-foreground">
               {snapshot.painLevel === null ? 'Not recorded' : `${snapshot.painLevel} / 10`}
-            </p>
+            </dd>
           </div>
-          <div className="rounded-card border border-line/60 bg-surface p-4 shadow-subtle">
+          <div className="rounded-card bg-status-info-soft/60 p-4 sm:p-5">
             <div className="flex items-center gap-2 text-small font-medium text-foreground-secondary">
               <Droplets size={18} className="text-status-info" aria-hidden="true" />
-              <span>Hydration</span>
+              <dt>Hydration</dt>
             </div>
             {snapshot.waterAmount !== null && snapshot.waterGoal !== null ? (
               <ProgressBar
@@ -145,32 +163,20 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                 max={snapshot.waterGoal}
                 label="Today’s hydration"
                 valueText={waterValueText}
+                tone="info"
                 className="mt-2"
               />
             ) : (
-              <p className="mt-2 text-body font-semibold text-foreground">
+              <dd className="mt-2 text-body font-semibold text-foreground">
                 {snapshot.hydrationState === 'unavailable' ? 'Unavailable' : 'Not recorded'}
-              </p>
+              </dd>
             )}
           </div>
-          <div className="rounded-card border border-line/60 bg-surface p-4 shadow-subtle">
-            <div className="flex items-center gap-2 text-small font-medium text-foreground-secondary">
-              {snapshot.hasCheckIn ? <CheckCircle2 size={18} aria-hidden="true" /> : <CircleDashed size={18} aria-hidden="true" />}
-              <span>Daily check-in</span>
-            </div>
-            <HealthStatusBadge
-              tone="neutral"
-              icon={snapshot.hasCheckIn ? <CheckCircle2 size={16} /> : <CircleDashed size={16} />}
-              className="mt-2 w-fit"
-            >
-              {snapshot.hasCheckIn ? 'Check-in recorded' : 'Check-in not recorded'}
-            </HealthStatusBadge>
-          </div>
-        </div>
+        </dl>
       ) : (
         <div className="mt-5 rounded-card border border-dashed border-line-strong bg-medical-50 p-4">
           <p className="text-body font-semibold text-foreground">Start with today&apos;s check-in</p>
-          <p className="mt-1 text-small text-foreground-secondary">Nothing is recorded yet. Your check-in is the next step.</p>
+          <p className="mt-1 text-small text-foreground-secondary">Nothing has been recorded for today yet. Your check-in is the next step.</p>
         </div>
       )}
     </Card>
