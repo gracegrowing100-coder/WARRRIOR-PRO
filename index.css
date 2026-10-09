@@ -31,11 +31,11 @@
   --color-brand-foreground: 255 255 255;
   --color-border: 226 232 240;
   --color-border-strong: 203 213 225;
-  --color-action-primary: 11 31 58;
-  --color-action-primary-hover: 16 42 76;
+  --color-action-primary: 209 34 62;
+  --color-action-primary-hover: 185 28 50;
   --color-action-accent: 209 34 62;
   --color-action-accent-hover: 185 28 50;
-  --color-focus: 33 81 139;
+  --color-focus: 185 28 50;
   --color-disabled-background: 241 245 249;
   --color-disabled-text: 71 85 105;
 

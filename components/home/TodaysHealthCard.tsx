@@ -63,12 +63,12 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
 
   if (loading) {
     return (
-      <Card as="section" data-semantic id="home-header-stats" aria-labelledby="todays-health-title" className="bg-brand text-brand-foreground" padding="lg">
-        <h2 id="todays-health-title" className="text-heading-2">Today&apos;s Health</h2>
+      <Card as="section" data-semantic id="home-header-stats" aria-labelledby="todays-health-title" className="border-medical-100 bg-surface shadow-none" padding="lg">
+        <h2 id="todays-health-title" className="text-heading-2 text-foreground">Today&apos;s health</h2>
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Skeleton className="min-h-20 bg-white/15" />
-          <Skeleton className="min-h-20 bg-white/15" />
-          <Skeleton className="min-h-20 bg-white/15" />
+          <Skeleton className="min-h-20" />
+          <Skeleton className="min-h-20" />
+          <Skeleton className="min-h-20" />
         </div>
       </Card>
     );
@@ -105,28 +105,38 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
       id="home-header-stats"
       aria-labelledby="todays-health-title"
       data-semantic
-      className="border-transparent bg-brand text-brand-foreground shadow-none"
+      className="relative overflow-hidden border-medical-100 bg-surface shadow-none before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-action-accent"
       padding="lg"
     >
-      <div>
-        <h2 id="todays-health-title" className="text-heading-2">Today&apos;s Health</h2>
-        <p className="mt-1 text-small text-brand-foreground/85">What you have recorded today.</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-caption font-bold uppercase tracking-[0.14em] text-action-accent">Your day at a glance</p>
+          <h2 id="todays-health-title" className="mt-1 text-heading-2 text-foreground">Today&apos;s health</h2>
+          <p className="mt-1 text-small text-foreground-secondary">Based only on what you recorded today.</p>
+        </div>
+        <HealthStatusBadge
+          tone={snapshot.hasCheckIn ? 'success' : 'neutral'}
+          icon={snapshot.hasCheckIn ? <CheckCircle2 size={16} /> : <CircleDashed size={16} />}
+          className="w-fit"
+        >
+          {snapshot.hasCheckIn ? 'Check-in complete' : 'Check-in due'}
+        </HealthStatusBadge>
       </div>
 
       {hasTodayData ? (
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-control border border-brand-foreground/20 bg-brand-foreground/10 p-3 sm:p-4">
-            <div className="flex items-center gap-2 text-small text-brand-foreground/85">
-              <HeartPulse size={18} aria-hidden="true" />
+          <div className="rounded-card border border-line bg-surface-subtle p-4">
+            <div className="flex items-center gap-2 text-small text-foreground-secondary">
+              <HeartPulse size={18} className="text-action-accent" aria-hidden="true" />
               <span>Recorded pain</span>
             </div>
-            <p className="mt-1.5 text-heading-2 tabular-nums">
+            <p className="mt-2 text-heading-2 tabular-nums text-foreground">
               {snapshot.painLevel === null ? 'Not recorded' : `${snapshot.painLevel} / 10`}
             </p>
           </div>
-          <div className="rounded-control border border-brand-foreground/20 bg-brand-foreground/10 p-3 sm:p-4">
-            <div className="flex items-center gap-2 text-small text-brand-foreground/85">
-              <Droplets size={18} aria-hidden="true" />
+          <div className="rounded-card border border-line bg-surface-subtle p-4">
+            <div className="flex items-center gap-2 text-small text-foreground-secondary">
+              <Droplets size={18} className="text-status-info" aria-hidden="true" />
               <span>Hydration</span>
             </div>
             {snapshot.waterAmount !== null && snapshot.waterGoal !== null ? (
@@ -135,32 +145,33 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                 max={snapshot.waterGoal}
                 label="Today’s hydration"
                 valueText={waterValueText}
-                className="mt-2 [&_span]:text-brand-foreground [&_[role=progressbar]]:bg-brand-foreground/20 [&_[role=progressbar]>div]:bg-brand-foreground"
+                className="mt-2"
               />
             ) : (
-              <p className="mt-1.5 text-small">
+              <p className="mt-2 text-body font-semibold text-foreground">
                 {snapshot.hydrationState === 'unavailable' ? 'Unavailable' : 'Not recorded'}
               </p>
             )}
           </div>
-          <div className="rounded-control border border-brand-foreground/20 bg-brand-foreground/10 p-3 sm:p-4">
-            <div className="flex items-center gap-2 text-small text-brand-foreground/85">
+          <div className="rounded-card border border-line bg-surface-subtle p-4">
+            <div className="flex items-center gap-2 text-small text-foreground-secondary">
               {snapshot.hasCheckIn ? <CheckCircle2 size={18} aria-hidden="true" /> : <CircleDashed size={18} aria-hidden="true" />}
               <span>Daily check-in</span>
             </div>
             <HealthStatusBadge
               tone="neutral"
               icon={snapshot.hasCheckIn ? <CheckCircle2 size={16} /> : <CircleDashed size={16} />}
-              className="mt-2 w-fit border-current bg-transparent text-inherit [&_span]:text-inherit"
+              className="mt-2 w-fit"
             >
               {snapshot.hasCheckIn ? 'Check-in recorded' : 'Check-in not recorded'}
             </HealthStatusBadge>
           </div>
         </div>
       ) : (
-        <p className="mt-4 text-body">
-          Nothing has been recorded for today yet. Start with the daily check-in below.
-        </p>
+        <div className="mt-5 rounded-card border border-dashed border-line-strong bg-medical-50 p-4">
+          <p className="text-body font-semibold text-foreground">Start with today&apos;s check-in</p>
+          <p className="mt-1 text-small text-foreground-secondary">Nothing is recorded yet. Your check-in is the next step.</p>
+        </div>
       )}
     </Card>
   );

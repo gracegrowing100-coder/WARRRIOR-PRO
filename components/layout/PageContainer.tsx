@@ -17,7 +17,7 @@ export const PageContainer: React.FC<PageContainerProps> = ({
   width = 'patient',
   className,
 }) => (
-  <div className={cn('mx-auto p-4', widthClasses[width], className)}>
+  <div className={cn('mx-auto p-4 sm:p-5 lg:p-8', widthClasses[width], className)}>
     {children}
   </div>
 );

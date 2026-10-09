@@ -84,6 +84,8 @@ const sendText = async (user: ReturnType<typeof userEvent.setup>, text: string) 
 
 describe('Mira assistant experience', () => {
   beforeEach(() => {
+    localStorage.removeItem('warrior_mira_preferences_intro_dismissed');
+    localStorage.removeItem('warrior_mira_spoken_replies');
     miraApi.loadLatestMiraConversation.mockReset().mockResolvedValue(null);
     miraApi.startMiraConversation.mockReset().mockResolvedValue('recorded');
     miraApi.saveMiraMessage.mockReset().mockResolvedValue('recorded');
@@ -116,7 +118,7 @@ describe('Mira assistant experience', () => {
 
     expect(await screen.findByRole('heading', { name: 'Mira' })).toBeInTheDocument();
     expect(screen.getByText(/by WARRIOR AI/)).toBeInTheDocument();
-    expect(screen.getByText(/Mira is an AI assistant for sickle cell information/i)).toBeInTheDocument();
+    expect(screen.getByText(/AI sickle-cell assistant/i)).toBeInTheDocument();
     expect(screen.getByText(/Mira is an AI assistant, not a doctor/i)).toBeInTheDocument();
     expect(screen.queryByText(/Dr\.|hematologist on call|I am your doctor|clinician-verified/i)).not.toBeInTheDocument();
   });
@@ -125,19 +127,35 @@ describe('Mira assistant experience', () => {
     const user = userEvent.setup();
     renderMira();
 
+    await user.click(screen.getByRole('button', { name: 'Mira settings' }));
     await user.selectOptions(await screen.findByLabelText('Mira conversation language'), 'yo');
 
     expect(miraApi.storeMiraLanguage).toHaveBeenCalledWith('yo');
     expect(await screen.findByText(/Voice input and spoken replies are available in Yorùbá/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Close dialog' }));
     expect(screen.getByRole('button', { name: /Speak to Mira in Yorùbá/i })).toBeEnabled();
     expect(document.body).not.toHaveTextContent(/YarnGPT|Gemini|live checks|configured provider/i);
   });
 
   it('shows a neutral capability notice when voice is switched off', async () => {
+    const user = userEvent.setup();
     renderMira({ voiceEnabled: false });
 
-    expect(await screen.findByText('Voice assistant is unavailable')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Mira settings' }));
+    expect(await screen.findByText('Voice is unavailable')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Speak to Mira/i })).not.toBeInTheDocument();
+  });
+
+  it('offers lightweight first-use preferences without blocking the conversation', async () => {
+    const user = userEvent.setup();
+    renderMira();
+
+    expect(await screen.findByText('Make Mira yours')).toBeInTheDocument();
+    expect(screen.getByLabelText('Message to Mira')).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Set preferences' }));
+    expect(screen.getByRole('dialog', { name: 'Mira settings' })).toBeInTheDocument();
+    expect(localStorage.getItem('warrior_mira_preferences_intro_dismissed')).toBe('true');
   });
 
   it('runs a text conversation through the Mira pipeline and shows the reply', async () => {
@@ -213,7 +231,7 @@ describe('Mira assistant experience', () => {
 
     await sendText(user, 'My pain keeps coming back every week.');
 
-    expect(await screen.findByText('Human hematology review is appropriate')).toBeInTheDocument();
+    expect(await screen.findByText('A hematology review may help')).toBeInTheDocument();
     expect(screen.getByText(/AI-generated draft from your Mira conversation/i)).toBeInTheDocument();
 
     const continueButton = screen.getByRole('button', { name: 'Continue to appointment request' });
@@ -225,7 +243,7 @@ describe('Mira assistant experience', () => {
     await user.type(editor, 'Edited summary for the clinic');
     expect(continueButton).toBeDisabled();
 
-    await user.click(screen.getByLabelText(/I have reviewed this summary/i));
+    await user.click(screen.getByLabelText(/I reviewed this summary/i));
     expect(continueButton).toBeEnabled();
     await user.click(continueButton);
 
@@ -328,7 +346,7 @@ describe('Mira assistant experience', () => {
 
     await user.type(screen.getByLabelText('Message to Mira'), 'How much water should I drink?');
     await user.click(screen.getByRole('button', { name: /Send message/i }));
-    expect(await screen.findByText('Mira is thinking...', { selector: 'p' })).toHaveAttribute('role', 'status');
+    expect(await screen.findByRole('status')).toHaveTextContent('Mira is thinking...');
 
     await act(async () => {
       response.resolve(baseResult);
@@ -356,10 +374,10 @@ describe('Mira assistant experience', () => {
       speech.resolve({ audioBase64: 'ZZZ', mimeType: 'audio/wav', provider: { model: 'tts-test' } });
       await speech.promise;
     });
-    expect(await screen.findByText("Playing Mira's reply")).toBeInTheDocument();
+    expect(await screen.findByText('Playing Mira’s reply')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Pause reply' }));
     expect(pause).toHaveBeenCalledTimes(1);
-    expect(await screen.findByText("Mira's reply is paused.")).toBeInTheDocument();
+    expect(await screen.findByText('Spoken reply paused')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Resume reply' }));
     expect(resume).toHaveBeenCalledTimes(1);
 

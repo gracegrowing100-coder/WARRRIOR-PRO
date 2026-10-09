@@ -14,7 +14,7 @@ export interface ModalProps {
   closeLabel?: string;
   initialFocusRef?: React.RefObject<HTMLElement | null>;
   size?: 'sm' | 'md' | 'lg';
-  presentation?: 'centered' | 'side-panel';
+  presentation?: 'centered' | 'side-panel' | 'bottom-sheet';
   dismissOnBackdrop?: boolean;
   contentClassName?: string;
   footerClassName?: string;
@@ -144,11 +144,13 @@ export const Modal: React.FC<ModalProps> = ({
         'fixed inset-0 z-[200] flex min-h-full bg-navy-950/65',
         presentation === 'side-panel'
           ? 'items-stretch justify-end p-0'
-          : 'items-center justify-center overflow-y-auto p-4',
+          : presentation === 'bottom-sheet'
+            ? 'items-end justify-center overflow-y-auto p-0 sm:items-center sm:p-4'
+            : 'items-center justify-center overflow-y-auto p-4',
       )}
       style={{
-        paddingTop: presentation === 'side-panel' ? undefined : 'calc(1rem + var(--safe-area-top))',
-        paddingBottom: presentation === 'side-panel' ? undefined : 'calc(1rem + var(--safe-area-bottom))',
+        paddingTop: presentation === 'side-panel' || presentation === 'bottom-sheet' ? undefined : 'calc(1rem + var(--safe-area-top))',
+        paddingBottom: presentation === 'side-panel' || presentation === 'bottom-sheet' ? undefined : 'calc(1rem + var(--safe-area-bottom))',
       }}
       onMouseDown={(event) => {
         if (dismissOnBackdrop && event.target === event.currentTarget) onOpenChange(false);
@@ -165,7 +167,9 @@ export const Modal: React.FC<ModalProps> = ({
           'relative flex w-full flex-col overflow-hidden bg-surface text-foreground shadow-overlay',
           presentation === 'side-panel'
             ? 'ml-auto h-[100dvh] max-h-[100dvh] max-w-md rounded-none'
-            : cn('my-auto max-h-[calc(100dvh-2rem)] rounded-dialog', sizeClasses[size]),
+            : presentation === 'bottom-sheet'
+              ? cn('max-h-[calc(100dvh-1rem)] rounded-t-[1.5rem] sm:my-auto sm:rounded-dialog', sizeClasses[size])
+              : cn('my-auto max-h-[calc(100dvh-2rem)] rounded-dialog', sizeClasses[size]),
         )}
       >
         <div
@@ -184,7 +188,7 @@ export const Modal: React.FC<ModalProps> = ({
         {footer && (
           <div
             className={cn('shrink-0 border-t border-line px-5 py-4 sm:px-6', footerClassName)}
-            style={{ paddingBottom: presentation === 'side-panel' ? 'calc(1rem + var(--safe-area-bottom))' : undefined }}
+            style={{ paddingBottom: presentation === 'side-panel' || presentation === 'bottom-sheet' ? 'calc(1rem + var(--safe-area-bottom))' : undefined }}
           >
             {footer}
           </div>

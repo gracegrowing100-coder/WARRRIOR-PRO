@@ -55,11 +55,11 @@ export const PatientNavigation: React.FC<PatientNavigationProps> = ({
     aria-label="Patient navigation"
     className={cn(
       'fixed inset-x-0 bottom-0 z-50 border-t border-line bg-surface pb-[var(--safe-area-bottom)]',
-      'md:inset-y-0 md:right-auto md:w-20 md:border-r md:border-t-0 md:pb-0',
+      'md:inset-y-0 md:right-auto md:w-56 md:border-r md:border-t-0 md:pb-0',
       className,
     )}
   >
-    <div className="grid min-h-16 grid-cols-5 items-stretch px-1 md:flex md:h-full md:flex-col md:gap-1 md:px-2 md:py-6">
+    <div className="grid min-h-16 grid-cols-5 items-stretch px-1 md:flex md:h-full md:flex-col md:gap-1.5 md:px-3 md:py-5">
       {destinations.map(({ id, icon: Icon }) => {
         const isCurrent = currentDestination === id;
         return (
@@ -71,18 +71,19 @@ export const PatientNavigation: React.FC<PatientNavigationProps> = ({
             className={cn(
               'flex min-h-14 min-w-0 touch-manipulation select-none flex-col items-center justify-center gap-0.5 rounded-control px-0',
               'text-[11px] leading-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2',
-              'md:min-h-16 md:w-full',
+              'md:min-h-12 md:w-full md:flex-row md:justify-start md:gap-3 md:px-4 md:text-small',
               isCurrent
                 ? 'font-bold text-action-accent'
                 : 'font-medium text-foreground-secondary hover:bg-surface-subtle hover:text-foreground',
             )}
           >
+            <span className={cn('hidden h-8 w-1 rounded-full md:block', isCurrent ? 'bg-action-accent' : 'bg-transparent')} aria-hidden="true" />
             <Icon aria-hidden="true" size={22} strokeWidth={isCurrent ? 2.5 : 2} />
             <span className="block whitespace-nowrap">{labels[id]}</span>
             <span
               aria-hidden="true"
               className={cn(
-                'h-0.5 w-5 rounded-full',
+                'h-0.5 w-5 rounded-full md:hidden',
                 isCurrent ? 'bg-action-accent' : 'bg-transparent',
               )}
             />

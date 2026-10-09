@@ -3,7 +3,7 @@ import { ArrowLeft, CalendarDays, ChevronRight, ClipboardList, HeartPulse, Pill 
 import { CareVault } from '../CareVault';
 import { HealthHistory } from '../health';
 import { PageHeader } from '../layout';
-import { Button, Card } from '../ui';
+import { Button, Card, HealthStatusBadge } from '../ui';
 
 type CareView = 'overview' | 'history' | 'records';
 
@@ -16,9 +16,10 @@ const CareDestination: React.FC<{
   title: string;
   description: string;
   actionLabel: string;
+  statusLabel: string;
   icon: React.ReactNode;
   onClick: () => void;
-}> = ({ title, description, actionLabel, icon, onClick }) => (
+}> = ({ title, description, actionLabel, statusLabel, icon, onClick }) => (
   <li className="border-t border-line first:border-t-0">
     <button
       type="button"
@@ -26,12 +27,15 @@ const CareDestination: React.FC<{
       className="group flex min-h-20 w-full items-center gap-4 px-4 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus sm:px-5"
       aria-label={`${actionLabel}: ${title}`}
     >
-      <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-surface-subtle text-action" aria-hidden="true">
+      <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-card bg-medical-50 text-action-accent" aria-hidden="true">
         {icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-heading-3 text-foreground">{title}</span>
-        <span className="mt-1 block max-w-prose text-small text-foreground-secondary">{description}</span>
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="block text-heading-3 text-foreground">{title}</span>
+          <HealthStatusBadge tone="neutral" className="min-h-6 px-2 py-0 text-caption">{statusLabel}</HealthStatusBadge>
+        </span>
+        <span className="mt-1 block max-w-xl text-small text-foreground-secondary">{description}</span>
       </span>
       <span className="inline-flex shrink-0 items-center gap-1 text-small font-semibold text-action">
         <span className="hidden sm:inline">{actionLabel}</span>
@@ -68,47 +72,44 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
 
   return (
     <div className="space-y-8" data-semantic>
-      <PageHeader
-        title="Care"
-        description="Review your recorded health information, manage appointments, and access existing medical records."
-      />
+      <PageHeader title="Care" description="Your health history, care requests, and medical information in one place." />
 
       <section aria-label="Care destinations" className="space-y-6">
-        <Card padding="none" className="overflow-hidden shadow-none">
+        <Card padding="none" className="overflow-hidden border-line/80 shadow-none">
           <ul>
             <CareDestination
               title="Health history"
-              description="Review the health information you have recorded. Missing days are never estimated."
+              description="Pain, symptoms, hydration, and check-ins you recorded."
               actionLabel="Review history"
+              statusLabel="Patient recorded"
               icon={<HeartPulse size={22} />}
               onClick={() => setView('history')}
             />
             <CareDestination
               title="Appointments"
-              description="Request hematology care, review recorded requests, or cancel a request."
+              description="Create and review care requests. Clinic confirmation is shown separately."
               actionLabel="Manage appointments"
+              statusLabel="Requests"
               icon={<CalendarDays size={22} />}
               onClick={onOpenAppointments}
             />
             <CareDestination
               title="Medical records"
-              description="Manage your patient-maintained background, treatment history, and care information."
+              description="Your background, treatment history, and existing care information."
               actionLabel="Open records"
+              statusLabel="Patient maintained"
               icon={<ClipboardList size={22} />}
               onClick={() => setView('records')}
             />
           </ul>
         </Card>
 
-        <section aria-labelledby="care-compatibility-title" className="max-w-3xl">
-          <h2 id="care-compatibility-title" className="text-heading-2 text-foreground">Current care tools</h2>
-          <p className="mt-1 text-small text-foreground-secondary">
-            Medication management remains available from Home. Generated reports and predictive tools are not included in recorded Health history.
-          </p>
-          <div className="mt-4 flex items-start gap-3 rounded-card border border-line bg-surface-subtle p-4">
+        <section aria-labelledby="care-compatibility-title" className="max-w-3xl rounded-card border border-line bg-surface px-4 py-4 sm:px-5">
+          <h2 id="care-compatibility-title" className="text-body font-semibold text-foreground">About your records</h2>
+          <div className="mt-3 flex items-start gap-3 rounded-control bg-surface-subtle p-3">
             <Pill size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-action" />
             <p className="text-small text-foreground-secondary">
-              Detailed medication adherence history is not yet available, so Care does not calculate a dose timeline or adherence percentage.
+              Medication scheduling stays on Home. Care does not estimate missing doses or add generated predictions to your recorded history.
             </p>
           </div>
         </section>

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { MessageSquarePlus, Mic, Pause, Pencil, Play, RotateCcw, Send, ShieldAlert, Square, Volume2 } from 'lucide-react';
-import { Alert, Button, Card, FormField, SelectInput, Textarea } from '../ui';
+import { Bot, Check, MessageSquarePlus, Mic, Pause, Pencil, Play, RotateCcw, Send, Settings2, ShieldAlert, Sparkles, Square, Volume2 } from 'lucide-react';
+import { Alert, Button, Card, FormField, IconButton, Modal, SelectInput, Textarea } from '../ui';
 import {
   MIRA_LANGUAGES,
   MIRA_TEXT_CHAT_NOTE,
@@ -71,6 +71,15 @@ function formatRecordingTime(totalSeconds: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
+function formatMessageTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+const MIRA_INTRO_DISMISSED_KEY = 'warrior_mira_preferences_intro_dismissed';
+const MIRA_SPOKEN_REPLIES_KEY = 'warrior_mira_spoken_replies';
+
 export const MiraAssistant: React.FC<MiraAssistantProps> = ({
   userId,
   onContinueToAppointment,
@@ -94,6 +103,9 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
   const [speechStage, setSpeechStage] = useState<MiraSpeechStage>(null);
   const [playbackPaused, setPlaybackPaused] = useState(false);
   const [loadingConversation, setLoadingConversation] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [introDismissed, setIntroDismissed] = useState(() => localStorage.getItem(MIRA_INTRO_DISMISSED_KEY) === 'true');
+  const [spokenRepliesEnabled, setSpokenRepliesEnabled] = useState(() => localStorage.getItem(MIRA_SPOKEN_REPLIES_KEY) !== 'false');
 
   const conversationRef = useRef<string>('');
   const startedConversationRef = useRef<string>('');
@@ -246,7 +258,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
 
   const speakReply = useCallback(
     async (text: string): Promise<boolean> => {
-      if (!voiceAvailable || miraVoiceCapability(languageRef.current, 'textToSpeech') !== 'verified') return true;
+      if (!voiceAvailable || !spokenRepliesEnabled || miraVoiceCapability(languageRef.current, 'textToSpeech') !== 'verified') return true;
       const operationId = speechOperationRef.current + 1;
       speechOperationRef.current = operationId;
       try {
@@ -273,7 +285,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
         }
       }
     },
-    [voiceAvailable],
+    [spokenRepliesEnabled, voiceAvailable],
   );
 
   const runTurn = useCallback(
@@ -439,6 +451,20 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
     storeMiraLanguage(nextLanguage);
   };
 
+  const dismissPreferencesIntro = useCallback(() => {
+    setIntroDismissed(true);
+    localStorage.setItem(MIRA_INTRO_DISMISSED_KEY, 'true');
+  }, []);
+
+  const toggleSpokenReplies = useCallback(() => {
+    setSpokenRepliesEnabled((enabled) => {
+      const next = !enabled;
+      localStorage.setItem(MIRA_SPOKEN_REPLIES_KEY, String(next));
+      if (!next) stopPlayback();
+      return next;
+    });
+  }, [stopPlayback]);
+
   const handleSend = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const text = inputText.trim();
@@ -449,360 +475,276 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
   };
 
   const lastAssistantMessage = [...messages].reverse().find((message) => message.role === 'assistant');
+  const currentUrgentMessageId = escalation?.urgency === 'urgent' ? lastAssistantMessage?.id : undefined;
 
   return (
-    <section aria-labelledby="mira-heading" className="space-y-5" data-semantic>
-      <Card as="section" className="space-y-4">
-        <div className="flex items-start gap-3">
-          <span
-            aria-hidden="true"
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-action text-heading-3 font-semibold text-foreground-inverse"
-          >
-            M
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 id="mira-heading" className="text-heading-2 text-foreground">
-              Mira
-            </h2>
-            <p className="text-small font-semibold text-foreground-secondary">by WARRIOR AI · AI assistant</p>
-            <p className="mt-2 max-w-prose text-small text-foreground-secondary">
-              Mira is an AI assistant for sickle cell information and everyday support. Mira is not a doctor, cannot
-              diagnose or prescribe, and will say when a human should review your situation.
-            </p>
+    <section aria-labelledby="mira-heading" className="space-y-4" data-semantic>
+      <Card as="section" padding="none" className="flex min-h-[calc(100dvh-15rem)] flex-col overflow-hidden border-line/80 shadow-none">
+        <header className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-3 sm:px-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-action-accent text-white shadow-sm">
+              <Bot size={22} />
+            </span>
+            <div className="min-w-0">
+              <h2 id="mira-heading" className="text-heading-3 text-foreground">Mira</h2>
+              <p className="truncate text-caption text-foreground-secondary">AI sickle-cell assistant</p>
+              <span className="sr-only">by WARRIOR AI</span>
+            </div>
           </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              aria-label="New chat"
+              onClick={startNewChat}
+              disabled={busy || loadingConversation}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-control px-3 text-small font-semibold text-foreground-secondary transition-colors hover:bg-surface-subtle hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <MessageSquarePlus size={19} aria-hidden="true" />
+              <span className="hidden sm:inline">New chat</span>
+            </button>
+            <IconButton label="Mira settings" icon={<Settings2 size={19} />} onClick={() => setSettingsOpen(true)} />
+          </div>
+        </header>
+
+        <div className="border-b border-line bg-medical-50 px-4 py-2.5 text-small text-foreground-secondary sm:px-5">
+          <span className="font-semibold text-foreground">Mira is an AI assistant, not a doctor.</span>{' '}
+          It can make mistakes and will tell you when human review is needed.
         </div>
 
-        <FormField
-          label="Conversation language"
-          helpText={voiceHelpText}
-        >
-          <SelectInput
-            value={language}
-            onChange={handleLanguageChange}
-            aria-label="Mira conversation language"
-          >
-            {MIRA_LANGUAGES.map((entry) => (
-              <option key={entry.code} value={entry.code}>
-                {entry.label}
-              </option>
-            ))}
-          </SelectInput>
-        </FormField>
-
-        {!voiceAvailable && (
-          <Alert tone="neutral" title="Voice assistant is unavailable">
-            Voice is switched off in this configuration. Text chat with Mira is fully available.
-          </Alert>
-        )}
-        {voiceAvailable && !speechInputVerified && (
-          <Alert tone="warning" title="Voice input is not available in this language">
-            You can still type your message in {languageDefinition.label}.
-          </Alert>
-        )}
-      </Card>
-
-      <Card as="section" padding="none" className="overflow-hidden">
-        <div className="flex items-start justify-between gap-3 border-b border-line bg-surface-subtle px-4 py-3 sm:px-5">
-          <div>
-            <h3 className="text-heading-3 text-foreground">Conversation</h3>
-            <p className="text-caption text-foreground-secondary">
-              Everything you and Mira say stays visible here, including voice transcripts.
-            </p>
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            leadingIcon={<MessageSquarePlus size={17} />}
-            onClick={startNewChat}
-            disabled={busy || loadingConversation}
-          >
-            New chat
-          </Button>
-        </div>
         <div
           role="log"
           aria-live="polite"
           aria-label="Mira conversation"
-          className="max-h-96 space-y-3 overflow-y-auto px-4 py-4 sm:px-5"
+          className="min-h-[22rem] flex-1 space-y-4 overflow-y-auto bg-canvas/70 px-3 py-5 sm:px-5"
         >
+          {!introDismissed && (
+            <Card surface="subtle" className="mx-auto max-w-xl border-medical-100 shadow-none">
+              <div className="flex items-start gap-3">
+                <span aria-hidden="true" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-medical-50 text-action-accent">
+                  <Sparkles size={19} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-body font-semibold text-foreground">Make Mira yours</h3>
+                  <p className="mt-1 text-small text-foreground-secondary">Choose your language and whether you want spoken replies.</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => { dismissPreferencesIntro(); setSettingsOpen(true); }}>Set preferences</Button>
+                    <Button size="sm" variant="ghost" onClick={dismissPreferencesIntro}>Not now</Button>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
           {loadingConversation && (
-            <p role="status" className="text-small text-foreground-secondary">
-              Loading your previous Mira conversation…
-            </p>
+            <div role="status" className="flex items-center gap-2 text-small text-foreground-secondary">
+              <span className="h-2 w-2 rounded-full bg-action-accent" aria-hidden="true" />
+              Loading your conversation…
+            </div>
           )}
+
           {!loadingConversation && messages.length === 0 && (
-            <p className="max-w-prose text-small text-foreground-secondary">
-              Ask Mira about sickle cell, hydration, pain, medication routines, or preparing for an appointment. Mira
-              will explain when human review is needed instead of guessing.
-            </p>
+            <div className="mx-auto max-w-md py-8 text-center">
+              <span aria-hidden="true" className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-surface text-action-accent shadow-surface">
+                <Bot size={25} />
+              </span>
+              <h3 className="mt-4 text-heading-3 text-foreground">How can I support you?</h3>
+              <p className="mt-2 text-small text-foreground-secondary">Ask about daily sickle-cell support, hydration, pain, medication routines, or preparing for an appointment.</p>
+            </div>
           )}
-          {messages.map((message) => (
-            <article
-              key={message.id}
-              className={
-                message.role === 'user'
-                  ? 'ml-auto max-w-[85%] rounded-card bg-surface-subtle px-4 py-3'
-                  : 'max-w-[92%] rounded-card border border-line bg-surface px-4 py-3'
-              }
-            >
-              <p className="text-caption font-semibold text-foreground-secondary">
-                {message.role === 'user' ? 'You' : 'Mira (AI)'}
-                {message.source === 'voice' ? ' · voice transcript' : ''}
-              </p>
-              <p className="mt-1 whitespace-pre-wrap text-body text-foreground">{message.text}</p>
-            </article>
-          ))}
-          {escalation?.urgency === 'urgent' && (
-            <Alert
-              tone="danger"
-              title="This may need emergency care now"
-              live="assertive"
-              icon={<ShieldAlert size={20} />}
-              className="max-w-[92%]"
-            >
-              <p>{emergencyGuidance || 'Please contact emergency services or go to the nearest emergency department now.'}</p>
-              <p className="mt-2">{escalation.reason}</p>
-              <p className="mt-2">
-                Mira has not contacted anyone for you. No appointment has been submitted, and nothing has been written
-                to your health or medical records.
-              </p>
-            </Alert>
+
+          {messages.map((message) => {
+            const timestamp = formatMessageTime(message.createdAt);
+            const isUrgentAssistant = message.id === currentUrgentMessageId;
+
+            if (isUrgentAssistant) {
+              return (
+                <div key={message.id} className="flex max-w-[94%] items-end gap-2">
+                  <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-action-accent text-white"><Bot size={16} /></span>
+                  <Alert tone="danger" title="This may need emergency care now" live="assertive" icon={<ShieldAlert size={20} />} className="min-w-0 flex-1">
+                    <p className="whitespace-pre-wrap">{message.text || emergencyGuidance}</p>
+                    <p className="mt-2 font-medium text-status-danger-text">Mira has not contacted anyone on your behalf. No appointment has been submitted, and nothing has been written to your health or medical records.</p>
+                  </Alert>
+                </div>
+              );
+            }
+
+            if (message.role === 'user') {
+              return (
+                <div key={message.id} className="flex justify-end">
+                  <article className="max-w-[80%] rounded-[1.25rem] rounded-br-md bg-action-accent px-4 py-3 text-white shadow-sm">
+                    <span className="sr-only">You</span>
+                    <p className="whitespace-pre-wrap text-body">{message.text}</p>
+                    <p className="mt-1.5 text-right text-caption text-white/80">{message.source === 'voice' ? 'Voice transcript' : 'Sent'}{timestamp ? ` · ${timestamp}` : ''}</p>
+                  </article>
+                </div>
+              );
+            }
+
+            return (
+              <div key={message.id} className="flex max-w-[92%] items-end gap-2">
+                <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-action-accent text-white"><Bot size={16} /></span>
+                <article className="min-w-0 rounded-[1.25rem] rounded-bl-md border border-line bg-surface px-4 py-3 shadow-surface">
+                  <div className="flex items-center gap-2 text-caption font-semibold text-foreground-secondary">
+                    <span>Mira</span><span className="rounded-pill bg-medical-50 px-2 py-0.5 text-action-accent">AI</span>
+                    <span className="sr-only">Mira (AI)</span>
+                  </div>
+                  <p className="mt-1 whitespace-pre-wrap text-body text-foreground">{message.text}</p>
+                  {timestamp && <p className="mt-1.5 text-caption text-foreground-secondary">{timestamp}</p>}
+                </article>
+              </div>
+            );
+          })}
+
+          {(status === 'sending' || status === 'thinking') && (
+            <div role="status" aria-live="polite" className="flex items-end gap-2">
+              <span aria-hidden="true" className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-action-accent text-white"><Bot size={16} /></span>
+              <div className="rounded-[1.25rem] rounded-bl-md border border-line bg-surface px-4 py-3 text-small text-foreground-secondary shadow-surface">
+                {STATUS_LABELS[status]}
+              </div>
+            </div>
           )}
         </div>
-        {(status === 'sending' || status === 'thinking' || status === 'speaking') && (
-          <p role="status" aria-live="polite" className="border-t border-line px-4 py-2 text-small text-foreground-secondary sm:px-5">
-            {status === 'speaking'
-              ? speechStage === 'preparing'
-                ? 'Preparing spoken reply...'
-                : playbackPaused
-                  ? "Mira's reply is paused."
-                  : "Playing Mira's reply"
-              : STATUS_LABELS[status]}
-          </p>
+
+        {(errorMessage || saveNotice || escalation?.urgency === 'specialist') && (
+          <div className="space-y-2 border-t border-line bg-surface px-3 py-3 sm:px-5">
+            {errorMessage && <Alert tone="danger" title="Mira could not complete that" live="assertive">{errorMessage}</Alert>}
+            {saveNotice && <Alert tone="warning" title="Conversation save status" live="polite">{saveNotice}</Alert>}
+            {escalation?.urgency === 'specialist' && (
+              <Alert tone="warning" title="A hematology review may help" live="polite">
+                <p>{escalation.reason}</p>
+                <p className="mt-2">Review Mira&apos;s draft below before sharing anything with your care team.</p>
+              </Alert>
+            )}
+          </div>
         )}
+
+        {(status === 'recording' || status === 'transcribing' || status === 'reviewing-transcript') && (
+          <div className="border-t border-line bg-surface px-3 py-3 sm:px-5">
+            {status === 'recording' && (
+              <Alert tone="info" title="Listening..." live="polite" icon={<Mic size={20} />} action={<Button type="button" variant="danger" leadingIcon={<Square size={17} />} onClick={() => void finishRecording()}>Stop recording</Button>}>
+                <span className="font-semibold tabular-nums">{formatRecordingTime(recordingSeconds)}</span><span className="ml-2">Microphone active</span>
+              </Alert>
+            )}
+            {status === 'transcribing' && <Alert tone="info" title="Transcribing your message..." live="polite">Keep this screen open for a moment.</Alert>}
+            {status === 'reviewing-transcript' && (
+              <section aria-labelledby="mira-transcript-review-title" className="space-y-3 rounded-card border border-medical-100 bg-medical-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 id="mira-transcript-review-title" className="text-body font-semibold text-foreground">You said:</h3>
+                    <p className="text-caption text-foreground-secondary">Review before sending.</p>
+                  </div>
+                  <Check size={19} className="text-status-success-text" aria-hidden="true" />
+                </div>
+                {editingTranscript ? (
+                  <FormField label="Edit transcript"><Textarea rows={3} value={transcriptDraft} onChange={(event) => setTranscriptDraft(event.target.value)} aria-label="Edit voice transcript" /></FormField>
+                ) : (
+                  <p className="whitespace-pre-wrap rounded-control bg-surface px-4 py-3 text-body text-foreground">“{transcriptDraft}”</p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" size="sm" variant="secondary" leadingIcon={<Pencil size={16} />} onClick={() => setEditingTranscript(true)} disabled={editingTranscript}>Edit</Button>
+                  <Button type="button" size="sm" leadingIcon={<Send size={16} />} onClick={() => void sendReviewedTranscript()} disabled={transcriptDraft.trim().length === 0}>Send to Mira</Button>
+                  <Button type="button" size="sm" variant="ghost" leadingIcon={<RotateCcw size={16} />} onClick={() => void recordAgain()}>Record again</Button>
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+
+        <form onSubmit={handleSend} className="border-t border-line bg-surface px-3 py-3 sm:px-5" noValidate>
+          <label htmlFor="mira-message-composer" className="sr-only">Your message to Mira</label>
+          <div className="flex items-end gap-1.5 rounded-[1.25rem] border border-line-strong bg-surface-subtle p-1.5 focus-within:border-action-accent focus-within:ring-2 focus-within:ring-medical-100">
+            <Textarea
+              id="mira-message-composer"
+              rows={1}
+              value={inputText}
+              onChange={(event) => setInputText(event.target.value)}
+              placeholder="Type a message…"
+              aria-label="Message to Mira"
+              disabled={busy}
+              className="min-h-12 max-h-32 resize-none border-0 bg-transparent px-3 py-3 focus-visible:outline-none"
+            />
+            {voiceAvailable && (
+              <IconButton
+                label={`Speak to Mira in ${languageDefinition.label}`}
+                icon={<Mic size={20} />}
+                variant="ghost"
+                onClick={() => void handleMicrophone()}
+                disabled={busy || !speechInputVerified}
+                title={speechInputVerified ? undefined : `Voice input is not available in ${languageDefinition.label} right now.`}
+              />
+            )}
+            <IconButton label="Send message" icon={<Send size={20} />} type="submit" disabled={busy || inputText.trim().length === 0} className="bg-action-accent text-white hover:bg-action-accent-hover" />
+          </div>
+          <div className="mt-2 flex min-h-6 flex-wrap items-center justify-between gap-2 text-caption text-foreground-secondary">
+            <span>{status === 'speaking' ? (speechStage === 'preparing' ? 'Preparing spoken reply...' : playbackPaused ? 'Spoken reply paused' : 'Playing Mira’s reply') : `${languageDefinition.label} conversation`}</span>
+            <div className="flex flex-wrap items-center gap-1">
+              {status === 'speaking' && speechStage === 'playing' && (
+                <Button type="button" size="sm" variant="ghost" leadingIcon={playbackPaused ? <Play size={16} /> : <Pause size={16} />} onClick={() => void togglePlaybackPause()}>{playbackPaused ? 'Resume reply' : 'Pause reply'}</Button>
+              )}
+              {voiceAvailable && spokenRepliesEnabled && speechOutputVerified && lastAssistantMessage && (
+                <Button type="button" size="sm" variant="ghost" leadingIcon={<Volume2 size={16} />} onClick={() => void speakReply(lastAssistantMessage.text)} disabled={status === 'speaking'}>Replay reply</Button>
+              )}
+            </div>
+          </div>
+        </form>
       </Card>
 
-      {errorMessage && (
-        <Alert tone="danger" title="Mira could not complete that" live="assertive">
-          {errorMessage}
-        </Alert>
-      )}
-      {saveNotice && (
-        <Alert tone="warning" title="Conversation save status" live="polite">
-          {saveNotice}
-        </Alert>
-      )}
-
-      {escalation?.urgency === 'specialist' && (
-        <Alert tone="warning" title="Human hematology review is appropriate" live="polite">
-          <p>{escalation.reason}</p>
-          <p className="mt-2">
-            Mira can prepare a short draft for your care team from what you said. You review and edit it, and nothing is
-            sent from this screen.
-          </p>
-        </Alert>
-      )}
-
       {handoff && (
-        <Card as="section" className="space-y-4">
+        <Card as="section" className="space-y-4 border-status-warning/30 shadow-none">
           <div>
-            <h3 className="text-heading-3 text-foreground">Handoff summary for human review</h3>
-            <p className="mt-1 max-w-prose text-small text-foreground-secondary">
-              {handoffLabel ||
-                'AI-generated draft from your Mira conversation — not clinician-authored. Review and edit before sharing.'}
-            </p>
+            <h3 className="text-heading-3 text-foreground">Summary for human review</h3>
+            <p className="mt-1 max-w-prose text-small text-foreground-secondary">{handoffLabel || 'AI-generated draft from your conversation. Review and edit before sharing.'}</p>
           </div>
-          <FormField
-            label="Draft summary to share with the clinic"
-            helpText="Mira built this from your own messages. Edit it so that only what you want to share remains."
-          >
-            <Textarea
-              rows={10}
-              value={handoffText}
-              onChange={(event) => setHandoffText(event.target.value)}
-              aria-label="Draft handoff summary"
-            />
+          <FormField label="Draft summary to share with the clinic" helpText="Keep only what you want to share.">
+            <Textarea rows={8} value={handoffText} onChange={(event) => setHandoffText(event.target.value)} aria-label="Draft handoff summary" />
           </FormField>
           <label className="flex min-h-11 items-start gap-3 text-small text-foreground">
-            <input
-              type="checkbox"
-              className="mt-1 h-5 w-5 shrink-0"
-              checked={handoffApproved}
-              onChange={(event) => setHandoffApproved(event.target.checked)}
-            />
-            <span>I have reviewed this summary and approve sharing it with the clinic if I submit an appointment request.</span>
+            <input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={handoffApproved} onChange={(event) => setHandoffApproved(event.target.checked)} />
+            <span>I reviewed this summary and approve using it in an appointment request.</span>
           </label>
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setHandoff(null);
-                setHandoffText('');
-                setHandoffApproved(false);
-              }}
-            >
-              Discard draft
-            </Button>
-            <Button
-              disabled={!handoffApproved || handoffText.trim().length === 0}
-              onClick={() => onContinueToAppointment(handoffText.trim())}
-            >
-              Continue to appointment request
-            </Button>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={() => { setHandoff(null); setHandoffText(''); setHandoffApproved(false); }}>Discard draft</Button>
+            <Button disabled={!handoffApproved || handoffText.trim().length === 0} onClick={() => onContinueToAppointment(handoffText.trim())}>Continue to appointment request</Button>
           </div>
-          <p className="text-caption text-foreground-secondary">
-            This opens the appointment request with your summary filled in. Nothing is submitted until you review the
-            date, time and reason and submit it yourself. No clinic or clinician has confirmed anything.
-          </p>
+          <p className="text-caption text-foreground-secondary">Nothing is sent until you review and submit the appointment request yourself.</p>
         </Card>
       )}
 
-      <Card as="section" className="space-y-4">
-        {status === 'recording' && (
-          <Alert
-            tone="info"
-            title="Listening..."
-            live="polite"
-            icon={<Mic size={20} />}
-            action={(
-              <Button
-                type="button"
-                variant="danger"
-                leadingIcon={<Square size={17} />}
-                onClick={() => void finishRecording()}
-              >
-                Stop recording
-              </Button>
-            )}
-          >
-            <span className="font-semibold tabular-nums">{formatRecordingTime(recordingSeconds)}</span>
-            <span className="ml-2">Your microphone is active.</span>
-          </Alert>
-        )}
-
-        {status === 'transcribing' && (
-          <Alert tone="info" title="Transcribing your message..." live="polite">
-            Keep this screen open while Mira turns your recording into text.
-          </Alert>
-        )}
-
-        {status === 'reviewing-transcript' && (
-          <section aria-labelledby="mira-transcript-review-title" className="space-y-3 rounded-card border border-line bg-surface-subtle p-4">
-            <div>
-              <h3 id="mira-transcript-review-title" className="text-body font-semibold text-foreground">You said:</h3>
-              <p className="mt-1 text-caption text-foreground-secondary">Review this transcript before sending it to Mira.</p>
-            </div>
-            {editingTranscript ? (
-              <FormField label="Edit transcript">
-                <Textarea
-                  rows={3}
-                  value={transcriptDraft}
-                  onChange={(event) => setTranscriptDraft(event.target.value)}
-                  aria-label="Edit voice transcript"
-                />
-              </FormField>
-            ) : (
-              <blockquote className="whitespace-pre-wrap rounded-control bg-surface px-4 py-3 text-body text-foreground">
-                “{transcriptDraft}”
-              </blockquote>
-            )}
-            <div className="flex flex-wrap gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                leadingIcon={<Pencil size={17} />}
-                onClick={() => setEditingTranscript(true)}
-                disabled={editingTranscript}
-              >
-                Edit
-              </Button>
-              <Button
-                type="button"
-                leadingIcon={<Send size={17} />}
-                onClick={() => void sendReviewedTranscript()}
-                disabled={transcriptDraft.trim().length === 0}
-              >
-                Send to Mira
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                leadingIcon={<RotateCcw size={17} />}
-                onClick={() => void recordAgain()}
-              >
-                Record again
-              </Button>
-            </div>
-          </section>
-        )}
-
-        <form onSubmit={handleSend} className="space-y-3" noValidate>
-          <FormField
-            label="Your message to Mira"
-            helpText="Mira answers as an AI assistant and always tells you when human review is needed."
-          >
-            <Textarea
-              rows={3}
-              value={inputText}
-              onChange={(event) => setInputText(event.target.value)}
-              placeholder="Type your question or concern"
-              aria-label="Message to Mira"
-              disabled={busy}
-            />
+      <Modal
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        title="Mira settings"
+        description="Choose how Mira speaks with you. Changes apply to your next message."
+        presentation="bottom-sheet"
+        size="sm"
+      >
+        <div className="space-y-5">
+          <FormField label="Language" helpText={voiceHelpText}>
+            <SelectInput value={language} onChange={handleLanguageChange} aria-label="Mira conversation language">
+              {MIRA_LANGUAGES.map((entry) => <option key={entry.code} value={entry.code}>{entry.label}</option>)}
+            </SelectInput>
           </FormField>
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              type="submit"
-              leadingIcon={<Send size={18} />}
-              loading={status === 'sending' || status === 'thinking'}
-              loadingLabel={status === 'sending' ? 'Sending...' : 'Mira is thinking...'}
-              disabled={busy || inputText.trim().length === 0}
+          <div className="flex items-center justify-between gap-4 rounded-card border border-line bg-surface-subtle p-4">
+            <div>
+              <p className="text-body font-semibold text-foreground">Spoken replies</p>
+              <p className="mt-1 text-small text-foreground-secondary">Play Mira&apos;s reply after a voice message.</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={spokenRepliesEnabled}
+              onClick={toggleSpokenReplies}
+              data-ui-control
+              className={`relative h-8 w-14 shrink-0 rounded-pill transition-colors ${spokenRepliesEnabled ? 'bg-action-accent' : 'bg-line-strong'}`}
             >
-              Send message
-            </Button>
-            {voiceAvailable && (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => void handleMicrophone()}
-                disabled={busy || !speechInputVerified}
-                leadingIcon={<Mic size={18} />}
-                aria-label={`Speak to Mira in ${languageDefinition.label}`}
-                title={speechInputVerified ? undefined : `Voice input is not available in ${languageDefinition.label} right now.`}
-              >
-                Speak to Mira
-              </Button>
-            )}
-            {status === 'speaking' && speechStage === 'playing' && (
-              <Button
-                type="button"
-                variant="secondary"
-                leadingIcon={playbackPaused ? <Play size={18} /> : <Pause size={18} />}
-                onClick={() => void togglePlaybackPause()}
-              >
-                {playbackPaused ? 'Resume reply' : 'Pause reply'}
-              </Button>
-            )}
-            {voiceAvailable && speechOutputVerified && lastAssistantMessage && (
-              <Button
-                type="button"
-                variant="ghost"
-                leadingIcon={<Volume2 size={18} />}
-                onClick={() => void speakReply(lastAssistantMessage.text)}
-                disabled={status === 'speaking'}
-              >
-                Replay last reply
-              </Button>
-            )}
+              <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${spokenRepliesEnabled ? 'translate-x-7' : 'translate-x-1'}`} />
+              <span className="sr-only">{spokenRepliesEnabled ? 'On' : 'Off'}</span>
+            </button>
           </div>
-        </form>
-        <p className="max-w-prose text-caption text-foreground-secondary">
-          Mira is an AI assistant, not a doctor. Mira never submits appointment requests, never contacts anyone for you,
-          and never writes to your Health History or Medical Records. Voice availability may vary by language and
-          service availability. Audio is used for transcription and is not stored in Warrior AI records.
-        </p>
-      </Card>
+          {!voiceAvailable && <Alert tone="neutral" title="Voice is unavailable">Text chat with Mira is still available.</Alert>}
+          {voiceAvailable && !speechInputVerified && <Alert tone="warning" title="Voice input is unavailable in this language">You can type your message in {languageDefinition.label}.</Alert>}
+        </div>
+      </Modal>
     </section>
   );
 };

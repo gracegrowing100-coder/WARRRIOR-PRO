@@ -14,11 +14,17 @@ vi.mock('../../firebase-init', () => ({
   subscribeToAuth: authHarness.subscribeToAuth,
 }));
 
+const profileHarness = vi.hoisted(() => ({
+  getUserProfileState: vi.fn(),
+}));
+
+vi.mock('../../services/firebaseService', () => ({ firebaseService: profileHarness }));
+
 vi.mock('../../components/Dashboard', () => ({
   default: ({ userId }: { userId: string }) => <div>Patient Home for {userId}</div>,
 }));
 vi.mock('../../components/GamesHub', () => ({ default: () => <div>Games screen</div> }));
-vi.mock('../../components/ChatSystem', () => ({ default: () => <div>Chat screen</div> }));
+vi.mock('../../components/ChatWorkspace', () => ({ default: () => <div>Chat screen</div> }));
 vi.mock('../../components/Telemedicine', () => ({
   default: ({ userId, onBackToCare }: { userId: string; onBackToCare: () => void }) => (
     <div>
@@ -73,6 +79,10 @@ describe('Care hash entry and browser history', () => {
     authHarness.subscribeToAuth.mockReset().mockImplementation((callback: (user: any) => void) => {
       authHarness.callback = callback;
       return vi.fn();
+    });
+    profileHarness.getUserProfileState.mockReset().mockResolvedValue({
+      state: 'recorded',
+      data: { displayName: 'Tayo' },
     });
   });
 
