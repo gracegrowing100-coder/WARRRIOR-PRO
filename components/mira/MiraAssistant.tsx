@@ -114,6 +114,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
   const speechOperationRef = useRef(0);
   const languageRef = useRef<MiraLanguageCode>(language);
   const activeUserRef = useRef(userId);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const voiceAvailable = voiceEnabled ?? isVoiceEnabledForClient();
   const speechInputVerified = miraVoiceCapability(language, 'speechToText') === 'verified';
@@ -127,6 +128,19 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
   useEffect(() => {
     languageRef.current = language;
   }, [language]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+      
+      // Only auto-scroll if user is already near the bottom (reading recent messages)
+      if (isNearBottom) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+  }, [messages]);
 
   useEffect(() => {
     let cancelled = false;
@@ -512,10 +526,11 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
         </div>
 
         <div
+          ref={messagesContainerRef}
           role="log"
           aria-live="polite"
           aria-label="Mira conversation"
-          className="min-h-[22rem] flex-1 space-y-4 overflow-y-auto bg-canvas/70 px-3 py-5 sm:px-5"
+          className="min-h-[22rem] flex-1 space-y-4 overflow-y-auto overflow-x-hidden bg-canvas/70 px-3 py-5 sm:px-5 scroll-smooth"
         >
           {!introDismissed && (
             <Card surface="subtle" className="mx-auto max-w-xl border-medical-100 shadow-none">
