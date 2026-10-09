@@ -62,7 +62,7 @@ async function startServer() {
   ]);
 
   const app = express();
-  const PORT = 3000;
+  const PORT = Number.parseInt(process.env.PORT ?? '', 10) || 3000;
 
   if (process.env.NODE_ENV !== 'production') {
     app.use((_req, res, next) => {

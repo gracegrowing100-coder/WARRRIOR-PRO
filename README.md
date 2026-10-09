@@ -25,8 +25,10 @@ View your app in AI Studio: https://ai.studio/apps/3704fda8-13cb-40a5-a194-79068
    `NODE_USE_SYSTEM_CA=1` is required on the current Windows PC so Node trusts
    the same certificate authorities as Windows. Do not disable npm SSL checks.
 
-2. Optional: copy `.env.example` to `.env.local` and set `GEMINI_API_KEY`.
-   Without a key, the server uses its curated local fallback responses.
+2. Copy `.env.example` to `.env.local` and set the server providers needed for
+   the demo. `GEMINI_API_KEY` enables Mira text responses and
+   `YARNGPT_API_KEY` enables Mira transcription and spoken replies. These values
+   are server-only and must never use a `VITE_` prefix.
 
 3. Run the app:
 
@@ -52,6 +54,24 @@ The synthetic demo is local React state only: it does not create an account,
 write to Firebase, send a callback request, diagnose a crisis, or predict a
 clinical outcome. Real sign-in remains reserved for configured Firebase test
 accounts.
+
+## Deployment environment
+
+The production Express server serves the Vite build and accepts the hosting
+platform's `PORT` value, defaulting to `3000` locally. Configure these variables
+on the existing hosting platform:
+
+| Variable | Purpose |
+|---|---|
+| `GEMINI_API_KEY` | Server-only Mira text provider credential. |
+| `YARNGPT_API_KEY` | Server-only Mira speech provider credential. |
+| `MIRA_FIREBASE_PROJECT_ID` | Optional Firebase Admin project override; defaults to the checked-in public Firebase project configuration. |
+| `MIRA_VOICE_ENABLED` | Optional capability gate; voice is enabled unless explicitly set to `false`. |
+
+The checked-in Firebase web configuration contains public client identifiers.
+Provider credentials remain in server environment variables. `.env.local` and
+Firebase CLI runtime artifacts are ignored by Git. The Windows system-CA bridge
+in `server.ts` runs only on Windows and is not required on Linux hosts.
 
 ## Product and redesign documentation
 

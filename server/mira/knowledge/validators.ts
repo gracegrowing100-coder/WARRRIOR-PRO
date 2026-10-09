@@ -77,7 +77,7 @@ export class MiraClinicalValidationError extends Error {
   }
 }
 
-const SAFE_MODULE_ID = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+const SAFE_MODULE_ID = /^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$/;
 const SAFE_MODULE_VERSION = /^\d+\.\d+\.\d+$/;
 const SAFE_CONTEXT_KEY = /^[a-z][A-Za-z0-9_.-]*$/;
 const ISO_DATE_OR_TIMESTAMP = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z)?$/;
@@ -155,7 +155,11 @@ function readOptionalIsoDate(value: unknown, path: string): string | undefined {
 function readModuleId(value: unknown, path: string): string {
   const result = readString(value, path, MIRA_CLINICAL_LIMITS.moduleIdChars);
   if (!SAFE_MODULE_ID.test(result)) {
-    fail('invalid_format', path, `${path} must be a lowercase kebab-case identifier.`);
+    fail(
+      'invalid_format',
+      path,
+      `${path} must be a lowercase identifier with hyphen- or underscore-separated segments.`,
+    );
   }
   return result;
 }
