@@ -1,23 +1,22 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { 
-  Mail, 
-  Lock, 
-  User, 
-  Phone, 
-  Calendar, 
-  MapPin, 
-  Activity, 
-  ChevronRight, 
-  ChevronLeft, 
-  Check, 
-  Eye, 
-  EyeOff, 
-  LogIn, 
-  UserPlus, 
-  ShieldCheck, 
-  AlertCircle, 
-  Loader2, 
+import {
+  Mail,
+  Lock,
+  User,
+  Phone,
+  Calendar,
+  MapPin,
+  Activity,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  Eye,
+  EyeOff,
+  LogIn,
+  UserPlus,
+  AlertCircle,
+  Loader2,
   Sparkles,
   Heart,
   Info,
@@ -47,7 +46,7 @@ import {
 } from '../firebase-init';
 import { firebaseService } from '../services/firebaseService';
 
-const PRIVACY_DISCLAIMER_TEXT = "Pilot notice: Warrior AI is currently a prototype for product evaluation. Use sample information only. Do not enter real patient records until the clinic has approved the deployment, privacy terms, data-processing agreement, and security controls.";
+const PRIVACY_DISCLAIMER_TEXT = "Pilot version · For product evaluation. Use sample information only. Do not enter real patient records until clinic approval.";
 
 interface AuthFlowProps {
   onAuthSuccess: (user: any) => void;
@@ -654,15 +653,15 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-900/55 rounded-full text-teal-700 dark:text-teal-400">
-            <ShieldCheck size={14} />
-            <span className="text-[10px] font-bold uppercase tracking-wider font-mono">Pilot privacy review pending</span>
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-medical-50 dark:bg-medical-900/20 border border-medical-100 dark:border-medical-900/30 rounded-full text-action-accent">
+            <Info size={14} />
+            <span className="text-[10px] font-semibold uppercase tracking-wider">Pilot version</span>
           </div>
-          
+
           <button
             onClick={toggleTheme}
             aria-label="Toggle visual contrast parameters"
-            className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-300 transition-all cursor-pointer"
+            className="p-2 rounded-full bg-surface-subtle hover:bg-surface border border-line text-foreground-secondary hover:text-foreground transition-all cursor-pointer"
           >
             {darkMode ? <Sun size={16} /> : <Moon size={16} />}
           </button>
@@ -671,54 +670,79 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
 
       {/* Main Container Card viewport */}
       <main className="flex-1 flex items-center justify-center p-4 md:p-8">
-        <div className="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden min-h-[500px] flex flex-col md:flex-row">
-          
-          {/* Aesthetic Educational Sidebar */}
-          <div className="hidden md:flex md:w-5/12 bg-slate-900 text-white p-10 flex-col justify-between relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-red-950/40 via-slate-900 to-slate-950 z-0"></div>
-            
-            {/* Soft decorative visual blur */}
-            <div className="absolute top-1/4 left-1/4 w-36 h-36 bg-red-650/15 rounded-full blur-[60px] animate-pulse z-0"></div>
+        <div className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden min-h-[550px] flex flex-col md:flex-row">
+
+          {/* Product Story Sidebar */}
+          <div className="hidden md:flex md:w-[55%] bg-gradient-to-br from-medical-50 to-white dark:from-slate-900 dark:to-slate-950 p-10 flex-col justify-between relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-action-accent/5 rounded-full blur-[80px]"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-action-accent/3 rounded-full blur-[60px]"></div>
 
             <div className="relative z-10 space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full text-[10px] font-black uppercase tracking-widest">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
-                Pilot product prototype
-              </div>
-              
-              <div className="space-y-3">
-                <h2 className="text-2xl font-black uppercase tracking-tight text-white leading-tight">
-                  Sickle Cell Monitoring Companion
-                </h2>
-                <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                  A proposed workspace for patients and caregivers to record symptoms, hydration, and medication information for review with their care team.
+              <div className="space-y-4">
+                <h1 className="text-4xl font-bold text-foreground tracking-tight leading-tight">
+                  Understand your health.<br />
+                  <span className="text-action-accent">Stay one step ahead.</span>
+                </h1>
+                <p className="text-body text-foreground-secondary leading-relaxed max-w-md">
+                  Track symptoms, hydration, medication and daily wellbeing, with Mira available when you need everyday support.
                 </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 pt-4">
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-line shadow-subtle">
+                  <div className="flex items-center gap-2 text-action-accent mb-1">
+                    <Activity size={16} />
+                    <span className="text-caption font-semibold">Track</span>
+                  </div>
+                  <p className="text-[10px] text-foreground-secondary">Daily health</p>
+                </div>
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-line shadow-subtle">
+                  <div className="flex items-center gap-2 text-action-accent mb-1">
+                    <Heart size={16} />
+                    <span className="text-caption font-semibold">Talk</span>
+                  </div>
+                  <p className="text-[10px] text-foreground-secondary">With Mira</p>
+                </div>
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-line shadow-subtle">
+                  <div className="flex items-center gap-2 text-action-accent mb-1">
+                    <Calendar size={16} />
+                    <span className="text-caption font-semibold">Prepare</span>
+                  </div>
+                  <p className="text-[10px] text-foreground-secondary">For care review</p>
+                </div>
               </div>
             </div>
 
-            <div className="relative z-10 space-y-4">
-              <div className="flex items-start gap-3.5 bg-slate-950/45 p-4 rounded-2xl border border-slate-800">
-                <Shield className="text-red-500 shrink-0 mt-0.5" size={18} />
-                <div className="space-y-1">
-                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-white">Evaluation safety boundary</h3>
-                  <p className="text-[10px] text-slate-400 leading-relaxed">
-                    Use synthetic information during evaluation. Production security, consent, retention, and clinic access controls still require formal review.
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-[10px] text-slate-500 flex items-center justify-between">
-                <span>Not a medical device</span>
-                <span>Not for emergency response</span>
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 text-small text-foreground-secondary">
+                <Info size={14} className="text-action-accent" />
+                <span>Pilot version · For product evaluation</span>
               </div>
             </div>
           </div>
 
           {/* Core Interactive Action Panel */}
           <div className="flex-1 p-6 sm:p-10 flex flex-col justify-center relative">
+            {/* Mobile Hero - Only visible on small screens */}
+            <div className="md:hidden mb-6 space-y-4">
+              <div className="space-y-2">
+                <h1 className="text-2xl font-bold text-foreground tracking-tight leading-tight">
+                  Understand your health.<br />
+                  <span className="text-action-accent">Stay one step ahead.</span>
+                </h1>
+                <p className="text-small text-foreground-secondary leading-relaxed">
+                  Track symptoms, hydration, medication and daily wellbeing, with Mira available when you need everyday support.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-caption text-foreground-secondary">
+                <Info size={12} className="text-action-accent" />
+                <span>Pilot version · For product evaluation</span>
+              </div>
+            </div>
+
             {generalSuccess && screen !== 'forgot' && (
-              <div className="mb-5 p-4 bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-900/55 rounded-2xl text-xs font-semibold text-teal-800 dark:text-teal-300 flex items-start gap-2.5" role="status">
-                <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-teal-600" />
+              <div className="mb-5 p-4 bg-medical-50 dark:bg-medical-900/20 border border-medical-100 dark:border-medical-900/30 rounded-xl text-small font-semibold text-foreground flex items-start gap-2.5" role="status">
+                <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-action-accent" />
                 <span>{generalSuccess}</span>
               </div>
             )}
@@ -732,52 +756,30 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   transition={{ duration: 0.2 }}
-                  className="space-y-8"
+                  className="space-y-6"
                 >
                   <div className="text-center md:text-left space-y-2">
-                    <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                      Monitor today. Review sooner.
-                    </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-6">
-                      Record daily symptoms and give the care team a clearer view between scheduled visits.
+                    <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+                      Welcome to WARRIOR AI
+                    </h2>
+                    <p className="text-body text-foreground-secondary leading-relaxed">
+                      Sign in to continue tracking your health journey.
                     </p>
                   </div>
 
-                  <div className="space-y-3.5">
+                  <div className="space-y-3">
                     <button
                       id="login-init-btn"
                       onClick={() => setScreen('login')}
-                      className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-red-200/50 dark:shadow-rose-950/20 hover:scale-[1.01] active:scale-95 transition-all cursor-pointer"
+                      className="w-full h-12 flex items-center justify-center gap-2 bg-action-accent hover:bg-action-accent-hover text-white rounded-xl font-semibold text-sm transition-all duration-150 shadow-subtle"
                     >
-                      <LogIn size={16} /> Sign in to your account
+                      <LogIn size={18} /> Sign in
                     </button>
-
-                    <button
-                      id="synthetic-demo-btn"
-                      onClick={() => handleQuickDemoAccess('Person with Sickle Cell Disease')}
-                      className="w-full h-12 flex items-center justify-center gap-2 bg-slate-900 border border-slate-950 dark:border-slate-800 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-black dark:hover:bg-slate-950/80 active:scale-95 transition-all cursor-pointer"
-                    >
-                      <Sparkles size={16} /> Open synthetic demo
-                    </button>
-
-                    <a
-                      href="mailto:support@warriorcell.org?subject=Warrior%20AI%20pilot%20access%20request"
-                      className="w-full h-12 flex items-center justify-center gap-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
-                    >
-                      <UserPlus size={16} /> Request pilot access
-                    </a>
-
-                    <div className="relative my-6 flex items-center justify-center">
-                      <div className="absolute inset-x-0 border-t border-slate-200 dark:border-slate-850"></div>
-                      <span className="relative px-3 bg-white dark:bg-slate-900 text-[10px] font-bold uppercase text-slate-400 tracking-wider">
-                        Or continue with
-                      </span>
-                    </div>
 
                     <button
                       id="google-init-btn"
                       onClick={handleGoogleAuth}
-                      className="w-full h-12 flex items-center justify-center gap-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-755 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl font-bold text-xs tracking-wide shadow-sm hover:scale-[1.01] transition-all cursor-pointer"
+                      className="w-full h-12 flex items-center justify-center gap-3 bg-white dark:bg-surface hover:bg-slate-50 dark:hover:bg-surface-subtle border border-line text-foreground rounded-xl font-medium text-sm transition-all duration-150"
                     >
                       <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -788,19 +790,40 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
                       Continue with Google
                     </button>
 
+                    <div className="relative my-4 flex items-center justify-center">
+                      <div className="absolute inset-x-0 border-t border-line"></div>
+                      <span className="relative px-3 bg-white dark:bg-surface text-caption text-foreground-secondary">
+                        or
+                      </span>
+                    </div>
+
+                    <button
+                      id="synthetic-demo-btn"
+                      onClick={() => handleQuickDemoAccess('Person with Sickle Cell Disease')}
+                      className="w-full h-11 flex items-center justify-center gap-2 text-foreground-secondary hover:text-foreground font-medium text-sm transition-colors duration-150"
+                    >
+                      <Sparkles size={16} /> Explore a demo
+                    </button>
+
+                    <a
+                      href="mailto:support@warriorcell.org?subject=Warrior%20AI%20pilot%20access%20request"
+                      className="w-full h-11 flex items-center justify-center gap-2 text-foreground-secondary hover:text-foreground font-medium text-sm transition-colors duration-150"
+                    >
+                      <UserPlus size={16} /> Request access
+                    </a>
+
                     {generalError && (
-                      <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-250 dark:border-rose-900/55 rounded-2xl text-xs font-semibold text-rose-800 dark:text-rose-300 flex items-start gap-2.5" role="alert">
-                        <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                      <div className="p-4 bg-medical-50 dark:bg-medical-900/20 border border-medical-100 dark:border-medical-900/30 rounded-xl text-small font-semibold text-foreground flex items-start gap-2.5" role="alert">
+                        <AlertCircle size={16} className="shrink-0 mt-0.5 text-action-accent" />
                         <span>{generalError}</span>
                       </div>
                     )}
-
                   </div>
 
-                  {/* Accessible Privacy Alert Block */}
-                  <div className="p-4 bg-slate-50 dark:bg-slate-950/25 border border-slate-100 dark:border-slate-800 rounded-2xl flex gap-3">
-                    <Info className="text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" size={16} />
-                    <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">
+                  {/* Compact Privacy Notice */}
+                  <div className="p-3 bg-surface-subtle border border-line rounded-xl flex gap-2">
+                    <Info className="text-action-accent shrink-0 mt-0.5" size={14} />
+                    <p className="text-caption text-foreground-secondary leading-relaxed">
                       {PRIVACY_DISCLAIMER_TEXT}
                     </p>
                   </div>
