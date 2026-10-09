@@ -8,8 +8,8 @@ export interface CardProps extends React.HTMLAttributes<HTMLElement> {
 }
 
 const surfaceClasses = {
-  default: 'border border-line bg-surface shadow-surface',
-  elevated: 'bg-surface-elevated shadow-elevated',
+  default: 'border border-line bg-surface shadow-subtle',
+  elevated: 'bg-surface-elevated shadow-floating',
   subtle: 'border border-line bg-surface-subtle',
 };
 

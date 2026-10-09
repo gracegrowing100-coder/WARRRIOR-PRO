@@ -59,8 +59,10 @@
   --radius-2xl: 1.5rem;
   --radius-pill: 9999px;
 
-  --shadow-standard: 0 1px 2px rgb(15 23 42 / 0.03), 0 4px 12px rgb(15 23 42 / 0.05);
+  --shadow-subtle: 0 1px 2px rgb(15 23 42 / 0.02), 0 2px 4px rgb(15 23 42 / 0.02);
+  --shadow-standard: 0 1px 3px rgb(15 23 42 / 0.04), 0 4px 12px rgb(15 23 42 / 0.05);
   --shadow-elevated: 0 8px 24px rgb(15 23 42 / 0.08);
+  --shadow-floating: 0 4px 12px rgb(15 23 42 / 0.06), 0 8px 20px rgb(15 23 42 / 0.04);
   --shadow-overlay: 0 20px 48px rgb(7 20 38 / 0.18);
 
   --safe-area-top: env(safe-area-inset-top, 0px);

@@ -111,8 +111,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
         <DailyMoodCheckIn compact userId={userId} onCheckInSaved={() => setRefreshPain(prev => prev + 1)} />
       </section>
 
-      <Card as="section" aria-labelledby="pain-symptoms-title" className="border-line/70 shadow-none" padding="lg">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <section aria-labelledby="pain-symptoms-title" className="space-y-3">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 id="pain-symptoms-title" className="text-heading-2">Pain &amp; symptoms</h2>
             <p className="mt-1 max-w-prose text-small text-foreground-secondary">Record pain, symptoms, possible triggers, and related water intake in one check-in.</p>
@@ -127,7 +127,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
             Log symptoms and pain
           </Button>
         </div>
-      </Card>
+      </section>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start">
         <section id="water-intake-tracker-module" aria-label="Hydration">
@@ -143,7 +143,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
         <UpcomingAppointmentCard userId={userId} onOpenCare={() => onNavigate('care')} />
       </div>
 
-      <Card as="section" aria-labelledby="crisis-help-title" className="border-line/70 shadow-none" padding="lg">
+      <section aria-labelledby="crisis-help-title" className="rounded-card border border-medical-100/60 bg-medical-50 p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 id="crisis-help-title" className="text-heading-2">Need urgent help?</h2>
@@ -159,17 +159,17 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
             Get help
           </Button>
         </div>
-      </Card>
+      </section>
 
-      <details className="group rounded-card border border-line bg-surface">
-        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 rounded-card px-4 py-3 text-body font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:px-5">
+      <details className="group">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 rounded-control px-4 py-3 text-body font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:px-5">
           <span>
             More health tools
             <span className="mt-0.5 block text-small font-normal text-foreground-secondary">Secondary tools — open only what you need</span>
           </span>
           <ChevronDown className="shrink-0 text-foreground-secondary group-open:rotate-180" size={20} aria-hidden="true" />
         </summary>
-        <div className="divide-y divide-line border-t border-line px-4 sm:px-5">
+        <div className="divide-y divide-line/50 border-t border-line/40 px-4 sm:px-5">
           {[
             { title: 'Health guidance', content: <HealthTipsWisdom userName={profileName} userRole="Warrior" /> },
             { title: 'Mood and hydration trends', content: <MoodHydrationTrendsChart userId={userId} refreshTrigger={refreshPain} /> },

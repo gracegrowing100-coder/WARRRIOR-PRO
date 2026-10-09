@@ -92,8 +92,10 @@ module.exports = {
         pill: 'var(--radius-pill)',
       },
       boxShadow: {
+        subtle: 'var(--shadow-subtle)',
         surface: 'var(--shadow-standard)',
         elevated: 'var(--shadow-elevated)',
+        floating: 'var(--shadow-floating)',
         overlay: 'var(--shadow-overlay)',
       },
       fontFamily: {

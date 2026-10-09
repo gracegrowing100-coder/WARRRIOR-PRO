@@ -571,10 +571,10 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
             if (message.role === 'user') {
               return (
                 <div key={message.id} className="flex justify-end">
-                  <article className="max-w-[80%] rounded-[1.25rem] rounded-br-md bg-action-accent px-4 py-3 text-white shadow-sm">
+                  <article className="max-w-[80%] rounded-[1.25rem] rounded-br-md bg-action-accent px-4 py-3 text-white shadow-floating">
                     <span className="sr-only">You</span>
                     <p className="whitespace-pre-wrap text-body">{message.text}</p>
-                    <p className="mt-1.5 text-right text-caption text-white/80">{message.source === 'voice' ? 'Voice transcript' : 'Sent'}{timestamp ? ` · ${timestamp}` : ''}</p>
+                    <p className="mt-1.5 text-right text-caption text-white/70">{message.source === 'voice' ? 'Voice' : 'Sent'}{timestamp ? ` · ${timestamp}` : ''}</p>
                   </article>
                 </div>
               );
@@ -582,10 +582,10 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
 
             return (
               <div key={message.id} className="flex max-w-[92%] items-end gap-2">
-                <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-action-accent text-white"><Bot size={16} /></span>
-                <article className="min-w-0 rounded-[1.25rem] rounded-bl-md border border-line bg-surface px-4 py-3 shadow-surface">
-                  <div className="flex items-center gap-2 text-caption font-semibold text-foreground-secondary">
-                    <span>Mira</span><span className="rounded-pill bg-medical-50 px-2 py-0.5 text-action-accent">AI</span>
+                <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-medical-100 text-action-accent"><Bot size={16} /></span>
+                <article className="min-w-0 rounded-[1.25rem] rounded-bl-md border border-line/60 bg-surface px-4 py-3 shadow-subtle">
+                  <div className="flex items-center gap-2 text-caption font-medium text-foreground-secondary">
+                    <span>Mira</span><span className="rounded-pill bg-medical-50 px-2 py-0.5 text-action-accent text-[10px]">AI</span>
                     <span className="sr-only">Mira (AI)</span>
                   </div>
                   <p className="mt-1 whitespace-pre-wrap text-body text-foreground">{message.text}</p>
@@ -650,9 +650,9 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleSend} className="border-t border-line bg-surface px-3 py-3 sm:px-5" noValidate>
+        <form onSubmit={handleSend} className="border-t border-line/60 bg-surface px-3 py-3 sm:px-5" noValidate>
           <label htmlFor="mira-message-composer" className="sr-only">Your message to Mira</label>
-          <div className="flex items-end gap-1.5 rounded-[1.25rem] border border-line-strong bg-surface-subtle p-1.5 focus-within:border-action-accent focus-within:ring-2 focus-within:ring-medical-100">
+          <div className="flex items-end gap-1.5 rounded-[1.25rem] border border-line/60 bg-surface-subtle p-1.5 focus-within:border-action-accent focus-within:ring-2 focus-within:ring-medical-100 shadow-subtle">
             <Textarea
               id="mira-message-composer"
               rows={1}
