@@ -1,8 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "api/mira.mjs": {
-      "maxDuration": 60
+    "api/mira.ts": {
+      "maxDuration": 60,
+      "includeFiles": "api/_lib/mira-runtime.mjs"
     }
   },
   "rewrites": [
