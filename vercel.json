@@ -3,6 +3,9 @@
   "functions": {
     "api/index.ts": {
       "maxDuration": 60
+    },
+    "api/probeConfig.ts": {
+      "includeFiles": "services/miraConfig.ts"
     }
   },
   "rewrites": [
