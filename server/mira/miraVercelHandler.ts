@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createMiraApiApp } from './miraApiApp.ts';
 
-const app = createMiraApiApp();
+let app: ReturnType<typeof createMiraApiApp> | null = null;
 const allowedRoutes = new Set([
   'mira/chat',
   'mira/transcribe',
@@ -19,5 +19,6 @@ export default function handler(request: IncomingMessage, response: ServerRespon
   }
 
   request.url = `/api/${routedPath}`;
+  app ??= createMiraApiApp();
   app(request, response);
 }

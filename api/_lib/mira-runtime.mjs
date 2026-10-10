@@ -1376,8 +1376,18 @@ function createYarnGptVoiceProvider(options) {
 
 // server/mira/miraApiApp.ts
 var DEFAULT_FIREBASE_PROJECT_ID = "gen-lang-client-0440960552";
+function initializeStage(stage, operation) {
+  try {
+    return operation();
+  } catch (cause) {
+    const error = new Error(`Mira API initialization failed at ${stage}.`, { cause });
+    error.name = "MiraApiInitializationError";
+    error.code = `MIRA_INIT_${stage.toUpperCase()}`;
+    throw error;
+  }
+}
 function createMiraApiApp(options = {}) {
-  const app2 = express();
+  const app2 = initializeStage("express", () => express());
   let geminiInstance = null;
   let provider = null;
   const getGemini = options.getGemini ?? (() => {
@@ -1402,18 +1412,22 @@ function createMiraApiApp(options = {}) {
     });
     return provider;
   };
-  app2.use("/api/mira/transcribe", express.json({ limit: "8mb" }));
-  app2.use("/api/mira", express.json());
-  registerMiraRoutes(app2, {
-    getProvider,
-    projectId: options.projectId || process.env.MIRA_FIREBASE_PROJECT_ID || DEFAULT_FIREBASE_PROJECT_ID
+  initializeStage("middleware", () => {
+    app2.use("/api/mira/transcribe", express.json({ limit: "8mb" }));
+    app2.use("/api/mira", express.json());
   });
-  app2.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+  initializeStage("routes", () => {
+    registerMiraRoutes(app2, {
+      getProvider,
+      projectId: options.projectId || process.env.MIRA_FIREBASE_PROJECT_ID || DEFAULT_FIREBASE_PROJECT_ID
+    });
+    app2.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+  });
   return app2;
 }
 
 // server/mira/miraVercelHandler.ts
-var app = createMiraApiApp();
+var app = null;
 var allowedRoutes = /* @__PURE__ */ new Set([
   "mira/chat",
   "mira/transcribe",
@@ -1429,6 +1443,7 @@ function handler(request, response) {
     return;
   }
   request.url = `/api/${routedPath}`;
+  app ??= createMiraApiApp();
   app(request, response);
 }
 export {

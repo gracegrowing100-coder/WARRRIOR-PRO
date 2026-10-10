@@ -13,8 +13,21 @@ interface MiraApiAppOptions {
   projectId?: string;
 }
 
+type MiraApiInitializationStage = 'express' | 'middleware' | 'routes';
+
+function initializeStage<T>(stage: MiraApiInitializationStage, operation: () => T): T {
+  try {
+    return operation();
+  } catch (cause) {
+    const error = new Error(`Mira API initialization failed at ${stage}.`, { cause }) as Error & { code: string };
+    error.name = 'MiraApiInitializationError';
+    error.code = `MIRA_INIT_${stage.toUpperCase()}`;
+    throw error;
+  }
+}
+
 export function createMiraApiApp(options: MiraApiAppOptions = {}): Express {
-  const app = express();
+  const app = initializeStage('express', () => express());
   let geminiInstance: GoogleGenAI | null = null;
   let provider: MiraProvider | null = null;
 
@@ -44,13 +57,17 @@ export function createMiraApiApp(options: MiraApiAppOptions = {}): Express {
 
   // Audio is base64 encoded, so only transcription receives the larger body
   // allowance. Other Mira routes keep Express's normal JSON limit.
-  app.use('/api/mira/transcribe', express.json({ limit: '8mb' }));
-  app.use('/api/mira', express.json());
-  registerMiraRoutes(app, {
-    getProvider,
-    projectId: options.projectId || process.env.MIRA_FIREBASE_PROJECT_ID || DEFAULT_FIREBASE_PROJECT_ID,
+  initializeStage('middleware', () => {
+    app.use('/api/mira/transcribe', express.json({ limit: '8mb' }));
+    app.use('/api/mira', express.json());
   });
-  app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+  initializeStage('routes', () => {
+    registerMiraRoutes(app, {
+      getProvider,
+      projectId: options.projectId || process.env.MIRA_FIREBASE_PROJECT_ID || DEFAULT_FIREBASE_PROJECT_ID,
+    });
+    app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+  });
 
   return app;
 }

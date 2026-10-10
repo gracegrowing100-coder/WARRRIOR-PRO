@@ -11,6 +11,9 @@ function loadHandler() {
 function failureClass(error: unknown): string {
   const code = String((error as { code?: unknown })?.code ?? '');
   const message = error instanceof Error ? error.message : '';
+  if (code === 'MIRA_INIT_EXPRESS') return 'app-construction';
+  if (code === 'MIRA_INIT_MIDDLEWARE') return 'middleware-registration';
+  if (code === 'MIRA_INIT_ROUTES') return 'route-registration';
   if (code === 'ERR_MODULE_NOT_FOUND' || /cannot find (?:module|package)/i.test(message)) {
     if (message.includes('@google/genai')) return 'missing-google-genai';
     if (message.includes('firebase-admin')) return 'missing-firebase-admin';
