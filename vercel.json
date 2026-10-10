@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    { "source": "/api/health", "destination": "/api?path=health" },
+    { "source": "/api/mira/chat", "destination": "/api?path=mira/chat" },
+    { "source": "/api/mira/transcribe", "destination": "/api?path=mira/transcribe" },
+    { "source": "/api/mira/speak", "destination": "/api?path=mira/speak" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
