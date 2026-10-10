@@ -6,7 +6,7 @@
     }
   },
   "rewrites": [
-    { "source": "/api/health", "destination": "/api?path=health" },
+    { "source": "/api/health", "destination": "/api/status" },
     { "source": "/api/mira/chat", "destination": "/api?path=mira/chat" },
     { "source": "/api/mira/transcribe", "destination": "/api?path=mira/transcribe" },
     { "source": "/api/mira/speak", "destination": "/api?path=mira/speak" },
