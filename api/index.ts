@@ -24,7 +24,15 @@ function classifyInitializationFailure(error: unknown): string {
   const code = String((error as { code?: unknown })?.code ?? '');
   const message = error instanceof Error ? error.message : '';
   if (code === 'ERR_MODULE_NOT_FOUND' || /cannot find (?:module|package)/i.test(message)) {
-    return 'module-not-found';
+    if (message.includes('miraApiApp')) return 'module-not-found:shared-app';
+    if (message.includes('firebase-applet-config')) return 'module-not-found:firebase-config';
+    if (message.includes('firebase-admin')) return 'module-not-found:firebase-admin';
+    if (message.includes('@google/genai')) return 'module-not-found:google-genai';
+    if (message.includes('express')) return 'module-not-found:express';
+    if (message.includes('/server/mira/') || message.includes('\\server\\mira\\')) {
+      return 'module-not-found:internal-mira';
+    }
+    return 'module-not-found:other';
   }
   if (code === 'ERR_IMPORT_ATTRIBUTE_MISSING' || /import attribute/i.test(message)) {
     return 'json-import';
