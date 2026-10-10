@@ -4,7 +4,12 @@ type MiraHandler = (request: IncomingMessage, response: ServerResponse) => void;
 let handlerPromise: Promise<MiraHandler> | null = null;
 
 function loadHandler() {
-  handlerPromise ??= import('./_lib/mira-runtime.mjs').then((module) => module.default as MiraHandler);
+  handlerPromise ??= import('./_lib/mira-runtime.cjs').then((module) => {
+    const commonJsExport = module.default as MiraHandler | { default?: MiraHandler };
+    const candidate = typeof commonJsExport === 'function' ? commonJsExport : commonJsExport.default;
+    if (typeof candidate !== 'function') throw new TypeError('Mira runtime did not export a request handler.');
+    return candidate;
+  });
   return handlerPromise;
 }
 

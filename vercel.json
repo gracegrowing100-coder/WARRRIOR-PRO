@@ -3,7 +3,7 @@
   "functions": {
     "api/mira.ts": {
       "maxDuration": 60,
-      "includeFiles": "api/_lib/mira-runtime.mjs"
+      "includeFiles": "api/_lib/mira-runtime.cjs"
     }
   },
   "rewrites": [

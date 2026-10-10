@@ -66,7 +66,7 @@ describe('Mira production function entry', () => {
   });
 
   it('ships a self-contained Mira function bundle without relative runtime imports', async () => {
-    const bundle = await readFile(path.resolve('api/_lib/mira-runtime.mjs'), 'utf8');
+    const bundle = await readFile(path.resolve('api/_lib/mira-runtime.cjs'), 'utf8');
     expect(bundle).toContain('Generated from server/mira/miraVercelHandler.ts');
     expect(bundle).not.toMatch(/\bfrom\s+["']\.\.?\//);
     expect(bundle).not.toMatch(/\bimport\(["']\.\.?\//);
