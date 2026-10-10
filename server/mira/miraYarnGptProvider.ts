@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import type { MiraLanguageCode } from '../../services/miraConfig';
+import type { MiraLanguageCode } from '../../services/miraConfig.ts';
 import {
   MiraProviderError,
   type MiraSpeechInput,
   type MiraTranscriptionInput,
   type MiraVoiceProvider,
-} from './miraProvider';
+} from './miraProvider.ts';
 
 export const YARNGPT_BASE_URL = 'https://api.yarngpt.ai';
 export const YARNGPT_ASR_MODEL = 'yarngpt-asr-v1';

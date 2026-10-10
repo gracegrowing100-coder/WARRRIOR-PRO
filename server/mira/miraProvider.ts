@@ -1,4 +1,4 @@
-import type { MiraLanguageCode } from '../../services/miraConfig';
+import type { MiraLanguageCode } from '../../services/miraConfig.ts';
 
 export class MiraProviderError extends Error {
   readonly code = 'provider_unavailable' as const;

@@ -1,11 +1,12 @@
 import { GoogleGenAI } from '@google/genai';
 import express, { type Express } from 'express';
-import firebaseConfig from '../../firebase-applet-config.json';
-import type { MiraProvider } from './miraProvider';
-import { createGeminiMiraProvider } from './miraGeminiProvider';
-import { registerMiraRoutes } from './miraRoutes';
-import { createMiraProviderWithVoiceSelection } from './miraVoiceProvider';
-import { createYarnGptVoiceProvider } from './miraYarnGptProvider';
+import type { MiraProvider } from './miraProvider.ts';
+import { createGeminiMiraProvider } from './miraGeminiProvider.ts';
+import { registerMiraRoutes } from './miraRoutes.ts';
+import { createMiraProviderWithVoiceSelection } from './miraVoiceProvider.ts';
+import { createYarnGptVoiceProvider } from './miraYarnGptProvider.ts';
+
+const DEFAULT_FIREBASE_PROJECT_ID = 'gen-lang-client-0440960552';
 
 interface MiraApiAppOptions {
   getGemini?: () => GoogleGenAI | null;
@@ -47,7 +48,7 @@ export function createMiraApiApp(options: MiraApiAppOptions = {}): Express {
   app.use('/api/mira', express.json());
   registerMiraRoutes(app, {
     getProvider,
-    projectId: options.projectId || process.env.MIRA_FIREBASE_PROJECT_ID || firebaseConfig.projectId,
+    projectId: options.projectId || process.env.MIRA_FIREBASE_PROJECT_ID || DEFAULT_FIREBASE_PROJECT_ID,
   });
   app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 

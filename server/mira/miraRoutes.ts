@@ -12,16 +12,16 @@ import {
   miraVoiceCapability,
   resolveMiraVoiceCapability,
   type MiraLanguageCode,
-} from '../../services/miraConfig';
-import { authenticateMiraRequest } from './miraAuth';
+} from '../../services/miraConfig.ts';
+import { authenticateMiraRequest } from './miraAuth.ts';
 import {
   MIRA_EMERGENCY_GUIDANCE,
   MIRA_HANDOFF_LABEL,
   MIRA_URGENT_REPLY,
   buildMiraHandoffDraft,
   classifyMiraEscalation,
-} from './miraSafety';
-import type { MiraProvider, MiraChatTurn } from './miraProvider';
+} from './miraSafety.ts';
+import type { MiraProvider, MiraChatTurn } from './miraProvider.ts';
 
 export const MIRA_MAX_MESSAGE_CHARS = 2000;
 export const MIRA_MAX_HISTORY_TURNS = 8;

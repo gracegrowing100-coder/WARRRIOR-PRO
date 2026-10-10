@@ -6,8 +6,8 @@
 // the routes, not faked here.
 
 import type { GoogleGenAI } from '@google/genai';
-import { miraLanguageDefinition } from '../../services/miraConfig';
-import { applyMiraIdentityGuard } from './miraSafety';
+import { miraLanguageDefinition } from '../../services/miraConfig.ts';
+import { applyMiraIdentityGuard } from './miraSafety.ts';
 import {
   MiraProviderError,
   type MiraChatInput,
@@ -16,7 +16,7 @@ import {
   type MiraProvider,
   type MiraSpeechInput,
   type MiraTranscriptionInput,
-} from './miraProvider';
+} from './miraProvider.ts';
 
 export const MIRA_CHAT_MODEL_CANDIDATES = [
   { model: 'gemini-3.5-flash-lite', timeoutMs: 12_000 },

@@ -1,4 +1,4 @@
-import type { MiraLanguageCode } from './miraConfig';
+import type { MiraLanguageCode } from './miraConfig.ts';
 
 export const MIRA_CLINICAL_INTENTS = [
   'education',

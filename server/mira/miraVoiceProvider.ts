@@ -1,5 +1,5 @@
-import type { MiraLanguageCode } from '../../services/miraConfig';
-import { MiraProviderError, type MiraProvider, type MiraVoiceProvider } from './miraProvider';
+import type { MiraLanguageCode } from '../../services/miraConfig.ts';
+import { MiraProviderError, type MiraProvider, type MiraVoiceProvider } from './miraProvider.ts';
 
 export type MiraVoiceProviderId = 'yarngpt' | 'gemini';
 

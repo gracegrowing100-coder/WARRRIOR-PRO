@@ -1,9 +1,9 @@
-import type { MiraLanguageCode } from '../../services/miraConfig';
+import type { MiraLanguageCode } from '../../services/miraConfig.ts';
 import type {
   MiraClinicalUrgency,
   MiraSafetyCategory,
   MiraSafetyDetectionLevel,
-} from '../../services/miraClinicalContracts';
+} from '../../services/miraClinicalContracts.ts';
 
 export interface MiraSafetyCategoryDefinition {
   category: MiraSafetyCategory;

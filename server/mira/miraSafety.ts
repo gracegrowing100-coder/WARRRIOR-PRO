@@ -5,16 +5,16 @@
 // that removes first-person clinician claims from generated text, and a
 // handoff draft builder that only restates what the patient explicitly wrote.
 
-import type { MiraLanguageCode } from '../../services/miraConfig';
+import type { MiraLanguageCode } from '../../services/miraConfig.ts';
 import type {
   MiraClinicalUrgency,
   MiraSafetyCategory,
   MiraSafetyResult,
-} from '../../services/miraClinicalContracts';
+} from '../../services/miraClinicalContracts.ts';
 import {
   MIRA_SAFETY_CATEGORY_DEFINITIONS,
   type MiraSafetyCategoryDefinition,
-} from './miraSafetyCategories';
+} from './miraSafetyCategories.ts';
 
 export const MIRA_AI_IDENTITY_LINE =
   'Mira is an AI assistant, not a doctor, and no clinician has verified this message.';
