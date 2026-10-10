@@ -6,10 +6,10 @@ const allowedRoutes = new Set([
   'mira/transcribe',
   'mira/speak',
 ]);
-let appPromise: Promise<ReturnType<typeof import('../server/mira/miraApiApp')['createMiraApiApp']>> | null = null;
+let appPromise: Promise<ReturnType<typeof import('../server/mira/miraApiApp.ts')['createMiraApiApp']>> | null = null;
 
 function loadApp() {
-  appPromise ??= import('../server/mira/miraApiApp')
+  appPromise ??= import('../server/mira/miraApiApp.ts')
     .then(({ createMiraApiApp }) => createMiraApiApp());
   return appPromise;
 }
