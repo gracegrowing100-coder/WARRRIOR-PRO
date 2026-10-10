@@ -284,6 +284,12 @@ const App: React.FC = () => {
           <PatientNavigation
             currentDestination={currentNavigationDestination}
             onNavigate={navigate}
+            appName={t.appName}
+            connectivityLabel={isOffline ? 'Offline Mode' : 'Live & Offline Protected'}
+            isOffline={isOffline}
+            profileLabel={user?.displayName || 'Your profile'}
+            profilePhotoUrl={user?.photoURL}
+            onOpenProfile={() => setShowProfile(true)}
             labels={{
               home: t.home,
               chat: t.chat,
@@ -360,11 +366,11 @@ const App: React.FC = () => {
           />
         )}
       >
-        <PageContainer>{renderPage()}</PageContainer>
+        <PageContainer width={currentPage === 'home' ? 'home' : 'patient'}>{renderPage()}</PageContainer>
       </AppShell>
 
       {/* Emergency Action & Offline Multilingual AI Companion */}
-      <div data-semantic className="fixed bottom-[calc(4rem+var(--safe-area-bottom)+0.5rem)] right-3 z-50 flex h-11 items-center justify-end gap-2 md:inset-x-0 md:left-56 md:bottom-0 md:h-[calc(4rem+var(--safe-area-bottom))] md:gap-3 md:border-t md:border-line md:bg-surface md:px-4 md:pb-[var(--safe-area-bottom)]" aria-label="Patient support">
+      <div data-semantic className="fixed bottom-[calc(4.5rem+var(--safe-area-bottom)+0.75rem)] left-3 right-3 z-50 flex h-11 items-center justify-end gap-2 md:inset-x-0 md:left-64 md:bottom-0 md:h-[calc(4rem+var(--safe-area-bottom))] md:gap-3 md:border-t md:border-line md:bg-surface md:px-4 md:pb-[var(--safe-area-bottom)]" aria-label="Patient support">
         <EmergencyButton userId={user?.uid || ''} />
         <OfflineWarriorAI
           currentLanguage={language}

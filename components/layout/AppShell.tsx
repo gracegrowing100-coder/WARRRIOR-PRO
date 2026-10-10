@@ -20,7 +20,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       className,
     )}
   >
-    <main className="mb-[calc(7.5rem+var(--safe-area-bottom))] min-h-0 min-w-0 flex-1 overflow-y-auto md:mb-[calc(4rem+var(--safe-area-bottom))] md:ml-56">
+    <main className="mb-[calc(8.75rem+var(--safe-area-bottom))] min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain md:mb-[calc(4rem+var(--safe-area-bottom))] md:ml-64">
       {header}
       {children}
     </main>

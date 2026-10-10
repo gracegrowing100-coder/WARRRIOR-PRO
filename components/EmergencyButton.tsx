@@ -63,7 +63,7 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({ userId }) => {
         onClick={() => setIsOpen(true)}
         type="button"
         data-ui-control
-        className="flex min-h-11 items-center justify-center gap-2 rounded-control bg-action-accent px-3 text-small font-semibold text-white hover:bg-action-accent-hover"
+        className="flex min-h-11 flex-1 touch-manipulation select-none items-center justify-center gap-2 rounded-control bg-action-accent px-4 text-small font-semibold text-white shadow-elevated active:bg-action-accent-hover hover:bg-action-accent-hover md:flex-none md:shadow-none"
       >
         <ShieldAlert className="h-5 w-5" aria-hidden="true" />
         <span>Emergency HUD</span>

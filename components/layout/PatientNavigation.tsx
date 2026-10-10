@@ -4,6 +4,8 @@ import {
   Home,
   MessageSquare,
   MoreHorizontal,
+  ShieldCheck,
+  User,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -23,6 +25,12 @@ export interface PatientNavigationProps {
   currentDestination: PatientNavigationDestination;
   onNavigate: (destination: PatientNavigationDestination) => void;
   labels?: PatientNavigationLabels;
+  appName?: string;
+  connectivityLabel?: string;
+  isOffline?: boolean;
+  profileLabel?: string;
+  profilePhotoUrl?: string | null;
+  onOpenProfile?: () => void;
   className?: string;
 }
 
@@ -49,17 +57,37 @@ export const PatientNavigation: React.FC<PatientNavigationProps> = ({
   currentDestination,
   onNavigate,
   labels = defaultLabels,
+  appName = 'WARRIOR AI',
+  connectivityLabel = 'Live & Offline Protected',
+  isOffline = false,
+  profileLabel = 'Profile',
+  profilePhotoUrl,
+  onOpenProfile,
   className,
 }) => (
-  <nav
-    aria-label="Patient navigation"
+  <aside
     className={cn(
-      'fixed inset-x-0 bottom-0 z-50 border-t border-line bg-surface pb-[var(--safe-area-bottom)]',
-      'md:inset-y-0 md:right-auto md:w-56 md:border-r md:border-t-0 md:pb-0',
+      'fixed inset-x-0 bottom-0 z-50 border-t border-line bg-surface',
+      'md:inset-y-0 md:right-auto md:flex md:w-64 md:flex-col md:border-r md:border-t-0 md:pb-0',
       className,
     )}
   >
-    <div className="grid min-h-16 grid-cols-5 items-stretch px-1 md:flex md:h-full md:flex-col md:gap-1.5 md:px-3 md:py-5">
+    <div className="hidden px-5 pb-7 pt-6 md:block">
+      <div className="flex items-center gap-3">
+        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-action-accent text-lg font-bold text-white shadow-subtle">W</span>
+        <span className="min-w-0">
+          <span className="block truncate text-lg font-bold tracking-tight text-foreground">{appName}</span>
+          <span className="mt-0.5 flex items-center gap-1.5 text-caption text-foreground-secondary">
+            <span className={cn('h-2 w-2 shrink-0 rounded-full', isOffline ? 'bg-status-warning' : 'bg-status-success')} />
+            <span className="truncate">{connectivityLabel}</span>
+          </span>
+        </span>
+      </div>
+    </div>
+
+    <nav aria-label="Patient navigation" className="pb-[var(--safe-area-bottom)] md:flex md:min-h-0 md:flex-1 md:flex-col md:pb-0">
+      <p className="hidden px-6 pb-2 text-caption font-bold uppercase tracking-[0.12em] text-foreground-secondary md:block">Patient hub</p>
+      <div className="grid min-h-[4.5rem] grid-cols-5 items-stretch px-1 md:flex md:min-h-0 md:flex-col md:gap-2 md:px-3">
       {destinations.map(({ id, icon: Icon }) => {
         const isCurrent = currentDestination === id;
         return (
@@ -69,11 +97,11 @@ export const PatientNavigation: React.FC<PatientNavigationProps> = ({
             aria-current={isCurrent ? 'page' : undefined}
             onClick={() => onNavigate(id)}
             className={cn(
-              'flex min-h-14 min-w-0 touch-manipulation select-none flex-col items-center justify-center gap-0.5 rounded-control px-0 transition-all duration-150',
+              'flex min-h-16 min-w-0 touch-manipulation select-none flex-col items-center justify-center gap-1 rounded-control px-0 transition-colors duration-150',
               'text-[11px] leading-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2',
-              'md:min-h-12 md:w-full md:flex-row md:justify-start md:gap-3 md:px-4 md:text-small',
+              'md:min-h-14 md:w-full md:flex-row md:justify-start md:gap-3 md:px-4 md:text-small',
               isCurrent
-                ? 'font-bold text-action-accent bg-medical-50/50'
+                ? 'bg-medical-50 font-bold text-action-accent dark:bg-medical-950/45 dark:text-medical-200'
                 : 'font-medium text-foreground-secondary hover:bg-surface-subtle hover:text-foreground',
             )}
           >
@@ -90,6 +118,30 @@ export const PatientNavigation: React.FC<PatientNavigationProps> = ({
           </button>
         );
       })}
-    </div>
-  </nav>
+      </div>
+    </nav>
+
+    {onOpenProfile ? (
+      <div className="mt-auto hidden border-t border-line p-4 md:block">
+        <button
+          type="button"
+          aria-label="Open desktop profile"
+          className="flex min-h-14 w-full items-center gap-3 rounded-control bg-surface-subtle px-3 text-left transition-colors hover:bg-disabled focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+          onClick={onOpenProfile}
+        >
+          {profilePhotoUrl ? (
+            <img src={profilePhotoUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+          ) : (
+            <span aria-hidden="true" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-medical-50 text-action-accent dark:bg-medical-950/50 dark:text-medical-200">
+              <User size={19} />
+            </span>
+          )}
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-small font-semibold text-foreground">{profileLabel}</span>
+            <span className="mt-0.5 flex items-center gap-1 text-caption text-foreground-secondary"><ShieldCheck size={13} aria-hidden="true" /> Secure account</span>
+          </span>
+        </button>
+      </div>
+    ) : null}
+  </aside>
 );

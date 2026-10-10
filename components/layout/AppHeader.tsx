@@ -46,8 +46,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   }, [settingsOpen]);
 
   return (
-    <header data-semantic className="sticky top-0 z-40 flex items-center justify-between gap-2 border-b border-line bg-surface px-4 py-2.5 text-foreground sm:py-3">
-      <button type="button" data-ui-control className="flex min-h-11 min-w-0 items-center gap-2.5 rounded-control text-left" onClick={onHome} aria-label={`${appName} Home`}>
+    <header data-semantic className="sticky top-0 z-40 flex min-h-[4.75rem] items-center justify-between gap-3 border-b border-line bg-surface/95 px-4 py-3 text-foreground backdrop-blur sm:px-5 lg:min-h-20 lg:px-8">
+      <button type="button" data-ui-control className="flex min-h-11 min-w-0 items-center gap-2.5 rounded-control text-left md:hidden" onClick={onHome} aria-label={`${appName} Home`}>
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-action-accent font-bold text-white">
           W
         </span>
@@ -66,7 +66,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </span>
       </button>
 
-      <div className="relative flex shrink-0 items-center gap-2">
+      <div className="hidden items-center gap-2 md:flex">
+        <span className={cn('h-2 w-2 rounded-full', isOffline ? 'bg-status-warning' : 'bg-status-success')} aria-hidden="true" />
+        <span className="text-small font-medium text-foreground-secondary">{connectivityLabel}</span>
+      </div>
+
+      <div className="relative ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
         <button
           ref={settingsTriggerRef}
           type="button"
@@ -93,7 +98,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           {actions}
         </div>
 
-        {accountAction}
+        {accountAction ? <div className="md:hidden">{accountAction}</div> : null}
       </div>
     </header>
   );

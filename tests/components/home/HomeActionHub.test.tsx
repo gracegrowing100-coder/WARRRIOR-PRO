@@ -15,11 +15,15 @@ describe('HomeActionHub', () => {
       onOpenCare: vi.fn(),
     };
 
-    render(<HomeActionHub {...actions} />);
+    const { container } = render(<HomeActionHub {...actions} />);
+
+    expect(container.querySelector('.grid-cols-2')).toHaveClass('md:grid-cols-4', 'xl:grid-cols-1');
+    expect(screen.getByRole('button', { name: 'Log symptoms and pain' })).toHaveClass('min-h-32');
+    expect(screen.getByRole('button', { name: /Open Care/i })).toHaveClass('w-full', 'min-h-14');
 
     await user.click(screen.getByRole('button', { name: 'Log symptoms and pain' }));
     await user.click(screen.getByRole('button', { name: /Add water/i }));
-    await user.click(screen.getByRole('button', { name: /Review medication/i }));
+    await user.click(screen.getByRole('button', { name: /Medication/i }));
     await user.click(screen.getByRole('button', { name: /Ask Mira/i }));
     await user.click(screen.getByRole('button', { name: /Open Care/i }));
 

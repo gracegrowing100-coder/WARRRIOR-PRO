@@ -34,10 +34,10 @@ describe('Compact Home activities preserve their workflows', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Good & Steady'}));
     await waitFor(() => expect(service.saveDailyMoodCheckIn).toHaveBeenCalledWith('test-patient', new Date().toLocaleDateString('sv'), expect.objectContaining({emoji: '😊', emotion: 'Good & Steady', score: 8, note: ''})));
     expect(onSaved).toHaveBeenCalledTimes(1);
-    await userEvent.click(screen.getByRole('button', {name: 'Edit Check-In'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Edit'}));
     await userEvent.click(screen.getByRole('button', {name: 'Calm & Restful'}));
     expect(service.saveDailyMoodCheckIn).toHaveBeenCalledTimes(1);
-    await userEvent.click(screen.getByRole('button', {name: 'Save Check-In (Calm & Restful)'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save (Calm & Restful)'}));
     expect(service.saveDailyMoodCheckIn).toHaveBeenLastCalledWith('test-patient', expect.any(String), expect.objectContaining({emotion: 'Calm & Restful', score: 7.5}));
   });
 
@@ -45,7 +45,7 @@ describe('Compact Home activities preserve their workflows', () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     render(<WaterIntakeTracker compact userId="test-patient" />);
     await screen.findByText('1.00 L of 3.00 L');
-    await userEvent.click(screen.getByRole('button', {name: '+250ml'}));
+    await userEvent.click(screen.getByRole('button', {name: '+250 ml'}));
     expect(service.saveWaterLog).toHaveBeenCalledWith('test-patient', new Date().toLocaleDateString('sv'), 1.25, 3);
     await userEvent.click(screen.getByRole('button', {name: 'Reset hydration logs'}));
     expect(service.saveWaterLog).toHaveBeenLastCalledWith('test-patient', expect.any(String), 0, 3);
@@ -55,7 +55,7 @@ describe('Compact Home activities preserve their workflows', () => {
   it('limits the Home preview to two records and keeps full-list actions accessible', async () => {
     render(<MedicationReminder compact userId="test-patient" />);
     await screen.findByRole('button', {name: 'View full schedule (4)'});
-    expect(screen.getByText('0 taken · 4 pending today')).toBeInTheDocument();
+    expect(screen.getByText('0 taken · 4 pending')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Mark Medication 0 5mg at 08:00 as taken'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Mark Medication 1 5mg at 08:00 as taken'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /Mark Medication 2/})).not.toBeInTheDocument();

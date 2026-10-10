@@ -116,7 +116,7 @@ export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId, compac
 
   if (compact) {
     return (
-      <Card data-semantic className="h-full border-line/80 shadow-surface" padding="lg">
+      <Card data-semantic className="flex min-h-[18rem] h-full flex-col border-line/80 shadow-surface sm:min-h-[19rem]" padding="lg">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <span aria-hidden="true" className="inline-flex h-11 w-11 items-center justify-center rounded-control bg-status-info-soft text-status-info">
@@ -137,8 +137,8 @@ export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId, compac
           <ProgressBar className="mt-5" value={amount} max={goal} label="Daily goal" valueText={`${amount.toFixed(2)} L of ${goal.toFixed(2)} L`} tone="info" />
         )}
         {saveMessage && <p role="status" className="mt-2 text-small text-foreground-secondary">{saveMessage}</p>}
-        <div className="mt-5 grid grid-cols-2 gap-2">
-          {[0.25, 0.5, 0.75, 1].map(liters => <Button key={liters} variant="secondary" size="sm" onClick={() => addWater(liters)}>+{liters === 1 ? '1 litre' : `${liters * 1000} ml`}</Button>)}
+        <div className="mt-auto grid grid-cols-2 gap-3 pt-6">
+          {[0.25, 0.5, 0.75, 1].map(liters => <Button key={liters} variant="secondary" size="sm" className="min-h-12" onClick={() => addWater(liters)}>+{liters === 1 ? '1 litre' : `${liters * 1000} ml`}</Button>)}
         </div>
       </Card>
     );

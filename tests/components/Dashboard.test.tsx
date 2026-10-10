@@ -81,16 +81,18 @@ describe('Patient Home critical rendering', () => {
       screen.getByRole('heading', { name: /Good (morning|afternoon|evening)/i }),
       screen.getByTestId('todays-health'),
       screen.getByText('Daily mood for patient-1'),
-      screen.getByRole('heading', { name: 'Record how you feel' }),
       container.querySelector('#water-intake-tracker-module') as HTMLElement,
       container.querySelector('#medication-reminder-card') as HTMLElement,
-      screen.getByTestId('recent-health'),
       screen.getByTestId('appointment'),
+      screen.getByRole('heading', { name: 'Record how you feel' }),
       screen.getByRole('heading', { name: 'Need urgent help?' }),
+      screen.getByTestId('recent-health'),
     ];
     ordered.slice(1).forEach((element, index) => {
       expect(ordered[index].compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
+    expect(container.querySelector('#daily-check-in-card')?.parentElement).toHaveClass('xl:flex', 'xl:flex-col', 'xl:gap-8');
+    expect(container.querySelector('#water-intake-tracker-module')).toHaveClass('order-2', 'xl:order-none');
   });
 
   it('preserves the symptom save contract', async () => {

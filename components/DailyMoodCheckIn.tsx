@@ -185,7 +185,7 @@ export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCh
 
   if (compact) {
     return (
-      <Card data-semantic className="h-full border-line/80 shadow-surface" padding="lg">
+      <Card data-semantic className="h-full min-h-[17rem] border-line/80 shadow-surface" padding="lg">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-medical-50 text-action-accent">

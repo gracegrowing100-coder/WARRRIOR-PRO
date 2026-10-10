@@ -267,10 +267,10 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
     .slice(0, 2);
 
   return (
-    <div className={compact ? 'relative' : 'bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-sm border border-gray-100 dark:border-slate-800/80 flex flex-col relative overflow-hidden transition-all duration-300'}>
-      {compact && <Card data-semantic className="h-full border-line/80 shadow-surface" padding="lg">
+    <div className={compact ? 'relative h-full' : 'bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-sm border border-gray-100 dark:border-slate-800/80 flex flex-col relative overflow-hidden transition-all duration-300'}>
+      {compact && <Card data-semantic className="min-h-[18rem] h-full border-line/80 shadow-surface sm:min-h-[19rem]" padding="lg">
         <div className="flex items-center gap-3">
-          <span aria-hidden="true" className="inline-flex h-11 w-11 items-center justify-center rounded-control bg-medical-50 text-action-accent">
+          <span aria-hidden="true" className="inline-flex h-11 w-11 items-center justify-center rounded-control bg-medical-50 text-action-accent dark:bg-medical-950/55 dark:text-medical-200">
             <Pill size={22} />
           </span>
           <div>

@@ -111,65 +111,79 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
 
   return (
-    <div data-semantic className="space-y-5 pb-4 sm:space-y-6">
-      <header className="px-1 pb-1">
-        <p className="text-small font-semibold text-action-accent">
+    <div data-semantic className="space-y-7 pb-8 sm:space-y-8 lg:space-y-9">
+      <header className="px-1 pb-1 lg:pt-2">
+        <p className="text-small font-bold uppercase tracking-[0.08em] text-action-accent">
           {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
-        <h1 className="mt-1 text-heading-1 text-foreground">{greeting}, {firstName}</h1>
-        <p className="mt-1 max-w-2xl text-body text-foreground-secondary">Your health, routines, and next steps for today.</p>
+        <h1 className="mt-2 max-w-3xl text-[1.9rem] font-bold leading-tight tracking-[-0.03em] text-foreground sm:text-[2.25rem] lg:text-[2.65rem]">{greeting}, {firstName}</h1>
+        <p className="mt-2 max-w-2xl text-body text-foreground-secondary sm:text-lg">Your health, routines, and next steps for today.</p>
       </header>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(18rem,0.9fr)] lg:items-stretch">
-        <TodaysHealthCard
-          userId={userId}
-          refreshKey={refreshPain}
-          onStartCheckIn={() => scrollToHomeSection('daily-check-in-card')}
-        />
-        <section id="daily-check-in-card" aria-label="Daily check-in" className="min-w-0 scroll-mt-24">
-          <DailyMoodCheckIn compact userId={userId} onCheckInSaved={() => setRefreshPain(prev => prev + 1)} />
-        </section>
-      </div>
-
-      <HomeActionHub
-        onLogHealth={() => setIsModalOpen(true)}
-        onAddWater={() => scrollToHomeSection('water-intake-tracker-module')}
-        onReviewMedication={() => scrollToHomeSection('medication-reminder-card')}
-        onOpenMira={() => onNavigate('chat')}
-        onOpenCare={() => onNavigate('care')}
+      <TodaysHealthCard
+        userId={userId}
+        refreshKey={refreshPain}
+        onStartCheckIn={() => scrollToHomeSection('daily-check-in-card')}
       />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start">
-        <section id="water-intake-tracker-module" aria-label="Hydration" className="scroll-mt-24">
-          <WaterIntakeTracker compact userId={userId} />
-        </section>
-        <section id="medication-reminder-card" aria-label="Medication" className="scroll-mt-24">
-          <MedicationReminder compact userId={userId} />
-        </section>
-      </div>
+      <div className="grid grid-cols-1 gap-6 lg:gap-7 xl:grid-cols-[minmax(0,3fr)_minmax(19rem,1fr)] xl:items-start xl:gap-8">
+        <div className="contents xl:col-start-1 xl:row-start-1 xl:flex xl:min-w-0 xl:flex-col xl:gap-8">
+          <section id="daily-check-in-card" aria-label="Daily check-in" className="order-4 min-w-0 scroll-mt-24 xl:order-none">
+            <DailyMoodCheckIn compact userId={userId} onCheckInSaved={() => setRefreshPain(prev => prev + 1)} />
+          </section>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start">
-        <RecentHealthSummary userId={userId} refreshKey={refreshPain} />
-        <UpcomingAppointmentCard userId={userId} onOpenCare={() => onNavigate('care')} />
-      </div>
+          <section id="water-intake-tracker-module" aria-label="Hydration" className="order-2 min-w-0 scroll-mt-24 xl:order-none">
+            <WaterIntakeTracker compact userId={userId} />
+          </section>
 
-      <section aria-labelledby="crisis-help-title" className="rounded-card border border-medical-100/60 bg-medical-50 p-5 sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 id="crisis-help-title" className="text-heading-2">Need urgent help?</h2>
-            <p className="mt-1 max-w-prose text-small text-foreground-secondary">Open your existing emergency information and contact options.</p>
+          <section id="medication-reminder-card" aria-label="Medication" className="order-3 min-w-0 scroll-mt-24 xl:order-none">
+            <MedicationReminder compact userId={userId} />
+          </section>
+
+          <div className="order-5 min-w-0 xl:order-none">
+            <UpcomingAppointmentCard userId={userId} onOpenCare={() => onNavigate('care')} />
           </div>
-          <Button
-            variant="danger"
-            size="lg"
-            leadingIcon={<LifeBuoy size={19} />}
-            className="shrink-0"
-            onClick={() => document.getElementById('emergency-fab')?.click()}
-          >
-            Get help
-          </Button>
         </div>
-      </section>
+
+        <aside aria-label="Home shortcuts and support" className="contents xl:col-start-2 xl:row-start-1 xl:flex xl:min-w-0 xl:flex-col xl:gap-8">
+          <div className="order-1 xl:order-none">
+            <HomeActionHub
+              onLogHealth={() => setIsModalOpen(true)}
+              onAddWater={() => scrollToHomeSection('water-intake-tracker-module')}
+              onReviewMedication={() => scrollToHomeSection('medication-reminder-card')}
+              onOpenMira={() => onNavigate('chat')}
+              onOpenCare={() => onNavigate('care')}
+            />
+          </div>
+
+          <section aria-labelledby="crisis-help-title" className="order-7 rounded-card border border-medical-100/70 bg-medical-50 p-5 shadow-subtle dark:border-medical-700/40 dark:bg-medical-900/20 sm:p-6 xl:order-none">
+            <div className="flex h-full min-h-[13rem] flex-col gap-5">
+              <div className="flex items-start gap-3">
+                <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-white text-action-accent shadow-subtle dark:bg-medical-950/70 dark:text-medical-200">
+                  <LifeBuoy size={21} />
+                </span>
+                <div>
+                  <h2 id="crisis-help-title" className="text-heading-2">Need urgent help?</h2>
+                  <p className="mt-1 max-w-prose text-small text-foreground-secondary">Open your existing emergency information and contact options.</p>
+                </div>
+              </div>
+              <Button
+                variant="danger"
+                size="lg"
+                leadingIcon={<LifeBuoy size={19} />}
+                className="mt-auto w-full shrink-0"
+                onClick={() => document.getElementById('emergency-fab')?.click()}
+              >
+                Get help
+              </Button>
+            </div>
+          </section>
+
+          <div className="order-6 min-w-0 xl:order-none">
+            <RecentHealthSummary userId={userId} refreshKey={refreshPain} />
+          </div>
+        </aside>
+      </div>
 
       <details className="group">
         <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 rounded-control px-4 py-3 text-body font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:px-5">

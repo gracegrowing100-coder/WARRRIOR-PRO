@@ -101,8 +101,8 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
       <p className="mt-1 text-small text-foreground-secondary">A recorded request. Clinic acceptance and availability are not confirmed here.</p>
 
       {appointment ? (
-        <div className="mt-5">
-          <div className="flex items-start gap-3">
+        <div className="mt-6 sm:flex sm:items-end sm:justify-between sm:gap-6">
+          <div className="flex min-w-0 items-start gap-3">
             <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-status-info-soft text-status-info" aria-hidden="true">
               <CalendarDays size={22} />
             </span>
@@ -114,12 +114,12 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
               </p>
             </div>
           </div>
-          <Button className="mt-5" onClick={onOpenCare}>View requests</Button>
+          <Button className="mt-5 w-full sm:mt-0 sm:w-auto sm:shrink-0" onClick={onOpenCare}>View requests</Button>
         </div>
       ) : (
-        <div className="mt-5">
-          <p className="rounded-card bg-surface-subtle p-4 text-body text-foreground-secondary">No current appointment request is recorded.</p>
-          <Button className="mt-4" onClick={onOpenCare}>Open Care</Button>
+        <div className="mt-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
+          <p className="flex-1 rounded-card bg-surface-subtle p-4 text-body text-foreground-secondary">No current appointment request is recorded.</p>
+          <Button className="mt-4 w-full sm:mt-0 sm:w-auto sm:shrink-0" onClick={onOpenCare}>Open Care</Button>
         </div>
       )}
     </Card>

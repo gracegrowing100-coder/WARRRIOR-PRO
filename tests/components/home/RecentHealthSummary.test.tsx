@@ -33,16 +33,16 @@ describe('RecentHealthSummary', () => {
 
     render(<RecentHealthSummary userId="patient-1" />);
 
-    expect(await screen.findAllByText('1 days', { selector: 'dd' })).toHaveLength(2);
-    expect(screen.getByText('1', { selector: 'dd' })).toBeInTheDocument();
-    expect(screen.getByText('Latest recorded: 3 / 10')).toBeInTheDocument();
+    expect(await screen.findAllByText('Recorded on 1 day', { selector: 'dd' })).toHaveLength(2);
+    expect(screen.getByText('1 recorded · latest 3 / 10', { selector: 'dd' })).toBeInTheDocument();
     expect(screen.queryByText('9 / 10')).not.toBeInTheDocument();
   });
 
   it('does not invent a trend when no records exist', async () => {
     render(<RecentHealthSummary userId="patient-1" />);
 
-    expect(await screen.findByText(/No check-ins, hydration amounts, or pain entries/i)).toBeInTheDocument();
+    expect(await screen.findByText('No recent health activity')).toBeInTheDocument();
+    expect(screen.getByText(/Check-ins, hydration, and pain entries from the last seven days/i)).toBeInTheDocument();
     expect(screen.queryByText(/improved|declined|stable/i)).not.toBeInTheDocument();
   });
 });

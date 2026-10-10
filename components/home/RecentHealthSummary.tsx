@@ -72,7 +72,7 @@ export const RecentHealthSummary: React.FC<RecentHealthSummaryProps> = ({ userId
     return (
       <Card as="section" aria-labelledby="recent-health-title" padding="lg">
         <h2 id="recent-health-title" className="text-heading-2">Recent health summary</h2>
-        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="mt-5 space-y-3">
           <Skeleton className="min-h-24" />
           <Skeleton className="min-h-24" />
           <Skeleton className="min-h-24" />
@@ -105,37 +105,53 @@ export const RecentHealthSummary: React.FC<RecentHealthSummaryProps> = ({ userId
 
   return (
     <Card as="section" aria-labelledby="recent-health-title" className="border-line/70 shadow-none" padding="lg">
-      <h2 id="recent-health-title" className="text-heading-2">Recent health summary</h2>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-caption font-bold uppercase tracking-[0.1em] text-foreground-secondary">Recorded activity</p>
+          <h2 id="recent-health-title" className="mt-1 text-heading-2">Recent health</h2>
+        </div>
+        <span className="rounded-pill bg-surface-subtle px-3 py-1 text-caption font-semibold text-foreground-secondary">7 days</span>
+      </div>
       <p className="mt-1 text-small text-foreground-secondary">Recorded entries from the last seven days only.</p>
 
       {hasRecords ? (
-        <dl className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-card bg-surface-subtle p-4">
-            <dt className="flex items-center gap-2 text-small text-foreground-secondary">
-              <CalendarCheck2 size={18} aria-hidden="true" /> Check-ins
-            </dt>
-            <dd className="mt-2 text-heading-2 tabular-nums">{summary.checkInDays} days</dd>
+        <dl className="relative mt-6 space-y-1 before:absolute before:bottom-5 before:left-[1.15rem] before:top-5 before:w-px before:bg-line">
+          <div className="relative flex items-start gap-3 rounded-card p-3">
+            <span aria-hidden="true" className="z-10 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-status-success-soft text-status-success-text ring-4 ring-surface">
+              <CalendarCheck2 size={17} />
+            </span>
+            <div className="min-w-0 flex-1 pt-0.5">
+              <dt className="text-small font-semibold text-foreground">Check-ins</dt>
+              <dd className="mt-0.5 text-small tabular-nums text-foreground-secondary">Recorded on {summary.checkInDays} {summary.checkInDays === 1 ? 'day' : 'days'}</dd>
+            </div>
           </div>
-          <div className="rounded-card bg-surface-subtle p-4">
-            <dt className="flex items-center gap-2 text-small text-foreground-secondary">
-              <Droplets size={18} aria-hidden="true" /> Hydration entries
-            </dt>
-            <dd className="mt-2 text-heading-2 tabular-nums">{summary.hydrationDays} days</dd>
+          <div className="relative flex items-start gap-3 rounded-card p-3">
+            <span aria-hidden="true" className="z-10 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-status-info-soft text-status-info-text ring-4 ring-surface">
+              <Droplets size={17} />
+            </span>
+            <div className="min-w-0 flex-1 pt-0.5">
+              <dt className="text-small font-semibold text-foreground">Hydration</dt>
+              <dd className="mt-0.5 text-small tabular-nums text-foreground-secondary">Recorded on {summary.hydrationDays} {summary.hydrationDays === 1 ? 'day' : 'days'}</dd>
+            </div>
           </div>
-          <div className="rounded-card bg-surface-subtle p-4">
-            <dt className="flex items-center gap-2 text-small text-foreground-secondary">
-              <HeartPulse size={18} aria-hidden="true" /> Pain entries
-            </dt>
-            <dd className="mt-2 text-heading-2 tabular-nums">{summary.painEntries}</dd>
-            {summary.latestPain !== null && (
-              <p className="mt-1 text-small text-foreground-secondary">Latest recorded: {summary.latestPain} / 10</p>
-            )}
+          <div className="relative flex items-start gap-3 rounded-card p-3">
+            <span aria-hidden="true" className="z-10 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-medical-50 text-action-accent ring-4 ring-surface dark:bg-medical-950/55 dark:text-medical-200">
+              <HeartPulse size={17} />
+            </span>
+            <div className="min-w-0 flex-1 pt-0.5">
+              <dt className="text-small font-semibold text-foreground">Pain entries</dt>
+              <dd className="mt-0.5 text-small tabular-nums text-foreground-secondary">
+                {summary.painEntries} recorded{summary.latestPain !== null ? ` · latest ${summary.latestPain} / 10` : ''}
+              </dd>
+            </div>
           </div>
         </dl>
       ) : (
-        <p className="mt-5 rounded-card bg-surface-subtle p-4 text-body text-foreground-secondary">
-          No check-ins, hydration amounts, or pain entries were found for the last seven days.
-        </p>
+        <div className="mt-5 rounded-card bg-surface-subtle p-5 text-center">
+          <CalendarCheck2 className="mx-auto text-foreground-secondary" size={24} aria-hidden="true" />
+          <p className="mt-3 text-body font-semibold text-foreground">No recent health activity</p>
+          <p className="mt-1 text-small text-foreground-secondary">Check-ins, hydration, and pain entries from the last seven days will appear here.</p>
+        </div>
       )}
     </Card>
   );

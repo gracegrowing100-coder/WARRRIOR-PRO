@@ -17,7 +17,7 @@ describe('AppHeader', () => {
       />,
     );
 
-    expect(screen.getByText('Offline')).toBeInTheDocument();
+    expect(screen.getAllByText('Offline')).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Language action' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Profile action' })).toBeInTheDocument();
   });

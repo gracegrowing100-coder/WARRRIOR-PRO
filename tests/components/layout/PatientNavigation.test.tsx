@@ -36,7 +36,7 @@ describe('PatientNavigation', () => {
     expect(navigation).toHaveClass('pb-[var(--safe-area-bottom)]');
 
     const care = screen.getByRole('button', { name: 'Care' });
-    expect(care).toHaveClass('min-h-14', 'touch-manipulation');
+    expect(care).toHaveClass('min-h-16', 'touch-manipulation');
     await user.click(care);
 
     expect(onNavigate).toHaveBeenCalledWith('care');

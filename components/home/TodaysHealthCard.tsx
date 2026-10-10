@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { CheckCircle2, CircleDashed, Droplets, HeartPulse, RefreshCw } from 'lucide-react';
+import { ArrowRight, CheckCircle2, CircleDashed, Droplets, HeartPulse, Pill, RefreshCw } from 'lucide-react';
 import { firebaseService } from '../../services/firebaseService';
 import { Alert, Button, Card, Skeleton } from '../ui';
 
@@ -17,11 +17,20 @@ interface TodaySnapshot {
   waterAmount: number | null;
   waterGoal: number | null;
   hydrationState: 'recorded' | 'cached' | 'missing' | 'unavailable';
+  medications: MedicationSummary[];
 }
 
 interface PainLog {
   dateStr?: string;
   painLevel?: number;
+}
+
+interface MedicationSummary {
+  id?: string;
+  name?: string;
+  dosage?: string;
+  time?: string;
+  lastTakenDate?: string;
 }
 
 const getTodayKey = () => new Date().toLocaleDateString('sv');
@@ -44,10 +53,11 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
 
     try {
       const today = getTodayKey();
-      const [checkIn, painLogs, water] = await Promise.all([
+      const [checkIn, painLogs, water, medications] = await Promise.all([
         firebaseService.getDailyMoodCheckIn(userId, today),
         firebaseService.getPainLogs(userId),
         firebaseService.getWaterLog(userId, today),
+        firebaseService.getMedications(userId),
       ]);
       const todayPain = (painLogs as PainLog[]).find((entry) => entry.dateStr === today);
       const recordedCheckIn = checkIn as { emotion?: string; timestamp?: string } | null;
@@ -60,6 +70,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
         waterAmount: water.data?.amount ?? null,
         waterGoal: water.data?.goal ?? null,
         hydrationState: water.state,
+        medications: Array.isArray(medications) ? medications as MedicationSummary[] : [],
       });
     } catch (loadError) {
       console.warn("Today's health summary could not be loaded:", loadError);
@@ -107,7 +118,10 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
     );
   }
 
-  const hasTodayData = snapshot.hasCheckIn || snapshot.painLevel !== null || snapshot.waterAmount !== null;
+  const hasTodayData = snapshot.hasCheckIn
+    || snapshot.painLevel !== null
+    || snapshot.waterAmount !== null
+    || snapshot.medications.length > 0;
   const updatedTime = formatUpdatedTime(snapshot.updatedAt);
   const waterValueText = snapshot.waterAmount !== null && snapshot.waterGoal !== null
     ? `${snapshot.waterAmount.toFixed(2)} L of ${snapshot.waterGoal.toFixed(2)} L`
@@ -115,6 +129,13 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
   const hydrationPercentage = snapshot.waterAmount !== null && snapshot.waterGoal !== null && snapshot.waterGoal > 0
     ? Math.min(Math.max((snapshot.waterAmount / snapshot.waterGoal) * 100, 0), 100)
     : 0;
+  const pendingMedications = snapshot.medications.filter((medication) => medication.lastTakenDate !== getTodayKey());
+  const nextMedication = pendingMedications[0] ?? snapshot.medications[0] ?? null;
+  const medicationSummary = snapshot.medications.length === 0
+    ? 'No medication scheduled'
+    : pendingMedications.length === 0
+      ? 'All marked taken today'
+      : `${pendingMedications.length} pending`;
 
   return (
     <Card
@@ -122,44 +143,57 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
       id="home-header-stats"
       aria-labelledby="todays-health-title"
       data-semantic
-      className="relative h-full overflow-hidden border-0 bg-gradient-to-br from-navy-950 via-navy-900 to-navy-800 text-white shadow-floating"
-      padding="lg"
+      className="relative overflow-hidden rounded-[1.75rem] border-0 bg-gradient-to-br from-medical-500 via-medical-600 to-medical-900 p-6 text-white shadow-[0_22px_52px_-26px_rgb(165_25_42_/_0.78)] dark:from-medical-700 dark:via-medical-900 dark:to-navy-950 sm:p-8 lg:min-h-[24rem] lg:p-10 xl:p-12"
+      padding="none"
     >
-      <span className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-white/[0.04]" aria-hidden="true" />
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="relative">
-          <p className="text-small font-semibold text-medical-100">Today&apos;s health</p>
-          <h2 id="todays-health-title" className="mt-1 text-heading-1 text-white">
-            {snapshot.moodLabel || (hasTodayData ? 'Your day at a glance' : 'Ready when you are')}
-          </h2>
-          <p className="mt-1 text-small text-slate-150">
-            {updatedTime ? `Last check-in at ${updatedTime}` : 'Based only on what you recorded today.'}
-          </p>
+      <span className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/[0.07]" aria-hidden="true" />
+      <span className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-navy-950/10 blur-3xl" aria-hidden="true" />
+      <div className="relative flex h-full flex-col gap-6 lg:gap-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
+          <div className="min-w-0">
+            <p className="text-small font-bold uppercase tracking-[0.08em] text-white/80">Today&apos;s health</p>
+            <h2 id="todays-health-title" className="mt-4 max-w-3xl text-[2.1rem] font-bold leading-[1.05] tracking-[-0.035em] text-white sm:text-[2.7rem] lg:text-[3.25rem]">
+              {snapshot.moodLabel || (hasTodayData ? 'Your day at a glance' : 'Ready when you are')}
+            </h2>
+            <p className="mt-3 max-w-xl text-body text-white/80">
+              {updatedTime ? `Last check-in at ${updatedTime}.` : 'Based only on what you recorded today.'}
+            </p>
+          </div>
+          <span className="inline-flex min-h-10 w-fit shrink-0 items-center gap-2 self-start rounded-pill bg-white/15 px-4 text-small font-semibold text-white ring-1 ring-inset ring-white/30">
+            {snapshot.hasCheckIn ? <CheckCircle2 size={17} className="text-emerald-200" /> : <CircleDashed size={17} className="text-amber-200" />}
+            {snapshot.hasCheckIn ? 'Check-in recorded' : 'Check-in due'}
+          </span>
         </div>
-        <span className="relative inline-flex min-h-9 w-fit items-center gap-2 rounded-pill bg-white/10 px-3 text-small font-semibold text-white ring-1 ring-inset ring-white/15">
-          {snapshot.hasCheckIn ? <CheckCircle2 size={16} className="text-status-success" /> : <CircleDashed size={16} className="text-medical-100" />}
-          {snapshot.hasCheckIn ? 'Check-in recorded' : 'Check-in due'}
-        </span>
-      </div>
 
-      {hasTodayData ? (
-        <dl className="relative mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="rounded-card bg-white/[0.08] p-4 ring-1 ring-inset ring-white/10 sm:p-5">
-            <div className="flex items-center gap-2 text-small font-medium text-slate-150">
+        {!snapshot.hasCheckIn && onStartCheckIn ? (
+          <Button
+            variant="secondary"
+            size="lg"
+            trailingIcon={<ArrowRight size={19} />}
+            className="min-h-14 w-full border-white/30 bg-white px-6 text-medical-700 shadow-elevated hover:bg-medical-50 sm:w-fit"
+            onClick={onStartCheckIn}
+          >
+            Start daily check-in
+          </Button>
+        ) : null}
+
+        <dl className="mt-auto grid grid-cols-2 gap-3 sm:grid-cols-3 lg:gap-4">
+          <div className="min-h-32 rounded-card bg-white/[0.11] p-4 ring-1 ring-inset ring-white/20 sm:min-h-36 sm:p-5 lg:min-h-40 lg:p-6">
+            <div className="flex items-center gap-2 text-small font-semibold text-white/85">
               <HeartPulse size={18} className="text-medical-100" aria-hidden="true" />
               <dt>Recorded pain</dt>
             </div>
-            <dd className="mt-2 text-heading-1 tabular-nums text-white">
+            <dd className="mt-4 text-heading-1 tabular-nums text-white">
               {snapshot.painLevel === null ? 'Not recorded' : `${snapshot.painLevel} / 10`}
             </dd>
           </div>
-          <div className="rounded-card bg-white/[0.08] p-4 ring-1 ring-inset ring-white/10 sm:p-5">
-            <div className="flex items-center gap-2 text-small font-medium text-slate-150">
+          <div className="min-h-32 rounded-card bg-white/[0.11] p-4 ring-1 ring-inset ring-white/20 sm:min-h-36 sm:p-5 lg:min-h-40 lg:p-6">
+            <div className="flex items-center gap-2 text-small font-semibold text-white/85">
               <Droplets size={18} className="text-sky-300" aria-hidden="true" />
               <dt>Hydration</dt>
             </div>
             {snapshot.waterAmount !== null && snapshot.waterGoal !== null ? (
-              <dd className="mt-2">
+              <dd className="mt-4">
                 <span className="block text-heading-3 tabular-nums text-white">{waterValueText}</span>
                 <span
                   role="progressbar"
@@ -168,29 +202,33 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                   aria-valuemax={snapshot.waterGoal}
                   aria-valuenow={snapshot.waterAmount}
                   aria-valuetext={waterValueText}
-                  className="mt-3 block h-2 overflow-hidden rounded-pill bg-white/15"
+                  className="mt-3 block h-2 overflow-hidden rounded-pill bg-navy-950/25"
                 >
                   <span aria-hidden="true" className="block h-full rounded-pill bg-sky-300" style={{ width: `${hydrationPercentage}%` }} />
                 </span>
               </dd>
             ) : (
-              <dd className="mt-2 text-body font-semibold text-white">
+              <dd className="mt-4 text-body font-semibold text-white">
                 {snapshot.hydrationState === 'unavailable' ? 'Unavailable' : 'Not recorded'}
               </dd>
             )}
           </div>
+          <div className="col-span-2 min-h-28 rounded-card bg-white/[0.11] p-4 ring-1 ring-inset ring-white/20 sm:col-span-1 sm:min-h-36 sm:p-5 lg:min-h-40 lg:p-6">
+            <div className="flex items-center gap-2 text-small font-semibold text-white/85">
+              <Pill size={18} className="text-medical-100" aria-hidden="true" />
+              <dt>Medication</dt>
+            </div>
+            <dd className="mt-4">
+              <span className="block text-body font-semibold text-white">{medicationSummary}</span>
+              {nextMedication ? (
+                <span className="mt-1 block text-small text-white/75">
+                  {[nextMedication.name, nextMedication.time].filter(Boolean).join(' · ')}
+                </span>
+              ) : null}
+            </dd>
+          </div>
         </dl>
-      ) : (
-        <div className="relative mt-5 rounded-card bg-white/[0.08] p-4 ring-1 ring-inset ring-white/10">
-          <p className="text-body font-semibold text-white">Start with today&apos;s check-in</p>
-          <p className="mt-1 max-w-md text-small text-slate-150">Nothing has been recorded for today yet. A quick check-in helps organize your day.</p>
-          {onStartCheckIn ? (
-            <Button variant="accent" size="md" className="mt-4 w-full sm:w-fit" onClick={onStartCheckIn}>
-              Start check-in
-            </Button>
-          ) : null}
-        </div>
-      )}
+      </div>
     </Card>
   );
 };

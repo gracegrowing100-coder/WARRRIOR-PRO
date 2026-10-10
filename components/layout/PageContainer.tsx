@@ -3,13 +3,14 @@ import { cn } from '../ui';
 
 export interface PageContainerProps {
   children: React.ReactNode;
-  width?: 'patient' | 'wide';
+  width?: 'patient' | 'wide' | 'home';
   className?: string;
 }
 
 const widthClasses = {
   patient: 'max-w-5xl',
   wide: 'max-w-7xl',
+  home: 'max-w-[1440px]',
 };
 
 export const PageContainer: React.FC<PageContainerProps> = ({
@@ -17,7 +18,7 @@ export const PageContainer: React.FC<PageContainerProps> = ({
   width = 'patient',
   className,
 }) => (
-  <div className={cn('mx-auto p-4 sm:p-5 lg:p-8', widthClasses[width], className)}>
+  <div className={cn('mx-auto p-4 sm:p-6 lg:p-8 xl:px-10', widthClasses[width], className)}>
     {children}
   </div>
 );
