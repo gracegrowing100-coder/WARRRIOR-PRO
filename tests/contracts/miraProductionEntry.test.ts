@@ -2,8 +2,8 @@ import { createServer, type RequestListener, type Server } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import handler from '../../api/index';
 import statusHandler from '../../api/status';
+import handler from '../../server/mira/miraVercelHandler';
 
 describe('Mira production function entry', () => {
   let server: Server | undefined;
@@ -58,10 +58,17 @@ describe('Mira production function entry', () => {
 
     expect(rewrites.slice(0, 4)).toEqual([
       { source: '/api/health', destination: '/api/status' },
-      { source: '/api/mira/chat', destination: '/api?path=mira/chat' },
-      { source: '/api/mira/transcribe', destination: '/api?path=mira/transcribe' },
-      { source: '/api/mira/speak', destination: '/api?path=mira/speak' },
+      { source: '/api/mira/chat', destination: '/api/mira?path=mira/chat' },
+      { source: '/api/mira/transcribe', destination: '/api/mira?path=mira/transcribe' },
+      { source: '/api/mira/speak', destination: '/api/mira?path=mira/speak' },
     ]);
     expect(rewrites.at(-1)).toEqual({ source: '/(.*)', destination: '/index.html' });
+  });
+
+  it('ships a self-contained Mira function bundle without relative runtime imports', async () => {
+    const bundle = await readFile(path.resolve('api/mira.mjs'), 'utf8');
+    expect(bundle).toContain('Generated from server/mira/miraVercelHandler.ts');
+    expect(bundle).not.toMatch(/\bfrom\s+["']\.\.?\//);
+    expect(bundle).not.toMatch(/\bimport\(["']\.\.?\//);
   });
 });

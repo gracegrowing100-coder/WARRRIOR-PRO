@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { createMiraApiApp } from '../server/mira/miraApiApp.ts';
+import { createMiraApiApp } from './miraApiApp.ts';
 
 const app = createMiraApiApp();
 const allowedRoutes = new Set([
