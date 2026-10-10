@@ -10,6 +10,12 @@
     { "source": "/api/mira/chat", "destination": "/api?path=mira/chat" },
     { "source": "/api/mira/transcribe", "destination": "/api?path=mira/transcribe" },
     { "source": "/api/mira/speak", "destination": "/api?path=mira/speak" },
+    { "source": "/api/_probe/express", "destination": "/api/probeExpress" },
+    { "source": "/api/_probe/google", "destination": "/api/probeGoogle" },
+    { "source": "/api/_probe/firebase", "destination": "/api/probeFirebase" },
+    { "source": "/api/_probe/config", "destination": "/api/probeConfig" },
+    { "source": "/api/_probe/safety", "destination": "/api/probeSafety" },
+    { "source": "/api/_probe/routes", "destination": "/api/probeRoutes" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
