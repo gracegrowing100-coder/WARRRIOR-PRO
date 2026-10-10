@@ -20,6 +20,22 @@ function sendJson(response: ServerResponse, status: number, body: unknown) {
   response.end(JSON.stringify(body));
 }
 
+function classifyInitializationFailure(error: unknown): string {
+  const code = String((error as { code?: unknown })?.code ?? '');
+  const message = error instanceof Error ? error.message : '';
+  if (code === 'ERR_MODULE_NOT_FOUND' || /cannot find (?:module|package)/i.test(message)) {
+    return 'module-not-found';
+  }
+  if (code === 'ERR_IMPORT_ATTRIBUTE_MISSING' || /import attribute/i.test(message)) {
+    return 'json-import';
+  }
+  if (/require is not defined|dynamic require/i.test(message)) {
+    return 'module-format';
+  }
+  if (error instanceof SyntaxError) return 'module-syntax';
+  return 'unknown';
+}
+
 export default async function handler(request: IncomingMessage, response: ServerResponse) {
   const requestUrl = new URL(request.url || '/api', 'http://warrior.internal');
   const routedPath = requestUrl.searchParams.get('path')?.replace(/^\/+|\/+$/g, '') || '';
@@ -38,11 +54,14 @@ export default async function handler(request: IncomingMessage, response: Server
     request.url = `/api/${routedPath}`;
     app(request, response);
   } catch (error) {
+    const failureClass = classifyInitializationFailure(error);
     console.error('[Mira] Vercel function initialization failed.', {
       name: error instanceof Error ? error.name : 'unknown',
       message: error instanceof Error ? error.message : 'Unknown initialization error',
+      failureClass,
     });
     if (!response.headersSent) {
+      response.setHeader('X-Mira-Init-Failure', failureClass);
       sendJson(response, 503, {
         error: {
           code: 'mira_unavailable',
