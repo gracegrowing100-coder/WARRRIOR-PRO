@@ -827,6 +827,33 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
                       {PRIVACY_DISCLAIMER_TEXT}
                     </p>
                   </div>
+
+                  {/* Legal Links */}
+                  <div className="flex justify-center gap-4 text-xs text-foreground-secondary">
+                    <a
+                      href="#terms"
+                      className="hover:text-foreground hover:underline transition-colors"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // TODO: Create terms of use page
+                        setGeneralSuccess('Terms of Use will be available in the production release.');
+                      }}
+                    >
+                      Terms of Use
+                    </a>
+                    <span>·</span>
+                    <a
+                      href="#privacy"
+                      className="hover:text-foreground hover:underline transition-colors"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // TODO: Create privacy policy page
+                        setGeneralSuccess('Privacy Policy will be available in the production release.');
+                      }}
+                    >
+                      Privacy Policy
+                    </a>
+                  </div>
                 </motion.div>
               )}
 
@@ -948,6 +975,33 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
                       Create Medical Profile
                     </button>
                   </p>
+
+                  {/* Legal Links */}
+                  <div className="flex justify-center gap-4 text-xs text-foreground-secondary">
+                    <a
+                      href="#terms"
+                      className="hover:text-foreground hover:underline transition-colors"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // TODO: Create terms of use page
+                        setGeneralSuccess('Terms of Use will be available in the production release.');
+                      }}
+                    >
+                      Terms of Use
+                    </a>
+                    <span>·</span>
+                    <a
+                      href="#privacy"
+                      className="hover:text-foreground hover:underline transition-colors"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // TODO: Create privacy policy page
+                        setGeneralSuccess('Privacy Policy will be available in the production release.');
+                      }}
+                    >
+                      Privacy Policy
+                    </a>
+                  </div>
 
                   {/* Professional Trial Fast Track Section */}
                   <div className="p-4 bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 rounded-2.5xl space-y-3">
@@ -1320,7 +1374,15 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
                           className="mt-1 rounded border-slate-350 text-red-650 h-4.5 w-4.5 shrink-0"
                         />
                         <span className="text-xs font-semibold text-slate-600 dark:text-slate-350 leading-relaxed">
-                          I agree to the <span className="font-extrabold uppercase text-[10px] text-red-600 dark:text-rose-400">pilot terms of use</span> and understand this prototype is not an emergency service.
+                          I agree to the <a
+                            href="#terms"
+                            className="font-extrabold uppercase text-[10px] text-red-600 dark:text-rose-400 hover:underline"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              // TODO: Create terms of use page
+                              setGeneralSuccess('Terms of Use will be available in the production release.');
+                            }}
+                          >pilot terms of use</a> and understand this prototype is not an emergency service.
                         </span>
                       </label>
 
@@ -1358,6 +1420,33 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
                       Sign In Instantly
                     </button>
                   </p>
+
+                  {/* Legal Links */}
+                  <div className="flex justify-center gap-4 text-xs text-foreground-secondary">
+                    <a
+                      href="#terms"
+                      className="hover:text-foreground hover:underline transition-colors"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // TODO: Create terms of use page
+                        setGeneralSuccess('Terms of Use will be available in the production release.');
+                      }}
+                    >
+                      Terms of Use
+                    </a>
+                    <span>·</span>
+                    <a
+                      href="#privacy"
+                      className="hover:text-foreground hover:underline transition-colors"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // TODO: Create privacy policy page
+                        setGeneralSuccess('Privacy Policy will be available in the production release.');
+                      }}
+                    >
+                      Privacy Policy
+                    </a>
+                  </div>
 
                   {/* Professional Trial Fast Track Section */}
                   <div className="p-4 bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 rounded-2.5xl space-y-3">

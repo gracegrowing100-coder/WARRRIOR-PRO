@@ -100,8 +100,10 @@ async function runMiraChat(
   ai: GoogleGenAI,
   input: MiraChatInput,
 ): Promise<MiraChatProviderResult> {
-  const languageLabel = miraLanguageDefinition(input.language).label;
-  const systemInstruction = `${MIRA_SYSTEM_PROMPT}\n\nReply language: ${languageLabel}.`;
+  const definition = miraLanguageDefinition(input.language);
+  // Use speechHint if available, otherwise fall back to code for language instruction
+  const languageCode = definition.speechHint ?? definition.code;
+  const systemInstruction = `${MIRA_SYSTEM_PROMPT}\n\nReply language: ${languageCode}.`;
   let lastError: unknown = null;
 
   for (const { model, timeoutMs } of MIRA_CHAT_MODEL_CANDIDATES) {
@@ -226,6 +228,8 @@ async function synthesizeWithProvider(
   input: MiraSpeechInput,
 ): Promise<{ audioBase64: string; mimeType: string; model: string }> {
   const definition = miraLanguageDefinition(input.language);
+  // Use speechHint if available, otherwise fall back to code
+  const languageCode = definition.speechHint ?? definition.code;
   let lastError: unknown = null;
 
   for (const model of MIRA_TTS_MODEL_CANDIDATES) {
@@ -237,7 +241,7 @@ async function synthesizeWithProvider(
           responseModalities: ['AUDIO'],
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: MIRA_TTS_VOICE } },
-            languageCode: definition.code,
+            languageCode,
           },
         },
       });
