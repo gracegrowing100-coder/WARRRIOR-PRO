@@ -446,11 +446,12 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
                   </Alert>
                 )}
 
-                <div className="flex flex-col gap-3 rounded-card border border-status-info/25 bg-status-info-soft p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-4 rounded-card border border-status-info/25 bg-status-info-soft p-4">
+                  {/* Current total display with +/- buttons */}
                   <div className="flex items-center justify-center gap-3">
                     <Button
                       variant="secondary"
-                      aria-label="Decrease today’s hydration total by 250 milliliters"
+                      aria-label="Decrease today's hydration total by 250 milliliters"
                       onClick={() => updateWater(-0.25)}
                       disabled={isSaving || hydrationState === 'loading'}
                       className="min-w-11 px-0"
@@ -462,7 +463,7 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
                     </span>
                     <Button
                       variant="secondary"
-                      aria-label="Increase today’s hydration total by 250 milliliters"
+                      aria-label="Increase today's hydration total by 250 milliliters"
                       onClick={() => updateWater(0.25)}
                       disabled={isSaving || hydrationState === 'loading'}
                       className="min-w-11 px-0"
@@ -471,6 +472,7 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
                     </Button>
                   </div>
 
+                  {/* Quick add presets */}
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       { label: '+250ml', amount: 0.25 },
@@ -488,6 +490,63 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
                         {preset.label}
                       </Button>
                     ))}
+                  </div>
+
+                  {/* Unit-based input with multiplier */}
+                  <div className="border-t border-status-info/30 pt-4 space-y-3">
+                    <p className="text-small font-medium text-foreground">Add by container type:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { value: 'sachets' as const, label: '50cl Sachet', amount: 0.5 },
+                        { value: 'bottles' as const, label: '1L Bottle', amount: 1.0 },
+                        { value: 'liters' as const, label: 'Liters', amount: 1.0 },
+                      ].map((unit) => (
+                        <ChoiceChip
+                          key={unit.value}
+                          selected={selectedUnit === unit.value}
+                          onSelectedChange={() => setSelectedUnit(unit.value)}
+                          disabled={isSaving}
+                        >
+                          {unit.label}
+                        </ChoiceChip>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                          disabled={isSaving || quantity <= 1}
+                          className="px-2"
+                        >
+                          <Minus size={16} />
+                        </Button>
+                        <span className="min-w-16 text-center text-body font-semibold tabular-nums text-foreground">
+                          {quantity}x
+                        </span>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setQuantity(quantity + 1)}
+                          disabled={isSaving || quantity >= 10}
+                          className="px-2"
+                        >
+                          <Plus size={16} />
+                        </Button>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        onClick={addWaterByUnit}
+                        disabled={isSaving || hydrationState === 'loading'}
+                        className="flex-1"
+                      >
+                        Add {(quantity * calculateAmount(selectedUnit, 1)).toFixed(1)}L
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </section>
