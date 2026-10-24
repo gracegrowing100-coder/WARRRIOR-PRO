@@ -496,13 +496,13 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
                   <div className="border-t border-status-info/30 pt-4 space-y-4">
                     <div>
                       <p className="text-body font-semibold text-foreground mb-1">Add by container type</p>
-                      <p className="text-small text-foreground-secondary">Select the type of water container you drank from</p>
+                      <p className="text-small text-foreground-secondary">Select the type of water container you drank from, then multiply</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {[
-                        { value: 'sachets' as const, label: '50cl Sachet', description: 'Common Nigerian sachet water (half liter)', amount: 0.5 },
-                        { value: 'bottles' as const, label: '1L Bottle', description: 'Standard 1-liter bottle', amount: 1.0 },
-                        { value: 'liters' as const, label: 'Liters', description: 'Enter amount in liters directly', amount: 1.0 },
+                        { value: 'sachets' as const, label: '50cl Sachet', description: 'Common Nigerian sachet water (0.5L each)', example: '3 sachets = 1.5L', amount: 0.5 },
+                        { value: 'bottles' as const, label: '1L Bottle', description: 'Standard 1-liter bottle (1L each)', example: '2 bottles = 2L', amount: 1.0 },
+                        { value: 'liters' as const, label: 'Liters', description: 'Enter amount in liters directly', example: '1.5L = 1.5L', amount: 1.0 },
                       ].map((unit) => (
                         <div key={unit.value} className="flex-1 min-w-[140px]">
                           <ChoiceChip
@@ -515,6 +515,9 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
                           </ChoiceChip>
                           <p className="text-caption text-foreground-secondary mt-1 text-center">
                             {unit.description}
+                          </p>
+                          <p className="text-caption text-action-accent mt-0.5 text-center font-medium">
+                            {unit.example}
                           </p>
                         </div>
                       ))}
@@ -547,11 +550,13 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
                           </Button>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between pt-2 border-t border-line">
-                        <span className="text-small text-foreground-secondary">Total to add:</span>
-                        <span className="text-heading-2 font-bold tabular-nums text-action-accent">
-                          {(quantity * calculateAmount(selectedUnit, 1)).toFixed(1)}L
-                        </span>
+                      <div className="rounded-lg bg-action-accent/5 border border-action-accent/20 p-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-body font-semibold text-foreground">Total to add:</span>
+                          <span className="text-2xl font-black tabular-nums text-action-accent">
+                            {quantity} {selectedUnit === 'sachets' ? 'sachets' : selectedUnit === 'bottles' ? 'bottles' : 'L'} = {(quantity * calculateAmount(selectedUnit, 1)).toFixed(1)}L
+                          </span>
+                        </div>
                       </div>
                       <Button
                         type="button"
