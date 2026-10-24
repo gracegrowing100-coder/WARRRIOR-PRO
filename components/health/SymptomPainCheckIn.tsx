@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Droplets, Minus, Plus } from 'lucide-react';
+import { ChevronDown, Droplets, Minus, Plus, PlusCircle, X } from 'lucide-react';
 import { firebaseService } from '../../services/firebaseService';
-import { Alert, Button, ChoiceChip, Modal, SuccessState } from '../ui';
+import { Alert, Button, ChoiceChip, FormField, Modal, SuccessState, Textarea } from '../ui';
 
 const SYMPTOM_OPTIONS = [
   'Dactylitis (hand-foot swelling)',
@@ -39,9 +39,13 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
 }) => {
   const [painLevel, setPainLevel] = useState(3);
   const [symptoms, setSymptoms] = useState<string[]>([]);
+  const [customSymptom, setCustomSymptom] = useState('');
   const [triggers, setTriggers] = useState<string[]>([]);
+  const [customTrigger, setCustomTrigger] = useState('');
   const [waterIntake, setWaterIntake] = useState(0);
   const [hydrationState, setHydrationState] = useState<HydrationState>('loading');
+  const [selectedUnit, setSelectedUnit] = useState<'liters' | 'sachets' | 'bottles'>('liters');
+  const [quantity, setQuantity] = useState(1);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const painRangeRef = useRef<HTMLInputElement>(null);
 
@@ -87,8 +91,49 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
       : [...selectedValues, value]);
   };
 
+  const addCustomSymptom = () => {
+    const trimmed = customSymptom.trim();
+    if (trimmed && !symptoms.includes(trimmed)) {
+      setSymptoms([...symptoms, trimmed]);
+      setCustomSymptom('');
+    }
+  };
+
+  const removeCustomSymptom = (symptom: string) => {
+    setSymptoms(symptoms.filter((s) => s !== symptom));
+  };
+
+  const addCustomTrigger = () => {
+    const trimmed = customTrigger.trim();
+    if (trimmed && !triggers.includes(trimmed)) {
+      setTriggers([...triggers, trimmed]);
+      setCustomTrigger('');
+    }
+  };
+
+  const removeCustomTrigger = (trigger: string) => {
+    setTriggers(triggers.filter((t) => t !== trigger));
+  };
+
   const updateWater = (change: number) => {
     setWaterIntake((current) => Math.min(8, Math.max(0, Number((current + change).toFixed(2)))));
+  };
+
+  const calculateAmount = (unit: 'liters' | 'sachets' | 'bottles', qty: number): number => {
+    switch (unit) {
+      case 'sachets':
+        return qty * 0.5; // 50cl sachet = 0.5L
+      case 'bottles':
+        return qty * 1.0; // 1L bottle = 1.0L
+      default:
+        return qty;
+    }
+  };
+
+  const addWaterByUnit = () => {
+    const amount = calculateAmount(selectedUnit, quantity);
+    updateWater(amount);
+    setQuantity(1);
   };
 
   const closeWorkflow = () => {
@@ -237,6 +282,61 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
                 </ChoiceChip>
               ))}
             </div>
+
+            {/* Display custom symptoms */}
+            {symptoms.filter(s => !SYMPTOM_OPTIONS.includes(s)).length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {symptoms.filter(s => !SYMPTOM_OPTIONS.includes(s)).map((symptom) => (
+                  <div
+                    key={symptom}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-action-accent/10 border border-action-accent/20 text-body font-medium text-foreground"
+                  >
+                    {symptom}
+                    <button
+                      type="button"
+                      onClick={() => removeCustomSymptom(symptom)}
+                      disabled={isSaving}
+                      className="ml-1 p-0.5 rounded-full hover:bg-action-accent/20 transition-colors"
+                      aria-label={`Remove ${symptom}`}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add custom symptom input */}
+            <FormField
+              label="Add custom symptom"
+              helpText="Type a symptom not listed above and press Enter or click Add"
+            >
+              <div className="flex gap-2">
+                <Textarea
+                  value={customSymptom}
+                  onChange={(e) => setCustomSymptom(e.target.value)}
+                  placeholder="e.g., Headache, Nausea, etc."
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      addCustomSymptom();
+                    }
+                  }}
+                  disabled={isSaving}
+                  className="flex-1 min-h-11"
+                  rows={1}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={addCustomSymptom}
+                  disabled={isSaving || !customSymptom.trim()}
+                  className="px-3"
+                >
+                  <PlusCircle size={18} />
+                </Button>
+              </div>
+            </FormField>
           </fieldset>
 
           <details className="group rounded-card border border-line bg-surface">
@@ -264,6 +364,61 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
                     </ChoiceChip>
                   ))}
                 </div>
+
+                {/* Display custom triggers */}
+                {triggers.filter(t => !TRIGGER_OPTIONS.includes(t)).length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {triggers.filter(t => !TRIGGER_OPTIONS.includes(t)).map((trigger) => (
+                      <div
+                        key={trigger}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-action-accent/10 border border-action-accent/20 text-body font-medium text-foreground"
+                      >
+                        {trigger}
+                        <button
+                          type="button"
+                          onClick={() => removeCustomTrigger(trigger)}
+                          disabled={isSaving}
+                          className="ml-1 p-0.5 rounded-full hover:bg-action-accent/20 transition-colors"
+                          aria-label={`Remove ${trigger}`}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add custom trigger input */}
+                <FormField
+                  label="Add custom trigger"
+                  helpText="Type a trigger not listed above and press Enter or click Add"
+                >
+                  <div className="flex gap-2">
+                    <Textarea
+                      value={customTrigger}
+                      onChange={(e) => setCustomTrigger(e.target.value)}
+                      placeholder="e.g., Air conditioning, Exercise, etc."
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          addCustomTrigger();
+                        }
+                      }}
+                      disabled={isSaving}
+                      className="flex-1 min-h-11"
+                      rows={1}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={addCustomTrigger}
+                      disabled={isSaving || !customTrigger.trim()}
+                      className="px-3"
+                    >
+                      <PlusCircle size={18} />
+                    </Button>
+                  </div>
+                </FormField>
               </fieldset>
 
               <section aria-labelledby="hydration-total-heading" className="space-y-3">
