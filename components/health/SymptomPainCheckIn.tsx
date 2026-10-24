@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Droplets, Minus, Plus, PlusCircle, X } from 'lucide-react';
+import { Activity, ChevronDown, Droplets, Minus, Plus, PlusCircle, X } from 'lucide-react';
 import { firebaseService } from '../../services/firebaseService';
 import { Alert, Button, ChoiceChip, FormField, Modal, SuccessState, Textarea } from '../ui';
 
@@ -207,13 +207,13 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
     <Modal
       open={open}
       onOpenChange={handleOpenChange}
-      title="Log symptoms and pain"
-      description="Record how you feel today. Optional details can be added if they are useful."
+      title="Log how you feel today"
+      description="Track your pain level, symptoms, and water intake to monitor your health over time."
       closeLabel="Close symptom and pain log"
       initialFocusRef={painRangeRef}
-      size="md"
+      size="lg"
       dismissOnBackdrop={!isSaving}
-      contentClassName="space-y-6"
+      contentClassName="space-y-8"
       footer={footer}
     >
       {isComplete ? (
@@ -235,15 +235,15 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
 
           <section aria-labelledby="pain-score-heading" className="space-y-4">
             <div>
-              <h3 id="pain-score-heading" className="text-heading-3 text-foreground">Pain score</h3>
-              <p className="mt-1 text-small text-foreground-secondary">Choose a number from 0 to 10.</p>
+              <h3 id="pain-score-heading" className="text-heading-2 font-bold text-foreground">Pain Level</h3>
+              <p className="text-body text-foreground-secondary">Rate your current pain from 0 to 10</p>
             </div>
 
-            <div className="rounded-card border border-line bg-surface-subtle p-4 sm:p-5">
-              <div className="mb-3 flex items-end justify-between gap-4">
-                <span className="text-small font-medium text-foreground-secondary">Current score</span>
-                <output htmlFor="symptom-pain-range" className="text-heading-1 tabular-nums text-foreground">
-                  {painLevel}<span className="text-body font-medium text-foreground-secondary"> / 10</span>
+            <div className="rounded-2xl border-2 border-line bg-gradient-to-br from-surface-subtle to-surface p-6 sm:p-8 shadow-sm">
+              <div className="mb-4 flex items-end justify-between gap-4">
+                <span className="text-body font-medium text-foreground-secondary">Your pain level</span>
+                <output htmlFor="symptom-pain-range" className="text-5xl font-black tabular-nums text-action-accent">
+                  {painLevel}<span className="text-2xl font-medium text-foreground-secondary"> / 10</span>
                 </output>
               </div>
               <label htmlFor="symptom-pain-range" className="sr-only">Pain score</label>
@@ -257,26 +257,26 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
                 value={painLevel}
                 aria-valuetext={`${painLevel} out of 10`}
                 onChange={(event) => updatePain(Number(event.target.value))}
-                className="h-11 w-full cursor-pointer accent-action"
+                className="h-3 w-full cursor-pointer accent-action rounded-full"
               />
-              <div className="mt-1 flex justify-between gap-4 text-caption font-medium text-foreground-secondary">
+              <div className="mt-3 flex justify-between gap-4 text-body font-semibold text-foreground-secondary">
                 <span>0 = No pain</span>
                 <span className="text-right">10 = Worst pain</span>
               </div>
             </div>
           </section>
 
-          <fieldset className="space-y-3">
-            <legend className="text-heading-3 text-foreground">Symptoms</legend>
-            <p className="text-small text-foreground-secondary">Select every symptom that applies. You can leave this blank.</p>
-            <div className="flex flex-wrap gap-2">
+          <fieldset className="space-y-4">
+            <legend className="text-heading-2 font-bold text-foreground">Symptoms</legend>
+            <p className="text-body text-foreground-secondary">Select all symptoms you're experiencing today</p>
+            <div className="flex flex-wrap gap-3">
               {SYMPTOM_OPTIONS.map((symptom) => (
                 <ChoiceChip
                   key={symptom}
                   selected={symptoms.includes(symptom)}
                   onSelectedChange={() => toggleSelection(symptom, symptoms, setSymptoms)}
                   disabled={isSaving}
-                  className="min-w-0 whitespace-normal text-left"
+                  className="min-w-0 whitespace-normal text-left px-4 py-2.5 text-body"
                 >
                   {symptom}
                 </ChoiceChip>
@@ -285,18 +285,18 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
 
             {/* Display custom symptoms */}
             {symptoms.filter(s => !SYMPTOM_OPTIONS.includes(s)).length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className="flex flex-wrap gap-2 mt-3">
                 {symptoms.filter(s => !SYMPTOM_OPTIONS.includes(s)).map((symptom) => (
                   <div
                     key={symptom}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-action-accent/10 border border-action-accent/20 text-body font-medium text-foreground"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-action-accent/10 border border-action-accent/20 text-body font-medium text-foreground"
                   >
                     {symptom}
                     <button
                       type="button"
                       onClick={() => removeCustomSymptom(symptom)}
                       disabled={isSaving}
-                      className="ml-1 p-0.5 rounded-full hover:bg-action-accent/20 transition-colors"
+                      className="p-1 rounded-full hover:bg-action-accent/20 transition-colors"
                       aria-label={`Remove ${symptom}`}
                     >
                       <X size={14} />
@@ -323,15 +323,15 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
                     }
                   }}
                   disabled={isSaving}
-                  className="flex-1 min-h-11"
+                  className="flex-1 min-h-12"
                   rows={1}
                 />
                 <Button
                   type="button"
-                  variant="secondary"
+                  variant="primary"
                   onClick={addCustomSymptom}
                   disabled={isSaving || !customSymptom.trim()}
-                  className="px-3"
+                  className="px-4"
                 >
                   <PlusCircle size={18} />
                 </Button>
@@ -493,58 +493,75 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
                   </div>
 
                   {/* Unit-based input with multiplier */}
-                  <div className="border-t border-status-info/30 pt-4 space-y-3">
-                    <p className="text-small font-medium text-foreground">Add by container type:</p>
+                  <div className="border-t border-status-info/30 pt-4 space-y-4">
+                    <div>
+                      <p className="text-body font-semibold text-foreground mb-1">Add by container type</p>
+                      <p className="text-small text-foreground-secondary">Select the type of water container you drank from</p>
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       {[
-                        { value: 'sachets' as const, label: '50cl Sachet', amount: 0.5 },
-                        { value: 'bottles' as const, label: '1L Bottle', amount: 1.0 },
-                        { value: 'liters' as const, label: 'Liters', amount: 1.0 },
+                        { value: 'sachets' as const, label: '50cl Sachet', description: 'Common Nigerian sachet water (half liter)', amount: 0.5 },
+                        { value: 'bottles' as const, label: '1L Bottle', description: 'Standard 1-liter bottle', amount: 1.0 },
+                        { value: 'liters' as const, label: 'Liters', description: 'Enter amount in liters directly', amount: 1.0 },
                       ].map((unit) => (
-                        <ChoiceChip
-                          key={unit.value}
-                          selected={selectedUnit === unit.value}
-                          onSelectedChange={() => setSelectedUnit(unit.value)}
-                          disabled={isSaving}
-                        >
-                          {unit.label}
-                        </ChoiceChip>
+                        <div key={unit.value} className="flex-1 min-w-[140px]">
+                          <ChoiceChip
+                            selected={selectedUnit === unit.value}
+                            onSelectedChange={() => setSelectedUnit(unit.value)}
+                            disabled={isSaving}
+                            className="w-full justify-center"
+                          >
+                            {unit.label}
+                          </ChoiceChip>
+                          <p className="text-caption text-foreground-secondary mt-1 text-center">
+                            {unit.description}
+                          </p>
+                        </div>
                       ))}
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                          disabled={isSaving || quantity <= 1}
-                          className="px-2"
-                        >
-                          <Minus size={16} />
-                        </Button>
-                        <span className="min-w-16 text-center text-body font-semibold tabular-nums text-foreground">
-                          {quantity}x
+                    <div className="rounded-lg bg-surface border border-line p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-body font-medium text-foreground">How many did you drink?</span>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                            disabled={isSaving || quantity <= 1}
+                            className="px-3 py-2"
+                          >
+                            <Minus size={16} />
+                          </Button>
+                          <span className="min-w-20 text-center text-heading-3 font-bold tabular-nums text-foreground">
+                            {quantity}
+                          </span>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setQuantity(quantity + 1)}
+                            disabled={isSaving || quantity >= 10}
+                            className="px-3 py-2"
+                          >
+                            <Plus size={16} />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-line">
+                        <span className="text-small text-foreground-secondary">Total to add:</span>
+                        <span className="text-heading-2 font-bold tabular-nums text-action-accent">
+                          {(quantity * calculateAmount(selectedUnit, 1)).toFixed(1)}L
                         </span>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setQuantity(quantity + 1)}
-                          disabled={isSaving || quantity >= 10}
-                          className="px-2"
-                        >
-                          <Plus size={16} />
-                        </Button>
                       </div>
                       <Button
                         type="button"
                         variant="primary"
-                        size="sm"
+                        size="md"
                         onClick={addWaterByUnit}
                         disabled={isSaving || hydrationState === 'loading'}
-                        className="flex-1"
+                        className="w-full"
                       >
-                        Add {(quantity * calculateAmount(selectedUnit, 1)).toFixed(1)}L
+                        Add {(quantity * calculateAmount(selectedUnit, 1)).toFixed(1)}L to total
                       </Button>
                     </div>
                   </div>
