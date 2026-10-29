@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Droplets, Plus, RotateCcw, CupSoda, Flame, CheckCircle, BarChart2 } from 'lucide-react';
-import { 
-  BarChart, Bar, XAxis, YAxis, Tooltip, 
-  ResponsiveContainer, Cell, ReferenceLine 
+import { Droplets, Plus, RotateCcw, CupSoda, Flame, CheckCircle, BarChart2, Minus } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, Cell, ReferenceLine
 } from 'recharts';
 import { firebaseService } from '../services/firebaseService';
-import { Button, Card, ProgressBar } from './ui';
+import { Button, Card, ProgressBar, ChoiceChip } from './ui';
 
 interface WaterTrackerProps {
   userId: string;
@@ -19,6 +19,9 @@ export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId, compac
   const [history, setHistory] = useState<any[]>([]);
   const [readState, setReadState] = useState<'recorded' | 'cached' | 'missing' | 'unavailable'>('missing');
   const [saveMessage, setSaveMessage] = useState('');
+  const [selectedUnit, setSelectedUnit] = useState<'liters' | 'sachets' | 'bottles'>('liters');
+  const [quantity, setQuantity] = useState(1);
+  const [isAddingWater, setIsAddingWater] = useState(false);
 
   const todayStr = new Date().toLocaleDateString('sv'); // YYYY-MM-DD Safely
 
@@ -112,6 +115,39 @@ export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId, compac
     }
   };
 
+  const calculateAmount = (unit: 'liters' | 'sachets' | 'bottles', qty: number): number => {
+    switch (unit) {
+      case 'sachets':
+        return qty * 0.5; // 50cl sachet = 0.5L
+      case 'bottles':
+        return qty * 1.0; // 1L bottle = 1.0L
+      default:
+        return qty;
+    }
+  };
+
+  const addWaterByUnit = async () => {
+    setIsAddingWater(true);
+    try {
+      const amountToAdd = calculateAmount(selectedUnit, quantity);
+      const nextAmount = Math.max(0, parseFloat((amount + amountToAdd).toFixed(2)));
+      setSaveMessage('');
+      const result = await firebaseService.saveWaterLog(userId, todayStr, nextAmount, goal);
+      setAmount(nextAmount);
+      setReadState(result.state === 'recorded' ? 'recorded' : 'cached');
+      setSaveMessage(result.state === 'recorded' ? 'Hydration saved to your account.' : 'Hydration saved on this device only.');
+      setQuantity(1);
+      setHistory(prev => prev.map(item => item.dateStr === todayStr ? { ...item, amount: nextAmount } : item));
+      const hist = await firebaseService.getWaterLogs7Days(userId);
+      if (hist) setHistory(hist);
+    } catch (error) {
+      console.warn('Hydration could not be saved:', error);
+      setSaveMessage('Hydration could not be saved.');
+    } finally {
+      setIsAddingWater(false);
+    }
+  };
+
   const percent = Math.min(100, Math.round((amount / goal) * 100));
 
   if (compact) {
@@ -137,8 +173,68 @@ export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId, compac
           <ProgressBar className="mt-5" value={amount} max={goal} label="Daily goal" valueText={`${amount.toFixed(2)} L of ${goal.toFixed(2)} L`} tone="info" />
         )}
         {saveMessage && <p role="status" className="mt-2 text-small text-foreground-secondary">{saveMessage}</p>}
-        <div className="mt-auto grid grid-cols-2 gap-3 pt-6">
-          {[0.25, 0.5, 0.75, 1].map(liters => <Button key={liters} variant="secondary" size="sm" className="min-h-12" onClick={() => addWater(liters)}>+{liters === 1 ? '1 litre' : `${liters * 1000} ml`}</Button>)}
+        <div className="mt-auto space-y-4 pt-6">
+          <div className="space-y-2">
+            <p className="text-small font-medium text-foreground">Add by container type:</p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: 'sachets' as const, label: '50cl Sachet', description: 'Common Nigerian sachet water (0.5L each)', example: '3 sachets = 1.5L' },
+                { value: 'bottles' as const, label: '1L Bottle', description: 'Standard 1-liter bottle (1L each)', example: '2 bottles = 2L' },
+                { value: 'liters' as const, label: 'Liters', description: 'Enter amount in liters directly', example: '1.5L = 1.5L' },
+              ].map((unit) => (
+                <div key={unit.value} className="flex-1 min-w-[100px]">
+                  <ChoiceChip
+                    selected={selectedUnit === unit.value}
+                    onSelectedChange={() => setSelectedUnit(unit.value)}
+                    disabled={isAddingWater}
+                    className="w-full justify-center text-xs"
+                  >
+                    {unit.label}
+                  </ChoiceChip>
+                  <p className="text-caption text-foreground-secondary mt-1 text-center">{unit.description}</p>
+                  <p className="text-caption text-action-accent mt-0.5 text-center font-medium">{unit.example}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-surface border border-line p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-small font-medium text-foreground">How many did you drink?</span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  disabled={isAddingWater || quantity <= 1}
+                  className="px-2 py-1"
+                >
+                  <Minus size={14} />
+                </Button>
+                <span className="min-w-12 text-center text-heading-3 font-bold tabular-nums text-foreground">{quantity}</span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setQuantity(quantity + 1)}
+                  disabled={isAddingWater || quantity >= 10}
+                  className="px-2 py-1"
+                >
+                  <Plus size={14} />
+                </Button>
+              </div>
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={addWaterByUnit}
+              disabled={isAddingWater}
+              loading={isAddingWater}
+              loadingLabel="Adding..."
+              className="w-full"
+            >
+              Add {(quantity * calculateAmount(selectedUnit, 1)).toFixed(1)}L
+            </Button>
+          </div>
         </div>
       </Card>
     );
@@ -213,37 +309,65 @@ export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId, compac
                 Drinking 3 Liters of fluids daily prevents red blood cells from sickling and blocking bloodflow. Set your pace:
               </p>
 
-              <div className="grid grid-cols-3 gap-2">
-                <button 
-                  onClick={() => addWater(0.25)}
-                  className="flex flex-col items-center justify-center py-3 bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-100 dark:border-blue-900/55 text-blue-700 dark:text-blue-450 font-extrabold rounded-2xl transition-all active:scale-95 cursor-pointer text-xs"
-                >
-                  <CupSoda className="w-4 h-4 mb-1" />
-                  +250ml
-                </button>
-                <button 
-                  onClick={() => addWater(0.50)}
-                  className="flex flex-col items-center justify-center py-3 bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-100 dark:border-blue-900/55 text-blue-700 dark:text-blue-450 font-extrabold rounded-2xl transition-all active:scale-95 cursor-pointer text-xs"
-                >
-                  <CupSoda className="w-4 h-4 mb-1" />
-                   +500ml
-                </button>
-                <button 
-                  onClick={() => addWater(0.75)}
-                  className="flex flex-col items-center justify-center py-3 bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-100 dark:border-blue-900/55 text-blue-700 dark:text-blue-450 font-extrabold rounded-2xl transition-all active:scale-95 cursor-pointer text-xs"
-                >
-                  <CupSoda className="w-4 h-4 mb-1" />
-                   +750ml
-                </button>
-              </div>
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: 'sachets' as const, label: '50cl Sachet', description: 'Common Nigerian sachet water (0.5L each)', example: '3 sachets = 1.5L' },
+                    { value: 'bottles' as const, label: '1L Bottle', description: 'Standard 1-liter bottle (1L each)', example: '2 bottles = 2L' },
+                    { value: 'liters' as const, label: 'Liters', description: 'Enter amount in liters directly', example: '1.5L = 1.5L' },
+                  ].map((unit) => (
+                    <div key={unit.value} className="flex-1 min-w-[90px]">
+                      <ChoiceChip
+                        selected={selectedUnit === unit.value}
+                        onSelectedChange={() => setSelectedUnit(unit.value)}
+                        disabled={isAddingWater}
+                        className="w-full justify-center text-xs"
+                      >
+                        {unit.label}
+                      </ChoiceChip>
+                      <p className="text-caption text-foreground-secondary mt-1 text-center">{unit.description}</p>
+                      <p className="text-caption text-action-accent mt-0.5 text-center font-medium">{unit.example}</p>
+                    </div>
+                  ))}
+                </div>
 
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => addWater(1.00)}
-                  className="flex-1 py-3 text-xs font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all active:scale-95 cursor-pointer text-center"
-                >
-                  +1.0 Liter Bottle
-                </button>
+                <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/55 p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">How many did you drink?</span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        disabled={isAddingWater || quantity <= 1}
+                        className="px-2 py-1"
+                      >
+                        <Minus size={14} />
+                      </Button>
+                      <span className="min-w-10 text-center text-heading-3 font-bold tabular-nums text-gray-800 dark:text-white">{quantity}</span>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setQuantity(quantity + 1)}
+                        disabled={isAddingWater || quantity >= 10}
+                        className="px-2 py-1"
+                      >
+                        <Plus size={14} />
+                      </Button>
+                    </div>
+                  </div>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={addWaterByUnit}
+                    disabled={isAddingWater}
+                    loading={isAddingWater}
+                    loadingLabel="Adding..."
+                    className="w-full"
+                  >
+                    Add {(quantity * calculateAmount(selectedUnit, 1)).toFixed(1)}L
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
