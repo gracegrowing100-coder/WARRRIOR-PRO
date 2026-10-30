@@ -307,7 +307,7 @@ const App: React.FC = () => {
             onHome={() => navigate('home')}
             actions={(
               <div className="flex items-center justify-end gap-2 sm:gap-3">
-                <SosPill className="hidden md:inline-flex" />
+                <SosPill className="md:hidden" />
                 {/* Multilingual Selector */}
                 <div className="flex min-h-11 items-center rounded-control border border-line bg-surface-subtle px-2">
                   <Globe size={18} className="mr-1.5 shrink-0 text-foreground-secondary" />

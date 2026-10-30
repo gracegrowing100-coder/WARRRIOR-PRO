@@ -124,7 +124,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
             Your health, routines, and next steps for today.
           </p>
         </div>
-        <SosPill onClick={() => document.getElementById('emergency-fab')?.click()} />
+        <SosPill className="md:hidden" onClick={() => document.getElementById('emergency-fab')?.click()} />
       </header>
 
       <TodaysHealthCard

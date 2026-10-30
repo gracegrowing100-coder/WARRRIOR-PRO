@@ -75,7 +75,7 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
       <PageHeader
         title="Care"
         description="Your health history, care requests, and medical information in one place."
-        actions={<SosPill onClick={() => document.getElementById('emergency-fab')?.click()} />}
+        actions={<SosPill className="md:hidden" onClick={() => document.getElementById('emergency-fab')?.click()} />}
       />
 
       <section aria-label="Care destinations" className="space-y-6">

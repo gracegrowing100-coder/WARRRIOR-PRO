@@ -43,3 +43,4 @@ export const SosPill: React.FC<SosPillProps> = ({
 };
 
 SosPill.displayName = 'SosPill';
+
