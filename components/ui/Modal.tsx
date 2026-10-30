@@ -143,7 +143,7 @@ export const Modal: React.FC<ModalProps> = ({
       data-ui
       data-modal-root
       className={cn(
-        'fixed inset-0 z-[200] flex min-h-full bg-wa-plum/85 backdrop-blur-sm transition-opacity duration-200',
+        'fixed inset-0 z-[200] flex min-h-full bg-wa-hero/85 backdrop-blur-sm transition-opacity duration-200',
         presentation === 'side-panel'
           ? 'items-stretch justify-end p-0'
           : 'items-end justify-center overflow-y-auto p-0 md:items-center md:p-4',

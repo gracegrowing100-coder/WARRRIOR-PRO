@@ -27,11 +27,11 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: 'bg-wa-crimson text-white hover:bg-wa-crimson-press active:bg-wa-crimson-press shadow-sm',
-  dark: 'bg-wa-plum text-white hover:bg-wa-plum/90 active:bg-wa-plum/95',
+  dark: 'bg-wa-hero text-white hover:bg-wa-hero/90 active:bg-wa-hero/95',
   water: 'bg-wa-water text-white hover:bg-wa-water-ink active:bg-wa-water-ink',
   outline: 'border-[1.5px] border-wa-plum bg-transparent text-wa-plum hover:bg-wa-rose/30 active:bg-wa-rose/50',
   ghost: 'bg-transparent text-wa-crimson hover:bg-wa-rose/40 active:bg-wa-rose/60',
-  onPlum: 'bg-white text-wa-plum hover:bg-wa-on-plum-soft active:bg-wa-on-plum-muted',
+  onPlum: 'bg-white text-wa-hero hover:bg-wa-on-plum-soft active:bg-wa-on-plum-muted',
   icon: 'border border-wa-line bg-wa-surface text-wa-plum hover:bg-wa-ground p-0 flex items-center justify-center',
   accent: 'bg-wa-crimson text-white hover:bg-wa-crimson-press shadow-sm',
   secondary: 'border-[1.5px] border-wa-line bg-wa-surface text-wa-plum hover:bg-wa-ground',

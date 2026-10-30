@@ -53,7 +53,7 @@ export const ChoiceChip = forwardRef<HTMLButtonElement, ChoiceChipProps>(
       return (
         <div
           className={cn(
-            'inline-flex h-[44px] min-h-[44px] items-center gap-2 rounded-full bg-wa-plum pl-4 pr-1.5 text-[14px] font-semibold text-white',
+            'inline-flex h-[44px] min-h-[44px] items-center gap-2 rounded-full bg-wa-hero pl-4 pr-1.5 text-[14px] font-semibold text-white',
             className,
           )}
         >
