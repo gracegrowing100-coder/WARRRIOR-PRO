@@ -24,7 +24,7 @@ import { OfflineWarriorAI } from './components/OfflineWarriorAI';
 import { SyntheticDemo } from './components/SyntheticDemo';
 import { CareHub } from './components/care';
 import { SosPill } from './components/ui';
-import { WarriorMark, Spark } from './components/brand';
+import { AnimatedSplash } from './components/brand';
 import {
   AppHeader,
   AppShell,
@@ -49,6 +49,7 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>(pageFromHash);
   const [user, setUser] = useState<typeof auth.currentUser>(null);
   const [authResolved, setAuthResolved] = useState(false);
+  const [splashDone, setSplashDone] = useState(false);
   const [authStartupNotice, setAuthStartupNotice] = useState<string | null>(null);
   const [demoMode, setDemoMode] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -257,37 +258,8 @@ const App: React.FC = () => {
     return <SyntheticDemo onExit={() => setDemoMode(false)} />;
   }
 
-  if (!authResolved) {
-    return (
-      <div className="h-[100dvh] w-full bg-[var(--wa-hero)] text-white relative overflow-hidden flex flex-col items-center justify-center font-body" role="status" aria-live="polite">
-        {/* Concentric coral rings */}
-        <div aria-hidden="true" className="absolute w-[640px] h-[640px] rounded-full border border-wa-coral/20 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-        <div aria-hidden="true" className="absolute w-[460px] h-[460px] rounded-full border border-wa-coral/30 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-        <div aria-hidden="true" className="absolute w-[300px] h-[300px] rounded-full bg-[radial-gradient(circle,rgba(232,52,79,0.35)_0%,rgba(232,52,79,0)_70%)] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-
-        {/* 3 tiny sparks */}
-        <Spark className="absolute top-[20%] left-[18%] w-[18px] h-[18px] text-wa-coral/70" />
-        <Spark className="absolute top-[30%] right-[16%] w-[12px] h-[12px] text-wa-ground/60" />
-        <Spark className="absolute bottom-[30%] right-[22%] w-[14px] h-[14px] text-wa-coral/60" />
-
-        {/* Center mark + lockup */}
-        <div className="relative flex flex-col items-center gap-7 -mt-10">
-          <WarriorMark className="w-[120px] h-[160px] text-wa-coral" color="currentColor" />
-          <div className="flex items-center gap-2">
-            <span className="font-display font-extrabold text-[38px] tracking-tight text-white">Warrior</span>
-            <span className="font-display font-bold text-[19px] bg-wa-crimson text-white rounded-[10px] px-2.5 py-0.5">AI</span>
-          </div>
-        </div>
-
-        {/* Bottom progress bar + pilot disclaimer */}
-        <div className="absolute bottom-12 inset-x-0 flex flex-col items-center gap-4">
-          <div className="w-[120px] h-1 rounded-full bg-white/15 overflow-hidden">
-            <div className="w-[55%] h-full rounded-full bg-wa-coral animate-pulse" />
-          </div>
-          <span className="text-[13px] text-wa-on-plum-muted">Pilot version · sample data only</span>
-        </div>
-      </div>
-    );
+  if (!splashDone) {
+    return <AnimatedSplash ready={authResolved} onDone={() => setSplashDone(true)} />;
   }
 
   if (!user) {
