@@ -82,3 +82,6 @@ export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttrib
 );
 
 Textarea.displayName = 'Textarea';
+
+export const Input = TextInput;
+

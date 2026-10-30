@@ -1,52 +1,47 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { User as FirebaseUser } from 'firebase/auth';
 import {
-  Mail,
-  Lock,
-  User,
-  Phone,
-  Calendar,
-  MapPin,
-  Activity,
-  ChevronRight,
   ChevronLeft,
-  Check,
   Eye,
   EyeOff,
-  LogIn,
-  UserPlus,
-  AlertCircle,
-  Loader2,
-  Sparkles,
+  Droplets,
   Heart,
-  Info,
-  Clock,
-  Droplet,
-  Trash2,
-  LockKeyhole,
-  CheckCircle2,
   Stethoscope,
-  HeartHandshake,
-  Shield,
-  HelpCircle,
+  CloudRain,
+  Thermometer,
+  Zap,
   Moon,
-  Sun
+  Sun,
+  HeartPulse,
+  Wind,
+  Shield,
+  Plus,
+  X,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  auth, 
-  registerWithEmail, 
-  loginWithEmail, 
-  sendPasswordReset, 
-  triggerEmailVerification, 
+import {
+  auth,
+  registerWithEmail,
+  loginWithEmail,
+  sendPasswordReset,
+  triggerEmailVerification,
   updateUserDisplayNameAndPhoto,
   loginWithGoogle,
   configureAuthPersistence,
-  linkPendingGoogleCredential
+  linkPendingGoogleCredential,
 } from '../firebase-init';
 import { firebaseService } from '../services/firebaseService';
-
-const PRIVACY_DISCLAIMER_TEXT = "Pilot version · For product evaluation. Use sample information only. Do not enter real patient records until clinic approval.";
+import { WarriorMark, Spark } from './brand';
+import {
+  Button,
+  OptionCard,
+  ProgressSegments,
+  FormField,
+  Input,
+} from './ui';
 
 interface AuthFlowProps {
   onAuthSuccess: (user: any) => void;
@@ -54,64 +49,114 @@ interface AuthFlowProps {
   initialNotice?: string | null;
 }
 
-// Genotype definitions matching clinical standards
-interface GenotypeDefinition {
+interface GenotypeOption {
   code: string;
+  badge: string;
   name: string;
-  severity: string;
-  hydrationTarget: number; // in Liters
-  description: string;
+  note: string;
+  hydrationTarget: number;
 }
 
-const CLINICAL_GENOTYPES: GenotypeDefinition[] = [
+const CLINICAL_GENOTYPES: GenotypeOption[] = [
   {
     code: 'SS',
-    name: 'Sickle Cell Anemia (Homozygous HbS)',
-    severity: 'High vigilance',
+    badge: 'SS',
+    name: 'Sickle cell anaemia',
+    note: 'HbSS',
     hydrationTarget: 3.8,
-    description: 'The most common and clinically severe variant. Persistent blood perfusion and consistent daily rehydration are vital for managing erythrocytes.'
   },
   {
     code: 'SC',
-    name: 'HbSC Disease',
-    severity: 'Moderate control',
+    badge: 'SC',
+    name: 'HbSC disease',
+    note: 'Two different variants',
     hydrationTarget: 3.5,
-    description: 'A variant combining HbS and HbC. While complications are often progressive, maintaining optimum blood viscosity reduces vaso-occlusive risks.'
   },
   {
     code: 'Sβ0',
-    name: 'Sickle Beta-Zero Thalassemia',
-    severity: 'High vigilance',
+    badge: 'Sβ⁰',
+    name: 'Sickle beta-zero thalassaemia',
+    note: 'HbSβ⁰',
     hydrationTarget: 3.8,
-    description: 'An severe variant resembling SS with negligible beta-globin production. Regular fluid volume replacement is strongly recommended.'
   },
   {
     code: 'Sβ+',
-    name: 'Sickle Beta-Plus Thalassemia',
-    severity: 'Moderate control',
+    badge: 'Sβ⁺',
+    name: 'Sickle beta-plus thalassaemia',
+    note: 'HbSβ⁺',
     hydrationTarget: 3.3,
-    description: 'A variant with some beta-globin production, usually showing milder courses. Moderate hydration goals ensure cellular elastic compliance.'
   },
   {
     code: 'AS',
-    name: 'Sickle Cell Carrier / Trait',
-    severity: 'Wellness tracking',
+    badge: 'AS',
+    name: 'Carrier (trait)',
+    note: 'For wellness tracking',
     hydrationTarget: 3.0,
-    description: 'Carrier status. Rarely symptomatic, but tracked here for hereditary awareness, physiological metrics, and overall wellness advocacy.'
   },
   {
     code: 'Other',
-    name: 'Other Variant / Under Diagnosis',
-    severity: 'Individual care',
+    badge: '?',
+    name: 'Other, or not sure yet',
+    note: "We'll keep things general",
     hydrationTarget: 3.2,
-    description: 'Individually managed sickle genotypes or overlapping hemoglobinopathies. Aligns with standard baseline fluid recommendations.'
-  }
+  },
 ];
 
-export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, initialNotice = null }) => {
+const PRESET_MEDS = [
+  { id: 'Hydroxyurea (Daily Capsule)', name: 'Hydroxyurea', form: 'Daily capsule' },
+  { id: 'Folic Acid (Daily Support)', name: 'Folic acid', form: 'Daily tablet' },
+  { id: 'Penicillin V (Prophylactic)', name: 'Penicillin V', form: 'Daily, to prevent infection' },
+  { id: 'Crizanlizumab (IV Infusion)', name: 'Crizanlizumab', form: 'IV infusion' },
+  { id: 'Voxelotor (Sickle-Targeted)', name: 'Voxelotor', form: 'Daily tablet' },
+  { id: 'L-Glutamine (Oral Powder)', name: 'L-Glutamine', form: 'Oral powder' },
+];
+
+const PRESET_TRIGGERS = [
+  {
+    id: 'Sudden Atmospheric Cold (Thermal Shock)',
+    label: 'Cold weather or rain',
+    icon: CloudRain,
+  },
+  {
+    id: 'Extreme Dryness / Passive Dehydration',
+    label: 'Not drinking enough water',
+    icon: Droplets,
+  },
+  {
+    id: 'Infectious Fever or Physiological Load',
+    label: 'Fever or infection',
+    icon: Thermometer,
+  },
+  {
+    id: 'Strenuous Skeletal Fatigue / Exhaustion',
+    label: 'Overdoing it physically',
+    icon: Zap,
+  },
+  {
+    id: 'Prolonged Sleep Deficit',
+    label: 'Poor sleep',
+    icon: Moon,
+  },
+  {
+    id: 'Emotional Distress or Sympathetic Stress',
+    label: 'Stress or worry',
+    icon: HeartPulse,
+  },
+  {
+    id: 'Hypoxia / Low Oxygen Environments',
+    label: 'Low oxygen (flights, high places)',
+    icon: Wind,
+  },
+];
+
+export const AuthFlow: React.FC<AuthFlowProps> = ({
+  onAuthSuccess,
+  onOpenDemo,
+  initialNotice = null,
+}) => {
   // Navigation screen states
   const [screen, setScreen] = useState<'landing' | 'login' | 'signup' | 'forgot' | 'onboarding'>('landing');
-  
+
   // Theme state
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     return localStorage.getItem('warrior_theme') === 'dark';
@@ -121,20 +166,31 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
     const nextTheme = !darkMode;
     setDarkMode(nextTheme);
     localStorage.setItem('warrior_theme', nextTheme ? 'dark' : 'light');
+    if (nextTheme) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.removeAttribute('data-theme');
+    }
   };
 
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
+      document.documentElement.setAttribute('data-theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
+      document.documentElement.removeAttribute('data-theme');
     }
   }, [darkMode]);
 
   // Loading and feedback states
   const [isSubmit, setIsSubmit] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(initialNotice);
   const [generalSuccess, setGeneralSuccess] = useState<string | null>(null);
+  const [loadingPhase, setLoadingPhase] = useState<string | null>(null);
 
   // Form inputs
   const [email, setEmail] = useState('');
@@ -145,7 +201,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
 
   // Sign up inputs
   const [fullName, setFullName] = useState('');
-  const [phoneCode, setPhoneCode] = useState('+1');
+  const [phoneCode] = useState('+234');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [dob, setDob] = useState('');
   const [city, setCity] = useState('');
@@ -153,18 +209,18 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
   const [agreeTOS, setAgreeTOS] = useState(false);
   const [agreeHealthConsent, setAgreeHealthConsent] = useState(false);
 
-  // Optional Emergency Contacts (Clinical standards)
+  // Emergency contact
   const [emergencyContactName, setEmergencyContactName] = useState('');
   const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
 
-  // Password structural criteria checker
+  // Password strength
   const [pwdStrength, setPwdStrength] = useState({
     length: false,
     uppercase: false,
     lowercase: false,
     number: false,
     special: false,
-    score: 0
+    score: 0,
   });
 
   useEffect(() => {
@@ -175,11 +231,10 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
     const special = /[^A-Za-z0-9]/.test(password);
 
     let score = 0;
-    if (length) score += 20;
-    if (uppercase) score += 20;
-    if (lowercase) score += 20;
-    if (number) score += 20;
-    if (special) score += 20;
+    if (length) score += 25;
+    if (uppercase && lowercase) score += 25;
+    if (number) score += 25;
+    if (special) score += 25;
 
     setPwdStrength({ length, uppercase, lowercase, number, special, score });
   }, [password]);
@@ -194,47 +249,32 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
 
   // Onboarding sequence state
   const [onboardingStep, setOnboardingStep] = useState(1);
-  const [scdType, setScdType] = useState('');
-  const [medicationsList, setMedicationsList] = useState<string[]>([]);
+  const [scdType, setScdType] = useState('SS');
+  const [medicationsList, setMedicationsList] = useState<string[]>(['Hydroxyurea (Daily Capsule)', 'Folic Acid (Daily Support)']);
   const [newCustomMed, setNewCustomMed] = useState('');
-  const [crisisTriggersList, setCrisisTriggersList] = useState<string[]>([]);
-  const [targetHydration, setTargetHydration] = useState(3.0);
-  const [loadingPhase, setLoadingPhase] = useState<string | null>(null);
+  const [crisisTriggersList, setCrisisTriggersList] = useState<string[]>([
+    'Sudden Atmospheric Cold (Thermal Shock)',
+    'Extreme Dryness / Passive Dehydration',
+  ]);
+  const [newCustomTrigger, setNewCustomTrigger] = useState('');
+  const [targetHydration, setTargetHydration] = useState(3.8);
+
   const resumedAuthenticatedUser = useRef(false);
 
-  const PRESET_TRIGGERS = [
-    "Sudden Atmospheric Cold (Thermal Shock)",
-    "Extreme Dryness / Passive Dehydration",
-    "Infectious Fever or Physiological Load",
-    "Strenuous Skeletal Fatigue / Exhaustion",
-    "Prolonged Sleep Deficit",
-    "Emotional Distress or Sympathetic Stress",
-    "Hypoxia / Low Oxygen Environments"
-  ];
-
-  const PRESET_MEDS = [
-    "Hydroxyurea (Daily Capsule)",
-    "Folic Acid (Daily Support)",
-    "Penicillin V (Prophylactic)",
-    "Crizanlizumab (IV Infusion)",
-    "Voxelotor (Sickle-Targeted)",
-    "L-Glutamine (Oral Powder)"
-  ];
-
   const getValidationError = () => {
-    if (!fullName.trim()) return "Full name is required for medical reference.";
-    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) return "Please enter a valid institutional address.";
-    if (phoneNumber && !phoneNumber.match(/^\d{4,15}$/)) return "Invalid contact phone number format.";
-    if (!dob) return "Date of birth is critical for automated medication schedules.";
-    if (pwdStrength.score < 80) return "Please choose a password meeting safe protocol guidelines.";
-    if (password !== confirmPassword) return "Your passwords do not match.";
-    if (!agreeTOS) return "You must authorize the standard terms of use.";
-    if (!agreeHealthConsent) return "SCD health metrics access is required for clinical assistance.";
+    if (!fullName.trim()) return 'Please add your name.';
+    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) return "That email doesn't look right.";
+    if (phoneNumber && !phoneNumber.match(/^\d{4,15}$/)) return 'Please check your phone number.';
+    if (!dob) return 'Add your date of birth so reminders fit you.';
+    if (pwdStrength.score < 75) return 'Your password needs a few more things (see the checklist).';
+    if (password !== confirmPassword) return 'Your passwords do not match.';
+    if (!agreeTOS) return 'Please agree to the Terms to continue.';
+    if (!agreeHealthConsent) return 'We need your OK to store your health logs.';
     return null;
   };
 
   const continueAfterAuthentication = useCallback(async (fbUser: FirebaseUser) => {
-    setLoadingPhase('Retrieving secure profile data...');
+    setLoadingPhase('Retrieving profile...');
     const profile = await firebaseService.getUserProfileState(fbUser.uid);
 
     if (profile.state === 'recorded' || profile.state === 'cached') {
@@ -247,6 +287,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
       setFullName(fbUser.displayName || fbUser.email?.split('@')[0] || '');
       setEmail(fbUser.email || '');
       setScreen('onboarding');
+      setOnboardingStep(1);
       setLoadingPhase(null);
       return;
     }
@@ -273,12 +314,12 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
     e.preventDefault();
     setGeneralError(null);
     if (!email || !password) {
-      setGeneralError("Please insert both email coordinates and your access password.");
+      setGeneralError('Email or password is wrong. Try again or reset your password.');
       return;
     }
 
     setIsSubmit(true);
-    setLoadingPhase("Checking your sign-in details...");
+    setLoadingPhase('Checking your sign-in details...');
     try {
       await configureAuthPersistence(rememberMe);
       const fbUser = await loginWithEmail(email, password);
@@ -297,17 +338,15 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
         console.info('[Auth] Password sign-in rejected.', { code: err?.code || 'unknown' });
       }
       if (!isHandledError) {
-        console.error("Authentication submit error:", err);
+        console.error('Authentication submit error:', err);
       }
-      let errMsg = "Secure Authentication failed. Please verify credentials.";
-      if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-        errMsg = "We couldn't locate matching credentials. Please review the input and try again.";
-      } else if (err.code === 'auth/network-request-failed') {
-        errMsg = "Network Connection Issue: check your internet connection and reload.";
+      let errMsg = 'Email or password is wrong. Try again or reset your password.';
+      if (err.code === 'auth/network-request-failed') {
+        errMsg = 'Network connection issue. Check your internet connection and reload.';
       } else if (err.code === 'profile/unavailable') {
-        errMsg = "We could not confirm your existing profile. Check your connection and try again.";
+        errMsg = 'We could not confirm your existing profile. Check your connection and try again.';
       } else if (err.code === 'auth/account-link-email-mismatch') {
-        errMsg = "The Google account does not match this signed-in account. No accounts or patient records were linked.";
+        errMsg = 'The Google account does not match this signed-in account. No accounts or patient records were linked.';
       }
       setGeneralError(errMsg);
     } finally {
@@ -318,8 +357,9 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
   // Safe Registration submit
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitted(true);
     setGeneralError(null);
-    
+
     const valError = getValidationError();
     if (valError) {
       setGeneralError(valError);
@@ -327,24 +367,19 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
     }
 
     setIsSubmit(true);
-    setLoadingPhase("Creating your account...");
+    setLoadingPhase('Creating your profile...');
     try {
-      await configureAuthPersistence(true);
-      // 1. Create email/password user safely
+      await configureAuthPersistence(rememberMe);
       const fbUser = await registerWithEmail(email, password);
-
-      // 2. Set profile display name
       await updateUserDisplayNameAndPhoto(fullName);
 
-      // 3. Dispatch verification email instantly to secure email domain
       try {
         await triggerEmailVerification();
       } catch (e) {
-        console.warn("Could not dispatch initial verification link:", e);
+        console.warn('Could not dispatch initial verification link:', e);
       }
 
-      setLoadingPhase("Saving your account details...");
-      
+      setLoadingPhase('Setting up your health workspace...');
       const userId = fbUser.uid;
       const currentSelectedGenotype = userRole === 'Person with Sickle Cell Disease' ? scdType : 'N/A';
 
@@ -358,81 +393,62 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
         scdType: currentSelectedGenotype,
         streak: 0,
         photoURL: fbUser.photoURL || '',
-        lastActiveDate: new Date().toLocaleDateString('sv')
+        lastActiveDate: new Date().toLocaleDateString('sv'),
       };
 
-      // 4. Create profile
       await firebaseService.createUserProfile(userId, profilePayload);
 
-      setLoadingPhase("Activating daily medication reminders...");
-
-      // 5. Save only medications deliberately selected by the user.
+      // Save selected meds
       if (medicationsList.length > 0) {
         for (const med of medicationsList) {
           await firebaseService.addMedication(userId, {
             name: med,
-            dosage: "Not specified",
-            time: "08:00",
-            category: "Refinement Daily",
-            checkedDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-            active: true
+            dosage: 'Not specified',
+            time: '08:00',
+            category: 'Refinement Daily',
+            checkedDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            active: true,
           });
         }
       }
 
-      // 6. Save an emergency contact only when the user supplied one. Hydration,
-      // allergy, medication and caregiver records are created in their own flows.
+      // Save emergency contact if entered
       if (emergencyContactName.trim() || emergencyContactPhone.trim()) {
         await firebaseService.saveEmergencyInfo(userId, {
           emergencyContactName: emergencyContactName.trim(),
-          emergencyContactPhone: emergencyContactPhone.trim()
+          emergencyContactPhone: emergencyContactPhone.trim(),
         });
       }
 
-      setLoadingPhase("Entering protected Warrior AI workspace...");
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // 8. Finished & enter app
-      setLoadingPhase(null);
-      onAuthSuccess(fbUser);
+      // Go to onboarding steps
+      setScreen('onboarding');
+      setOnboardingStep(1);
     } catch (err: any) {
-      setLoadingPhase(null);
       if (err.code === 'auth/email-already-in-use') {
-        setLoadingPhase("Auto-reconciling registered record...");
-        // Self-healing automatic login attempt
         try {
           const loggedInUser = await loginWithEmail(email, password);
           await continueAfterAuthentication(loggedInUser);
           return;
-        } catch (loginErr: any) {
-          setLoadingPhase(null);
-          // Swallow validation errors silently to prevent telemetry systems or automated testers from triggering false alarms
-          setGeneralError("This email is already in use. If this belongs to you, please sign in with your password, or click the switch button below to log in.");
+        } catch {
+          setGeneralError('Email already registered. Sign in with your password to continue.');
         }
       } else {
         const isHandledError = ['auth/weak-password', 'auth/invalid-email'].includes(err?.code);
         if (!isHandledError) {
-          console.error("Registration error:", err);
+          console.error('Registration error:', err);
         }
-        let errMsg = "Security validation error. Register unsuccessful.";
+        let errMsg = 'Could not create profile. Please review your details and try again.';
         if (err.code === 'auth/weak-password') {
-          errMsg = "Weak credentials. Choose a secure, randomized passcode.";
+          errMsg = 'Your password needs a few more things (see the checklist).';
         } else if (err.code === 'auth/invalid-email') {
-          errMsg = "Invalid email format. Please check the spelling.";
+          errMsg = "That email doesn't look right.";
         }
         setGeneralError(errMsg);
       }
     } finally {
       setIsSubmit(false);
+      setLoadingPhase(null);
     }
-  };
-
-  // A cloud-backed demo must never create disposable production accounts.
-  // Keep this action local until a separate synthetic-data demo environment exists.
-  const handleQuickDemoAccess = (roleType: 'Person with Sickle Cell Disease' | 'Caregiver / Parent') => {
-    setGeneralError(null);
-    setGeneralSuccess(null);
-    onOpenDemo();
   };
 
   // Google Provider flow
@@ -440,7 +456,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
     setGeneralError(null);
     setGeneralSuccess(null);
     setIsSubmit(true);
-    setLoadingPhase("Opening Google sign-in...");
+    setLoadingPhase('Connecting with Google...');
     try {
       await configureAuthPersistence(true);
       const googleUser = await loginWithGoogle(false);
@@ -474,31 +490,32 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
     e.preventDefault();
     setGeneralError(null);
     setGeneralSuccess(null);
-    if (!email) {
-      setGeneralError("Please input an authorized email link address.");
+    if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      setGeneralError("That email doesn't look right.");
       return;
     }
 
     setIsSubmit(true);
     try {
       await sendPasswordReset(email);
-      setGeneralSuccess("Recovery coordinates successfully dispatched. Check your inbox and spam filters for reset steps.");
+      setGeneralSuccess('Check your inbox. We sent a reset link to your email.');
     } catch (err: any) {
       console.error(err);
-      setGeneralError(err.message || "An issue was encountered while preparing recovery email.");
+      setGeneralError('We could not send a reset link. Check the email address and try again.');
     } finally {
       setIsSubmit(false);
     }
   };
 
-  // Setup patient/caregiver schema coordinates
+  // Complete onboarding
   const handleOnboardingComplete = async () => {
     if (!auth.currentUser) {
-      setGeneralError("User authentication expired. Please sign in again.");
+      setGeneralError('User authentication expired. Please sign in again.');
       return;
     }
 
     setIsSubmit(true);
+    setLoadingPhase('Saving your setup...');
     const userId = auth.currentUser.uid;
     const currentSelectedGenotype = userRole === 'Person with Sickle Cell Disease' ? scdType : 'N/A';
 
@@ -512,1355 +529,1285 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
       scdType: currentSelectedGenotype,
       streak: 0,
       photoURL: auth.currentUser.photoURL || '',
-      lastActiveDate: new Date().toLocaleDateString('sv')
+      lastActiveDate: new Date().toLocaleDateString('sv'),
     };
 
     try {
-      // 1. Create master client record
       await firebaseService.createUserProfile(userId, profilePayload);
 
-      // 2. Save only medications deliberately selected in onboarding.
       if (medicationsList.length > 0) {
         for (const med of medicationsList) {
           await firebaseService.addMedication(userId, {
             name: med,
-            dosage: "Not specified",
-            time: "08:00",
-            category: "Refinement Daily",
-            checkedDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-            active: true
+            dosage: 'Not specified',
+            time: '08:00',
+            category: 'Refinement Daily',
+            checkedDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            active: true,
           });
         }
       }
 
-      // 3. Save an emergency contact only when one was explicitly supplied.
       if (emergencyContactName.trim() || emergencyContactPhone.trim()) {
         await firebaseService.saveEmergencyInfo(userId, {
           emergencyContactName: emergencyContactName.trim(),
-          emergencyContactPhone: emergencyContactPhone.trim()
+          emergencyContactPhone: emergencyContactPhone.trim(),
         });
       }
 
-      // 4. Complete
       onAuthSuccess(auth.currentUser);
     } catch (err: any) {
       console.error(err);
-      setGeneralError("Clinical Database Synchronization lost. Please check connection.");
+      setGeneralError('Could not save your setup. Please check your connection and try again.');
     } finally {
       setIsSubmit(false);
+      setLoadingPhase(null);
     }
   };
 
-  const addCustomMedication = () => {
+  const addCustomMed = () => {
     if (newCustomMed.trim() && !medicationsList.includes(newCustomMed.trim())) {
-      setMedicationsList([...medicationsList, newCustomMed.trim()]);
+      setMedicationsList(prev => [...prev, newCustomMed.trim()]);
       setNewCustomMed('');
     }
   };
 
-  const toggleMedSelection = (med: string) => {
-    if (medicationsList.includes(med)) {
-      setMedicationsList(medicationsList.filter(item => item !== med));
+  const removeMed = (medToRemove: string) => {
+    setMedicationsList(prev => prev.filter(m => m !== medToRemove));
+  };
+
+  const toggleMed = (medId: string) => {
+    if (medicationsList.includes(medId)) {
+      setMedicationsList(prev => prev.filter(m => m !== medId));
     } else {
-      setMedicationsList([...medicationsList, med]);
+      setMedicationsList(prev => [...prev, medId]);
     }
   };
 
-  const toggleTriggerSelection = (trig: string) => {
-    if (crisisTriggersList.includes(trig)) {
-      setCrisisTriggersList(crisisTriggersList.filter(t => t !== trig));
+  const toggleTrigger = (triggerId: string) => {
+    if (crisisTriggersList.includes(triggerId)) {
+      setCrisisTriggersList(prev => prev.filter(t => t !== triggerId));
     } else {
-      setCrisisTriggersList([...crisisTriggersList, trig]);
+      setCrisisTriggersList(prev => [...prev, triggerId]);
     }
+  };
+
+  const addCustomTrigger = () => {
+    if (newCustomTrigger.trim() && !crisisTriggersList.includes(newCustomTrigger.trim())) {
+      setCrisisTriggersList(prev => [...prev, newCustomTrigger.trim()]);
+      setNewCustomTrigger('');
+    }
+  };
+
+  const handleGenotypeSelect = (opt: GenotypeOption) => {
+    setScdType(opt.code);
+    setTargetHydration(opt.hydrationTarget);
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-300 flex flex-col justify-between">
-      <AnimatePresence>
-        {loadingPhase && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center z-50 p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="max-w-md w-full bg-slate-900 border border-slate-850 rounded-[2.5rem] p-8 text-center space-y-6 shadow-2xl relative overflow-hidden"
-            >
-              {/* Soft pulsing light */}
-              <div className="absolute -top-12 -left-12 w-28 h-28 bg-red-650/10 rounded-full blur-2xl animate-pulse"></div>
-
-              {/* Heartbeat pulsing action */}
-              <div className="relative flex justify-center items-center">
-                <div className="w-16 h-16 rounded-full bg-red-600/10 border border-red-500/20 flex items-center justify-center animate-pulse">
-                  <Activity size={28} className="text-red-500 animate-pulse" />
-                </div>
-                {/* Micro outer rings */}
-                <div className="absolute w-20 h-20 rounded-full border border-red-500/10 animate-ping opacity-75"></div>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="text-white text-base font-extrabold uppercase tracking-widest font-sans">
-                  Warrior AI Portal
-                </h3>
-                <p className="text-slate-400 text-xs font-semibold">
-                  Securing health database session...
-                </p>
-              </div>
-
-              {/* Staggered progress indicator */}
-              <div className="space-y-3 pt-2">
-                <div className="w-full bg-slate-800/80 h-1.5 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: "10%" }}
-                    animate={{ width: "95%" }}
-                    transition={{ duration: 1.8, ease: "easeInOut" }}
-                    className="bg-gradient-to-r from-red-650 to-rose-500 h-full rounded-full shadow-lg shadow-red-500/40"
-                  />
-                </div>
-                
-                <motion.p
-                  key={loadingPhase}
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-red-400 font-mono text-[10px] font-bold uppercase tracking-widest leading-relaxed h-8 flex items-center justify-center p-1"
-                >
-                  {loadingPhase}
-                </motion.p>
-              </div>
-
-              <div className="text-[9px] font-semibold text-slate-500 dark:text-slate-600">
-                Prototype environment &middot; use sample data only
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      {/* Clinically Designed Header */}
-      <header className="px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm sticky top-0 z-40">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-md cursor-default">
-            W
-          </div>
-          <div>
-            <h1 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-tight leading-none mb-1">Warrior AI</h1>
-            <span className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">Sickle Cell Patient Support</span>
-          </div>
+    <div className="min-h-screen bg-wa-ground text-wa-plum flex flex-col font-body">
+      {/* Loading overlay */}
+      {loadingPhase && (
+        <div className="fixed inset-0 z-50 bg-[var(--wa-hero)]/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-white text-center">
+          <Loader2 className="w-10 h-10 animate-spin text-wa-coral mb-4" />
+          <p className="font-display font-bold text-lg">{loadingPhase}</p>
         </div>
+      )}
 
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-medical-50 dark:bg-medical-900/20 border border-medical-100 dark:border-medical-900/30 rounded-full text-action-accent">
-            <Info size={14} />
-            <span className="text-[10px] font-semibold uppercase tracking-wider">Pilot version</span>
-          </div>
-
-          <button
-            onClick={toggleTheme}
-            aria-label="Toggle visual contrast parameters"
-            className="p-2 rounded-full bg-surface-subtle hover:bg-surface border border-line text-foreground-secondary hover:text-foreground transition-all cursor-pointer"
-          >
-            {darkMode ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
-        </div>
-      </header>
-
-      {/* Main Container Card viewport */}
-      <main className="flex-1 flex items-center justify-center p-4 md:p-8">
-        <div className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden min-h-[550px] flex flex-col md:flex-row">
-
-          {/* Product Story Sidebar */}
-          <div className="hidden md:flex md:w-[55%] bg-gradient-to-br from-medical-50 to-white dark:from-slate-900 dark:to-slate-950 p-10 flex-col justify-between relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-action-accent/5 rounded-full blur-[80px]"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-action-accent/3 rounded-full blur-[60px]"></div>
-
-            <div className="relative z-10 space-y-6">
-              <div className="space-y-4">
-                <h1 className="text-4xl font-bold text-foreground tracking-tight leading-tight">
-                  Understand your health.<br />
-                  <span className="text-action-accent">Stay one step ahead.</span>
-                </h1>
-                <p className="text-body text-foreground-secondary leading-relaxed max-w-md">
-                  Track symptoms, hydration, medication and daily wellbeing, with Mira available when you need everyday support.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 pt-4">
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-line shadow-subtle">
-                  <div className="flex items-center gap-2 text-action-accent mb-1">
-                    <Activity size={16} />
-                    <span className="text-caption font-semibold">Track</span>
-                  </div>
-                  <p className="text-[10px] text-foreground-secondary">Daily health</p>
-                </div>
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-line shadow-subtle">
-                  <div className="flex items-center gap-2 text-action-accent mb-1">
-                    <Heart size={16} />
-                    <span className="text-caption font-semibold">Talk</span>
-                  </div>
-                  <p className="text-[10px] text-foreground-secondary">With Mira</p>
-                </div>
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-line shadow-subtle">
-                  <div className="flex items-center gap-2 text-action-accent mb-1">
-                    <Calendar size={16} />
-                    <span className="text-caption font-semibold">Prepare</span>
-                  </div>
-                  <p className="text-[10px] text-foreground-secondary">For care review</p>
-                </div>
-              </div>
+      {/* LANDING SCREEN (02) */}
+      {screen === 'landing' && (
+        <div className="w-full max-w-md mx-auto min-h-screen bg-[var(--wa-hero)] text-wa-plum flex flex-col relative overflow-hidden">
+          {/* Header */}
+          <div className="p-5 flex items-center justify-between text-white relative z-10">
+            <div className="flex items-center gap-2">
+              <WarriorMark className="w-[22px] h-[29px] text-wa-coral" color="currentColor" />
+              <span className="font-display font-extrabold text-[18px]">Warrior</span>
+              <span className="font-display font-bold text-[11px] bg-wa-crimson text-white rounded-md px-1.5 py-0.5">AI</span>
             </div>
-
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 text-small text-foreground-secondary">
-                <Info size={14} className="text-action-accent" />
-                <span>Pilot version · For product evaluation</span>
-              </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="h-10 px-3 rounded-full border border-white/20 bg-transparent text-white text-[13px] font-semibold hover:bg-white/10 transition-colors"
+                onClick={() => setGeneralSuccess('Language selector is available inside Mira and Profile.')}
+              >
+                English ▾
+              </button>
+              <button
+                type="button"
+                onClick={toggleTheme}
+                aria-label="Switch theme mode"
+                className="w-10 h-10 rounded-full border border-white/20 bg-transparent text-white flex items-center justify-center hover:bg-white/10 transition-colors"
+              >
+                {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
             </div>
           </div>
 
-          {/* Core Interactive Action Panel */}
-          <div className="flex-1 p-6 sm:p-10 flex flex-col justify-center relative">
-            {/* Mobile Hero - Only visible on small screens */}
-            <div className="md:hidden mb-6 space-y-4">
-              <div className="space-y-2">
-                <h1 className="text-2xl font-bold text-foreground tracking-tight leading-tight">
-                  Understand your health.<br />
-                  <span className="text-action-accent">Stay one step ahead.</span>
-                </h1>
-                <p className="text-small text-foreground-secondary leading-relaxed">
-                  Track symptoms, hydration, medication and daily wellbeing, with Mira available when you need everyday support.
-                </p>
+          {/* Graphic Area: 3 tilted cards */}
+          <div aria-hidden="true" className="relative h-[290px] mt-1 select-none pointer-events-none">
+            <div className="absolute w-[380px] h-[380px] rounded-full border border-wa-coral/25 left-1 -top-7 pointer-events-none" />
+
+            {/* Pain Card */}
+            <div className="absolute left-7 top-9 -rotate-6 bg-white text-wa-plum rounded-[22px] p-[14px_16px] w-[170px] shadow-2xl">
+              <div className="text-[12px] text-wa-muted font-semibold">Pain today</div>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="font-display font-extrabold text-[32px] text-wa-crimson leading-none">3</span>
+                <span className="font-semibold text-[14px]">/ 10 · easing</span>
               </div>
-              <div className="flex items-center gap-2 text-caption text-foreground-secondary">
-                <Info size={12} className="text-action-accent" />
-                <span>Pilot version · For product evaluation</span>
+              <div className="grid grid-cols-10 gap-[3px] mt-2">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-1.5 rounded-full bg-wa-crimson" />
+                ))}
+                {[...Array(7)].map((_, i) => (
+                  <div key={i} className="h-1.5 rounded-full bg-[#F1E4EB]" />
+                ))}
               </div>
             </div>
 
-            {generalSuccess && screen !== 'forgot' && (
-              <div className="mb-5 p-4 bg-medical-50 dark:bg-medical-900/20 border border-medical-100 dark:border-medical-900/30 rounded-xl text-small font-semibold text-foreground flex items-start gap-2.5" role="status">
-                <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-action-accent" />
+            {/* Water Card */}
+            <div className="absolute right-6 top-[88px] rotate-[5deg] bg-wa-water text-white rounded-[22px] p-[14px_16px] w-[150px] shadow-2xl flex items-center gap-2.5">
+              <svg width="34" height="44" viewBox="0 0 34 44" aria-hidden="true">
+                <path d="M17 2C17 2 32 19 32 29a15 15 0 0 1-30 0C2 19 17 2 17 2Z" fill="rgba(255,255,255,0.2)" />
+                <path d="M2.3 26h29.4A15 15 0 0 1 2 29c0-1 .1-2 .3-3Z" fill="#FFFFFF" />
+              </svg>
+              <div>
+                <div className="font-display font-extrabold text-[20px] leading-tight">5 sachets</div>
+                <div className="text-[12px] text-[#D6EEF1]">2.5 L of 3.8 L</div>
+              </div>
+            </div>
+
+            {/* Mira Chat Bubble */}
+            <div className="absolute left-11 top-[192px] -rotate-2 bg-wa-crimson text-white rounded-[22px_22px_22px_6px] p-[12px_16px] w-[256px] shadow-2xl text-[14px] leading-snug">
+              <strong className="font-display font-bold">Mira: </strong>
+              <span>Na hot day for Lagos. Keep one sachet close o.</span>
+            </div>
+          </div>
+
+          {/* Headline */}
+          <div className="px-6 pb-5 text-white">
+            <h1 className="font-display font-extrabold text-[36px] tracking-tight leading-[1.02]">
+              Live strong.<br />
+              <span className="text-wa-coral">Track smart.</span>
+            </h1>
+            <p className="mt-2.5 text-[15px] leading-relaxed text-wa-on-plum-soft">
+              Your sickle cell companion for pain, water, medicine and Mira, in your language.
+            </p>
+          </div>
+
+          {/* Blush Bottom Sheet */}
+          <div className="flex-1 bg-wa-ground rounded-t-[32px] p-6 flex flex-col gap-2.5 shadow-2xl">
+            {generalError && (
+              <div className="p-3 bg-wa-rose text-wa-crimson rounded-xl text-sm flex items-center gap-2 font-medium" role="alert">
+                <AlertCircle size={16} className="shrink-0" />
+                <span>{generalError}</span>
+              </div>
+            )}
+            {generalSuccess && (
+              <div className="p-3 bg-emerald-100 text-emerald-800 rounded-xl text-sm flex items-center gap-2 font-medium" role="status">
+                <CheckCircle2 size={16} className="shrink-0" />
                 <span>{generalSuccess}</span>
               </div>
             )}
-            <AnimatePresence mode="wait">
-              
-              {/* LANDING SCREEN */}
-              {screen === 'landing' && (
-                <motion.div
-                  key="landing"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-6"
+
+            <Button
+              variant="primary"
+              className="w-full h-14"
+              onClick={() => setScreen('signup')}
+            >
+              Get started
+            </Button>
+
+            <Button
+              variant="outline"
+              aria-label="Sign in to your account"
+              className="w-full h-14 bg-white"
+              onClick={() => setScreen('login')}
+            >
+              Sign in
+            </Button>
+
+            <Button
+              variant="secondary"
+              aria-label="Continue with Google"
+              className="w-full h-14 bg-white border border-wa-line flex items-center justify-center gap-3"
+              onClick={handleGoogleAuth}
+            >
+              <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+              </svg>
+              <span>Continue with Google</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              className="w-full text-wa-crimson font-semibold text-[15px]"
+              onClick={onOpenDemo}
+            >
+              Try the demo first →
+            </Button>
+
+            <div className="flex-1 min-h-2" />
+
+            <div className="text-center text-[12px] leading-relaxed text-wa-muted pt-2 border-t border-wa-line/60">
+              <p>Pilot version for product evaluation. Use sample information only.</p>
+              <div className="flex justify-center gap-3 mt-1 font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setGeneralSuccess('Terms of Use will be available in the production release.')}
+                  className="hover:underline text-wa-crimson"
                 >
-                  <div className="text-center md:text-left space-y-2">
-                    <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-                      Welcome to Warrior AI
-                    </h2>
-                    <p className="text-body text-foreground-secondary leading-relaxed">
-                      Sign in to continue tracking your health journey.
-                    </p>
-                  </div>
-
-                  <div className="space-y-3">
-                    <button
-                      id="login-init-btn"
-                      onClick={() => setScreen('login')}
-                      className="w-full h-12 flex items-center justify-center gap-2 bg-action-accent hover:bg-action-accent-hover text-white rounded-xl font-semibold text-sm transition-all duration-150 shadow-subtle"
-                    >
-                      <LogIn size={18} /> Sign in
-                    </button>
-
-                    <button
-                      id="google-init-btn"
-                      onClick={handleGoogleAuth}
-                      className="w-full h-12 flex items-center justify-center gap-3 bg-white dark:bg-surface hover:bg-slate-50 dark:hover:bg-surface-subtle border border-line text-foreground rounded-xl font-medium text-sm transition-all duration-150"
-                    >
-                      <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                      </svg>
-                      Continue with Google
-                    </button>
-
-                    <div className="relative my-4 flex items-center justify-center">
-                      <div className="absolute inset-x-0 border-t border-line"></div>
-                      <span className="relative px-3 bg-white dark:bg-surface text-caption text-foreground-secondary">
-                        or
-                      </span>
-                    </div>
-
-                    <button
-                      id="synthetic-demo-btn"
-                      onClick={() => handleQuickDemoAccess('Person with Sickle Cell Disease')}
-                      className="w-full h-11 flex items-center justify-center gap-2 text-foreground-secondary hover:text-foreground font-medium text-sm transition-colors duration-150"
-                    >
-                      <Sparkles size={16} /> Explore a demo
-                    </button>
-
-                    <a
-                      href="mailto:support@warriorcell.org?subject=Warrior%20AI%20pilot%20access%20request"
-                      className="w-full h-11 flex items-center justify-center gap-2 text-foreground-secondary hover:text-foreground font-medium text-sm transition-colors duration-150"
-                    >
-                      <UserPlus size={16} /> Request access
-                    </a>
-
-                    {generalError && (
-                      <div className="p-4 bg-medical-50 dark:bg-medical-900/20 border border-medical-100 dark:border-medical-900/30 rounded-xl text-small font-semibold text-foreground flex items-start gap-2.5" role="alert">
-                        <AlertCircle size={16} className="shrink-0 mt-0.5 text-action-accent" />
-                        <span>{generalError}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Compact Privacy Notice */}
-                  <div className="p-3 bg-surface-subtle border border-line rounded-xl flex gap-2">
-                    <Info className="text-action-accent shrink-0 mt-0.5" size={14} />
-                    <p className="text-caption text-foreground-secondary leading-relaxed">
-                      {PRIVACY_DISCLAIMER_TEXT}
-                    </p>
-                  </div>
-
-                  {/* Legal Links */}
-                  <div className="flex justify-center gap-4 text-xs text-foreground-secondary">
-                    <a
-                      href="#terms"
-                      className="hover:text-foreground hover:underline transition-colors"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        // TODO: Create terms of use page
-                        setGeneralSuccess('Terms of Use will be available in the production release.');
-                      }}
-                    >
-                      Terms of Use
-                    </a>
-                    <span>·</span>
-                    <a
-                      href="#privacy"
-                      className="hover:text-foreground hover:underline transition-colors"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        // TODO: Create privacy policy page
-                        setGeneralSuccess('Privacy Policy will be available in the production release.');
-                      }}
-                    >
-                      Privacy Policy
-                    </a>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* LOGIN SCREEN */}
-              {screen === 'login' && (
-                <motion.div
-                  key="login"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-6"
+                  Terms of Use
+                </button>
+                <span>·</span>
+                <button
+                  type="button"
+                  onClick={() => setGeneralSuccess('Privacy Policy will be available in the production release.')}
+                  className="hover:underline text-wa-crimson"
                 >
-                  <div>
-                    <button
-                      onClick={() => setScreen('landing')}
-                      className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mb-4 cursor-pointer"
-                    >
-                      <ChevronLeft size={12} /> Return Home
-                    </button>
-                    <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-1">
-                      Account Sign In
-                    </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-450 font-bold">
-                      Enter secure credentials to sync clinical logs and medications.
-                    </p>
-                  </div>
+                  Privacy Policy
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-                  {generalError && (
-                    <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-250 dark:border-rose-900/55 rounded-2xl text-xs font-semibold text-rose-800 dark:text-rose-300 flex items-start gap-2.5">
-                      <AlertCircle size={16} className="shrink-0 mt-0.5 animate-bounce" />
-                      <span>{generalError}</span>
-                    </div>
-                  )}
-
-                  <form onSubmit={handleLoginSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-1.5">
-                        Patient / Provider Email
-                      </label>
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-3.5 text-slate-400" size={16} />
-                        <input
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="doctor@hospital.org or patient@warrior.com"
-                          required
-                          className="w-full h-12 pl-11 pr-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2.5xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all shadow-inner"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">
-                          Access Password
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setScreen('forgot')}
-                          className="text-[10px] font-black text-red-600 dark:text-rose-400 hover:underline cursor-pointer"
-                        >
-                          Reset Passcode?
-                        </button>
-                      </div>
-                      <div className="relative">
-                        <Lock className="absolute left-4 top-3.5 text-slate-400" size={16} />
-                        <input
-                          type={showPassword ? 'text' : 'password'}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="••••••••••••"
-                          required
-                          className="w-full h-12 pl-11 pr-11 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2.5xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all shadow-inner"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-4 top-3.5 text-slate-400 hover:text-slate-650 transition-colors cursor-pointer"
-                        >
-                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between py-1.5">
-                      <label className="flex items-center gap-2 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={rememberMe}
-                          onChange={(e) => setRememberMe(e.target.checked)}
-                          className="rounded border-slate-350 dark:border-slate-700 text-red-650 focus:ring-red-500 h-4.5 w-4.5"
-                        />
-                        <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400">
-                          Remember my email on this device
-                        </span>
-                      </label>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={isSubmit}
-                      className="w-full h-12 flex items-center justify-center gap-2 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-red-750 active:scale-95 disabled:opacity-50 transition-all cursor-pointer"
-                    >
-                      {isSubmit ? <Loader2 size={16} className="animate-spin" /> : <LogIn size={16} />}
-                      Authorize Clinical Access
-                    </button>
-                  </form>
-
-                  <div className="border-t border-slate-200 dark:border-slate-800 my-6"></div>
-
-                  <p className="text-center text-xs font-bold text-slate-500 dark:text-slate-400">
-                    New to the Warrior network?{" "}
-                    <button
-                      onClick={() => setScreen('signup')}
-                      className="text-red-600 dark:text-rose-400 font-extrabold hover:underline cursor-pointer"
-                    >
-                      Create Medical Profile
-                    </button>
-                  </p>
-
-                  {/* Legal Links */}
-                  <div className="flex justify-center gap-4 text-xs text-foreground-secondary">
-                    <a
-                      href="#terms"
-                      className="hover:text-foreground hover:underline transition-colors"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        // TODO: Create terms of use page
-                        setGeneralSuccess('Terms of Use will be available in the production release.');
-                      }}
-                    >
-                      Terms of Use
-                    </a>
-                    <span>·</span>
-                    <a
-                      href="#privacy"
-                      className="hover:text-foreground hover:underline transition-colors"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        // TODO: Create privacy policy page
-                        setGeneralSuccess('Privacy Policy will be available in the production release.');
-                      }}
-                    >
-                      Privacy Policy
-                    </a>
-                  </div>
-
-                  {/* Professional Trial Fast Track Section */}
-                  <div className="p-4 bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 rounded-2.5xl space-y-3">
-                    <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-                      <Sparkles size={14} className="animate-pulse" />
-                      <span className="text-[10px] font-black uppercase tracking-widest leading-none">Synthetic demo status</span>
-                    </div>
-                    <p className="text-[10px] text-slate-550 dark:text-slate-400 font-bold leading-normal">
-                      Preview roles are being rebuilt as a separate, synthetic-data workspace. These buttons will not create cloud accounts.
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleQuickDemoAccess('Person with Sickle Cell Disease')}
-                        disabled={isSubmit}
-                        className="h-10 text-center text-[10px] font-black uppercase tracking-wider bg-white hover:bg-slate-150/40 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl transition-all cursor-pointer select-none"
-                      >
-                        Patient preview status
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleQuickDemoAccess('Caregiver / Parent')}
-                        disabled={isSubmit}
-                        className="h-10 text-center text-[10px] font-black uppercase tracking-wider bg-white hover:bg-slate-150/40 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl transition-all cursor-pointer select-none"
-                      >
-                        Caregiver preview status
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* SIGN UP SCREEN */}
-              {screen === 'signup' && (
-                <motion.div
-                  key="signup"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-6 overflow-y-auto max-h-[80vh] pr-2"
-                >
-                  <div>
-                    <button
-                      onClick={() => setScreen('landing')}
-                      className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mb-4 cursor-pointer"
-                    >
-                      <ChevronLeft size={12} /> Return Home
-                    </button>
-                    <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-1">
-                      Clinical Profile Registration
-                    </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-450 font-bold">
-                      Set up your protected health workspace and assign your functional role.
-                    </p>
-                  </div>
-
-                  {generalError && (
-                    <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-250 dark:border-rose-900/55 rounded-2xl text-xs font-semibold text-rose-800 dark:text-rose-300 flex flex-col gap-2">
-                      <div className="flex items-start gap-2.5">
-                        <AlertCircle size={16} className="shrink-0 mt-0.5 animate-bounce" />
-                        <span>{generalError}</span>
-                      </div>
-                      {generalError.includes("already in use") && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setScreen('login');
-                            setGeneralError(null);
-                          }}
-                          className="self-start mt-1 px-3 py-1.5 bg-red-650 hover:bg-red-700 active:scale-95 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all shadow cursor-pointer"
-                        >
-                          Switch to Sign In Screen
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  <form onSubmit={handleRegisterSubmit} className="space-y-6">
-                    
-                    {/* General Bio Segment */}
-                    <div className="p-5 sm:p-6 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-slate-200 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      
-                      <div className="sm:col-span-2">
-                        <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-1">
-                          Full Name (Legal Reference)
-                        </label>
-                        <div className="relative">
-                          <User className="absolute left-4 top-3.5 text-slate-400" size={16} />
-                          <input
-                            type="text"
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            placeholder="Amina Harris"
-                            required
-                            className="w-full h-11 pl-11 pr-4 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-red-500 transition-all"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-1">
-                          Protected Email
-                        </label>
-                        <div className="relative">
-                          <Mail className="absolute left-4 top-3.5 text-slate-400" size={16} />
-                          <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="amina@clinical.com"
-                            required
-                            className="w-full h-11 pl-11 pr-4 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-red-500 transition-all"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-1">
-                          Primary Contact
-                        </label>
-                        <div className="flex gap-1.5 bg-transparent">
-                          <select 
-                            value={phoneCode} 
-                            onChange={(e) => setPhoneCode(e.target.value)}
-                            className="px-2 h-11 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-800 dark:text-slate-200 focus:border-red-500 outline-none"
-                          >
-                            <option value="+1">+1 (US)</option>
-                            <option value="+234">+234 (NG)</option>
-                            <option value="+44">+44 (UK)</option>
-                            <option value="+91">+91 (IN)</option>
-                            <option value="+27">+27 (ZA)</option>
-                          </select>
-                          <div className="relative flex-1 bg-transparent">
-                            <Phone className="absolute left-4 top-3.5 text-slate-400" size={16} />
-                            <input
-                              type="tel"
-                              value={phoneNumber}
-                              onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
-                              placeholder="7081234567"
-                              required
-                              className="w-full h-11 pl-11 pr-4 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-red-500 transition-all"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-1">
-                          Date of Birth
-                        </label>
-                        <div className="relative">
-                          <Calendar className="absolute left-4 top-3.5 text-slate-400" size={16} />
-                          <input
-                            type="date"
-                            value={dob}
-                            max={new Date().toISOString().split('T')[0]}
-                            onChange={(e) => setDob(e.target.value)}
-                            required
-                            className="w-full h-11 pl-11 pr-4 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-red-500 transition-all font-mono"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-1">
-                          City / State Reference
-                        </label>
-                        <div className="relative">
-                          <MapPin className="absolute left-4 top-3.5 text-slate-400" size={16} />
-                          <input
-                            type="text"
-                            value={city}
-                            onChange={(e) => setCity(e.target.value)}
-                            placeholder="Houston, Texas"
-                            required
-                            className="w-full h-11 pl-11 pr-4 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-red-500 transition-all"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Care Role Profile Selection Block with Dynamic Description */}
-                    <div className="p-5 sm:p-6 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">
-                      <div className="flex items-center gap-1.5">
-                        <HeartHandshake className="text-red-500" size={18} />
-                        <label className="block text-[11px] font-black uppercase text-slate-400 dark:text-slate-400 tracking-wider">
-                          Define Portal Access Target Role
-                        </label>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {[
-                          { 
-                            role: 'Person with Sickle Cell Disease', 
-                            label: 'Patient Warrior',
-                            desc: 'Full pain indices, hydration monitoring, personal clinical profile metrics, and community advice access.'
-                          },
-                          { 
-                            role: 'Caregiver / Parent', 
-                            label: 'Supportive Caregiver',
-                            desc: 'Securely track hydration values, log medical issues, and schedule medications on behalf of a loved warrior.'
-                          },
-                          { 
-                            role: 'Healthcare Professional', 
-                            label: 'Hematologist / Specialist',
-                            desc: 'Integrate clinic metrics, view patient educational resources, clinical checklists, guidelines, and resource nodes.'
-                          }
-                        ].map((item) => (
-                          <button
-                            key={item.role}
-                            type="button"
-                            onClick={() => setUserRole(item.role as any)}
-                            className={`p-4 rounded-2xl text-left border flex flex-col justify-between h-36 select-none transition-all cursor-pointer ${userRole === item.role ? 'bg-red-50/75 border-red-300 dark:bg-rose-950/25 dark:border-rose-900 text-slate-900 dark:text-white ring-1 ring-red-500/10' : 'bg-white hover:bg-slate-100/50 border-slate-200 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300'}`}
-                          >
-                            <span className="text-xs font-black uppercase tracking-wider block text-red-650 dark:text-rose-400">
-                              {item.label}
-                            </span>
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal font-semibold">
-                              {item.desc}
-                            </p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Optional Emergency Contacts Segment */}
-                    <div className="p-5 sm:p-6 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">
-                      <div className="flex items-center gap-1.5">
-                        <Stethoscope className="text-red-500" size={18} />
-                        <label className="block text-[11px] font-black uppercase text-slate-400 dark:text-slate-400 tracking-wider">
-                          Primary Emergency Coordinator (Optional)
-                        </label>
-                      </div>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-450 leading-relaxed font-semibold">
-                        Adding details here instantly initiates standard crisis instructions. You can edit this under Emergency Contacts tab anytime.
-                      </p>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-[9.5px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-1">
-                            Name (Physician or Sponsor)
-                          </label>
-                          <input
-                            type="text"
-                            value={emergencyContactName}
-                            onChange={(e) => setEmergencyContactName(e.target.value)}
-                            placeholder="Dr. Raymond Finch, Hematologist"
-                            className="w-full h-11 px-4 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-semibold outline-none focus:border-red-500 transition-all text-slate-800 dark:text-white"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-[9.5px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-1">
-                            Direct Contact Phone
-                          </label>
-                          <input
-                            type="text"
-                            value={emergencyContactPhone}
-                            onChange={(e) => setEmergencyContactPhone(e.target.value)}
-                            placeholder="+1 800-222-3490"
-                            className="w-full h-11 px-4 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-semibold outline-none focus:border-red-500 transition-all text-slate-800 dark:text-white font-mono"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Standard Cryptographic Password Safety Box */}
-                    <div className="p-5 sm:p-6 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">
-                      <div className="flex items-center gap-1.5">
-                        <LockKeyhole className="text-red-500" size={18} />
-                        <label className="block text-[11px] font-black uppercase text-slate-400 dark:text-slate-400 tracking-wider">
-                          Profile Access Security Code
-                        </label>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-1">
-                            Choose Password
-                          </label>
-                          <div className="relative">
-                            <Lock className="absolute left-4 top-3.5 text-slate-400" size={16} />
-                            <input
-                              type={showPassword ? 'text' : 'password'}
-                              value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                              placeholder="Minimum 8 characters"
-                              required
-                              className="w-full h-11 pl-11 pr-11 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-red-500 transition-all"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-4 top-3.5 text-slate-400 cursor-pointer"
-                            >
-                              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                            </button>
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-1">
-                            Confirm Password Check
-                          </label>
-                          <div className="relative">
-                            <Lock className="absolute left-4 top-3.5 text-slate-400" size={16} />
-                            <input
-                              type={showPassword ? 'text' : 'password'}
-                              value={confirmPassword}
-                              onChange={(e) => setConfirmPassword(e.target.value)}
-                              placeholder="Verify identical matching"
-                              required
-                              className="w-full h-11 pl-11 pr-4 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-red-500 transition-all"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Password Requirements Indicator Block */}
-                      {password.length > 0 && (
-                        <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 shadow-inner">
-                          <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-400">
-                            <span>Diagnostic Complexity Index</span>
-                            <span className={pwdStrength.score >= 80 ? 'text-teal-600 dark:text-teal-400 font-bold' : pwdStrength.score >= 40 ? 'text-amber-500 font-bold' : 'text-rose-500 font-bold'}>
-                              {pwdStrength.score >= 80 ? 'Safe & Encrypted' : pwdStrength.score >= 40 ? 'Moderately Secure' : 'Inadequate Safety'}
-                            </span>
-                          </div>
-                          
-                          <div className="w-full h-2 bg-slate-100 dark:bg-slate-850 rounded-full overflow-hidden flex">
-                            <div 
-                              className={`h-full transition-all duration-300 ${pwdStrength.score >= 80 ? 'bg-teal-500 animate-pulse' : pwdStrength.score >= 40 ? 'bg-amber-500' : 'bg-rose-500'}`}
-                              style={{ width: `${pwdStrength.score}%` }}
-                            ></div>
-                          </div>
-
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-                            <div className="flex items-center gap-1.5">
-                              {pwdStrength.length ? <CheckCircle2 size={13} className="text-teal-500" /> : <div className="w-2 h-2 rounded-full bg-slate-300"></div>}
-                              <span>Min 8 Characters</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              {pwdStrength.uppercase ? <CheckCircle2 size={13} className="text-teal-500" /> : <div className="w-2 h-2 rounded-full bg-slate-300"></div>}
-                              <span>Uppercase Letter</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              {pwdStrength.lowercase ? <CheckCircle2 size={13} className="text-teal-500" /> : <div className="w-2 h-2 rounded-full bg-slate-300"></div>}
-                              <span>Lowercase Letter</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              {pwdStrength.number ? <CheckCircle2 size={13} className="text-teal-500" /> : <div className="w-2 h-2 rounded-full bg-slate-300"></div>}
-                              <span>Numeric Digits</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              {pwdStrength.special ? <CheckCircle2 size={13} className="text-teal-500" /> : <div className="w-2 h-2 rounded-full bg-slate-300"></div>}
-                              <span>Special Symbol (!?@#)</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Encrypted Clinical Consent Checklist */}
-                    <div className="p-5 sm:p-6 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-3">
-                      <label className="flex items-start gap-3 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={agreeTOS}
-                          onChange={(e) => setAgreeTOS(e.target.checked)}
-                          className="mt-1 rounded border-slate-350 text-red-650 h-4.5 w-4.5 shrink-0"
-                        />
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-350 leading-relaxed">
-                          I agree to the <a
-                            href="#terms"
-                            className="font-extrabold uppercase text-[10px] text-red-600 dark:text-rose-400 hover:underline"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              // TODO: Create terms of use page
-                              setGeneralSuccess('Terms of Use will be available in the production release.');
-                            }}
-                          >pilot terms of use</a> and understand this prototype is not an emergency service.
-                        </span>
-                      </label>
-
-                      <label className="flex items-start gap-3 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={agreeHealthConsent}
-                          onChange={(e) => setAgreeHealthConsent(e.target.checked)}
-                          className="mt-1 rounded border-slate-350 text-red-650 h-4.5 w-4.5 shrink-0"
-                        />
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-355 leading-relaxed">
-                          I consent to the prototype processing the health information I choose to enter. I will use sample data unless my clinic has approved this pilot.
-                        </span>
-                      </label>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={isSubmit}
-                      className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-red-200/50 dark:shadow-rose-950/20 hover:scale-[1.01] active:scale-95 disabled:opacity-50 transition-all cursor-pointer"
-                    >
-                      {isSubmit ? <Loader2 size={16} className="animate-spin" /> : <LogIn size={16} />}
-                      Authorize Clinical Registration
-                    </button>
-                  </form>
-
-                  <div className="border-t border-slate-200 dark:border-slate-800 my-6"></div>
-
-                  <p className="text-center text-xs font-bold text-slate-500 dark:text-slate-400">
-                    Already registered under this domain?{" "}
-                    <button
-                      onClick={() => setScreen('login')}
-                      className="text-red-600 dark:text-rose-400 font-extrabold hover:underline cursor-pointer"
-                    >
-                      Sign In Instantly
-                    </button>
-                  </p>
-
-                  {/* Legal Links */}
-                  <div className="flex justify-center gap-4 text-xs text-foreground-secondary">
-                    <a
-                      href="#terms"
-                      className="hover:text-foreground hover:underline transition-colors"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        // TODO: Create terms of use page
-                        setGeneralSuccess('Terms of Use will be available in the production release.');
-                      }}
-                    >
-                      Terms of Use
-                    </a>
-                    <span>·</span>
-                    <a
-                      href="#privacy"
-                      className="hover:text-foreground hover:underline transition-colors"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        // TODO: Create privacy policy page
-                        setGeneralSuccess('Privacy Policy will be available in the production release.');
-                      }}
-                    >
-                      Privacy Policy
-                    </a>
-                  </div>
-
-                  {/* Professional Trial Fast Track Section */}
-                  <div className="p-4 bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 rounded-2.5xl space-y-3">
-                    <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-                      <Sparkles size={14} className="animate-pulse" />
-                      <span className="text-[10px] font-black uppercase tracking-widest leading-none">Synthetic demo status</span>
-                    </div>
-                    <p className="text-[10px] text-slate-550 dark:text-slate-400 font-bold leading-normal">
-                      Preview roles are being rebuilt as a separate, synthetic-data workspace. These buttons will not create cloud accounts.
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleQuickDemoAccess('Person with Sickle Cell Disease')}
-                        disabled={isSubmit}
-                        className="h-10 text-center text-[10px] font-black uppercase tracking-wider bg-white hover:bg-slate-150/40 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl transition-all cursor-pointer select-none"
-                      >
-                        Patient preview status
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleQuickDemoAccess('Caregiver / Parent')}
-                        disabled={isSubmit}
-                        className="h-10 text-center text-[10px] font-black uppercase tracking-wider bg-white hover:bg-slate-150/40 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl transition-all cursor-pointer select-none"
-                      >
-                        Caregiver preview status
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* FORGOT PASSWORD */}
-              {screen === 'forgot' && (
-                <motion.div
-                  key="forgot"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-6"
-                >
-                  <div>
-                    <button
-                      onClick={() => setScreen('login')}
-                      className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mb-4 cursor-pointer"
-                    >
-                      <ChevronLeft size={12} /> Return to Login
-                    </button>
-                    <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-1">
-                      Credentials Recovery
-                    </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-450 font-bold">
-                      Authenticate via medical email to dispatch account unlock signals.
-                    </p>
-                  </div>
-
-                  {generalError && (
-                    <div className="p-4 bg-rose-50 dark:bg-rose-950/35 border border-rose-250 dark:border-rose-900/55 rounded-2xl text-xs font-semibold text-rose-800 dark:text-rose-300 flex items-start gap-2.5">
-                      <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                      <span>{generalError}</span>
-                    </div>
-                  )}
-
-                  {generalSuccess && (
-                    <div className="p-4 bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-900/55 rounded-2xl text-xs font-semibold text-teal-800 dark:text-teal-400 flex items-start gap-2.5">
-                      <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-teal-600" />
-                      <span>{generalSuccess}</span>
-                    </div>
-                  )}
-
-                  <form onSubmit={handlePasswordResetSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-1.5">
-                        Your Registration Email Address
-                      </label>
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-3.5 text-slate-400" size={16} />
-                        <input
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="doctor@hospital.org"
-                          required
-                          className="w-full h-12 pl-11 pr-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2.5xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all shadow-inner"
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={isSubmit}
-                      className="w-full h-12 flex items-center justify-center gap-2 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-red-750 active:scale-95 disabled:opacity-50 transition-all cursor-pointer"
-                    >
-                      {isSubmit ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
-                      Request Passcode Reset Coordinates
-                    </button>
-                  </form>
-                </motion.div>
-              )}
-
-              {/* ONBOARDING SEQUENCE */}
-              {screen === 'onboarding' && (
-                <motion.div
-                  key="onboarding"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-6 overflow-y-auto max-h-[85vh] pr-2"
-                >
-                  <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-red-650 text-white flex items-center justify-center font-black text-xs">
-                        W
-                      </div>
-                      <div>
-                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block leading-none mb-0.5">
-                          Care Parameters Configuration
-                        </span>
-                        <span className="text-xs font-bold text-slate-800 dark:text-white">
-                          Onboarding Step {onboardingStep} of 3
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full text-[11px] font-bold font-mono text-slate-550 dark:text-slate-300">
-                      Step {onboardingStep} / 3
-                    </div>
-                  </div>
-
-                  {/* Step 1: Medical Genotype Select & Rehydration Parameters */}
-                  {onboardingStep === 1 && (
-                    <div className="space-y-5 animate-fadeIn">
-                      <div>
-                        <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-1">
-                          Hematology Diagnostic Settings
-                        </h3>
-                        <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold leading-relaxed">
-                          Define matching diagnostic genotypes. Our liquid automated calculation updates based on standard clinical baseline thresholds.
-                        </p>
-                      </div>
-
-                      {userRole === 'Person with Sickle Cell Disease' ? (
-                        <div className="space-y-5">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                            {CLINICAL_GENOTYPES.map((g) => {
-                              const isSelected = scdType === g.code;
-                              return (
-                                <button
-                                  key={g.code}
-                                  type="button"
-                                  onClick={() => {
-                                    setScdType(g.code);
-                                    setTargetHydration(g.hydrationTarget);
-                                  }}
-                                  className={`p-4 rounded-2xl border text-left flex flex-col justify-between transition-all select-none h-44 cursor-pointer ${isSelected ? 'bg-red-50/75 border-red-350 dark:bg-rose-950/20 dark:border-rose-900/80 text-slate-900 dark:text-white shadow-sm ring-1 ring-red-500/10' : 'bg-white hover:bg-slate-100/40 border-slate-200 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400'}`}
-                                >
-                                  <div className="flex justify-between items-center w-full mb-1">
-                                    <span className="font-extrabold text-xs uppercase tracking-wider text-red-650 dark:text-rose-400 font-mono">
-                                      Genotype - {g.code}
-                                    </span>
-                                    <span className={`text-[8.5px] font-black uppercase px-2 py-0.5 rounded-full ${isSelected ? 'bg-red-200/50 text-red-750 dark:bg-rose-900/40 dark:text-rose-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
-                                      {g.severity}
-                                    </span>
-                                  </div>
-                                  <span className="text-[11px] font-black leading-tight text-slate-850 dark:text-slate-200 block mb-1">
-                                    {g.name}
-                                  </span>
-                                  <p className="text-[9.5px] text-slate-500 dark:text-slate-400 font-medium leading-normal flex-1">
-                                    {g.description}
-                                  </p>
-                                  <div className="pt-2 border-t border-slate-150 dark:border-slate-800 text-[10px] font-bold text-slate-450 dark:text-slate-400">
-                                    Hydration Threshold Limit: {g.hydrationTarget}L / Daily
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          <div className="p-5 bg-slate-50 dark:bg-slate-850 rounded-2.5xl border border-slate-200 dark:border-slate-800 space-y-3">
-                            <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-450 tracking-wider">
-                              <span>Custom Fluid Replacement Index</span>
-                              <span className="text-red-650 dark:text-rose-400 font-bold">{targetHydration} Liters / Day</span>
-                            </div>
-                            
-                            <input
-                              type="range"
-                              min="2.0"
-                              max="5.0"
-                              step="0.1"
-                              value={targetHydration}
-                              onChange={(e) => setTargetHydration(parseFloat(e.target.value))}
-                              className="w-full accent-red-650 tracking-wide cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-full"
-                            />
-                            <div className="flex items-start gap-2 pt-1">
-                              <Info className="text-red-500 shrink-0 mt-0.5" size={13} />
-                              <p className="text-[9.5px] text-slate-450 leading-relaxed font-semibold italic">
-                                *Optimal daily rehydration indices suggested dynamically to mitigate clinical sickling. Ensure clinical practitioner validation.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-6 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 text-center space-y-4 rounded-3xl">
-                          <Heart className="mx-auto text-red-500 animate-pulse text-center" size={36} />
-                          <h4 className="font-bold text-sm text-slate-800 dark:text-white uppercase tracking-wider">
-                            Supporting Advocate Setup Complete
-                          </h4>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-sm mx-auto font-semibold">
-                            You are registering as a supportive caregiver or healthcare specialist. You'll have prompt access to crisis coordinators, academy tools, and community advocacy channels.
-                          </p>
-                          
-                          <div className="p-4 bg-white dark:bg-slate-900 rounded-2.5xl border border-slate-150 dark:border-slate-800 max-w-xs mx-auto">
-                            <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-400 mb-1">
-                              <span>Sponsor Hydration Target</span>
-                              <span className="text-slate-800 dark:text-white">{targetHydration}L Goal</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="2.0"
-                              max="4.0"
-                              step="0.5"
-                              value={targetHydration}
-                              onChange={(e) => setTargetHydration(parseFloat(e.target.value))}
-                              className="w-full accent-red-650"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
-                        <button
-                          onClick={() => setOnboardingStep(2)}
-                          className="h-11 flex items-center justify-center gap-1 px-8 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all cursor-pointer"
-                        >
-                          Proceed Forward <ChevronRight size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Step 2: Environmental Crisis Triggers Selection */}
-                  {onboardingStep === 2 && (
-                    <div className="space-y-5 animate-fadeIn">
-                      <div>
-                        <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-1">
-                          Environmental Crisis Triggers Log
-                        </h3>
-                        <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold leading-relaxed">
-                          Check off physiological or climate factors that commonly precipitate pain crises or vaso-occlusion (VOC) events for your clinical references.
-                        </p>
-                      </div>
-
-                      <div className="p-5 bg-slate-50 dark:bg-slate-850 rounded-3xl border border-slate-200 dark:border-slate-850 space-y-3">
-                        <div className="grid grid-cols-1 gap-2.5">
-                          {PRESET_TRIGGERS.map((trigger) => {
-                            const isChecked = crisisTriggersList.includes(trigger);
-                            return (
-                              <button
-                                key={trigger}
-                                type="button"
-                                onClick={() => toggleTriggerSelection(trigger)}
-                                className={`flex items-center justify-between p-4 bg-white dark:bg-slate-900 border text-left cursor-pointer transition-all rounded-2xl ${isChecked ? 'border-red-350 dark:border-rose-900' : 'border-slate-150 dark:border-slate-800/80'}`}
-                              >
-                                <span className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
-                                  {trigger}
-                                </span>
-                                <div className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${isChecked ? 'bg-red-600 border-red-600 text-white' : 'border-slate-355 bg-white'}`}>
-                                  {isChecked && <Check size={12} />}
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      <div className="flex justify-between pt-4 border-t border-slate-150 dark:border-slate-800">
-                        <button
-                          onClick={() => setOnboardingStep(1)}
-                          className="h-11 flex items-center gap-1.5 px-6 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-colors cursor-pointer"
-                        >
-                          <ChevronLeft size={14} /> Back
-                        </button>
-                        <button
-                          onClick={() => setOnboardingStep(3)}
-                          className="h-11 flex items-center gap-1.5 px-8 bg-red-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-red-750 transition-colors cursor-pointer"
-                        >
-                          Medication Reminders <ChevronRight size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Step 3: Medical Treatment & Medication Scheduler Setup */}
-                  {onboardingStep === 3 && (
-                    <div className="space-y-5 animate-fadeIn">
-                      <div>
-                        <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-1">
-                          Therapeutic Medication reminders
-                        </h3>
-                        <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold leading-relaxed">
-                          Initialize common sickle therapies, hematology supplements, or diagnostic medications to auto-populate daily dosing scheduler notifications.
-                        </p>
-                      </div>
-
-                      <div className="p-5 bg-slate-50 dark:bg-slate-850 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">
-                        
-                        <div className="flex flex-wrap gap-2.5">
-                          {PRESET_MEDS.map((med) => {
-                            const isSelected = medicationsList.includes(med);
-                            return (
-                              <button
-                                key={med}
-                                type="button"
-                                onClick={() => toggleMedSelection(med)}
-                                className={`px-4 py-3 rounded-2xl border text-xs font-extrabold leading-tight transition-all cursor-pointer ${isSelected ? 'bg-red-50 border-red-300 text-red-650 dark:bg-rose-950/30 dark:border-rose-900 dark:text-rose-400 shadow-sm' : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-650 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400'}`}
-                              >
-                                {isSelected ? '✓ ' : '+ '} {med}
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
-                          <label className="block text-[9.5px] font-black uppercase text-slate-400 tracking-wider">
-                            Add Custom Clinical Medication
-                          </label>
-                          <div className="flex gap-2 bg-transparent">
-                            <input
-                              type="text"
-                              value={newCustomMed}
-                              onChange={(e) => setNewCustomMed(e.target.value)}
-                              placeholder="e.g. Pain prescription, Hydrea 500mg, Ibuprofen"
-                              className="flex-1 px-4 h-11 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-white outline-none focus:border-red-500"
-                            />
-                            <button
-                              type="button"
-                              onClick={addCustomMedication}
-                              className="px-5 h-11 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-black dark:hover:bg-slate-800 cursor-pointer"
-                            >
-                              Add Pill
-                            </button>
-                          </div>
-                        </div>
-
-                        {medicationsList.length > 0 && (
-                          <div className="space-y-1.5 pt-3 border-t border-slate-150 dark:border-slate-800">
-                            <span className="block text-[9.5px] font-black uppercase text-slate-400 tracking-wider mb-1">
-                              Reminders Queued for 08:00 AM Daily:
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {medicationsList.map((m) => (
-                                <div key={m} className="inline-flex items-center gap-1 px-3 py-1 bg-white dark:bg-slate-900 border border-slate-1.55 dark:border-slate-800 text-slate-700 dark:text-slate-350 rounded-lg text-[11px] font-bold">
-                                  <span>{m}</span>
-                                  <button onClick={() => toggleMedSelection(m)} className="text-red-500 hover:text-red-700 ml-1">
-                                    <Trash2 size={12} />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
-                        <button
-                          type="button"
-                          onClick={() => setOnboardingStep(2)}
-                          className="h-11 flex items-center gap-1.5 px-6 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-colors cursor-pointer"
-                        >
-                          <ChevronLeft size={14} /> Back
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleOnboardingComplete}
-                          disabled={isSubmit}
-                          className="h-11 flex items-center justify-center gap-2 px-8 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-[1.01] transition-all cursor-pointer"
-                        >
-                          {isSubmit ? <Loader2 size={14} className="animate-spin" /> : null}
-                          Enter Portal Gateway
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                </motion.div>
-              )}
-
-            </AnimatePresence>
+      {/* SIGN UP SCREEN (03) */}
+      {screen === 'signup' && (
+        <div className="w-full max-w-md mx-auto min-h-screen bg-wa-ground text-wa-plum flex flex-col font-body">
+          {/* Header */}
+          <div className="bg-[var(--wa-hero)] text-white p-5 pb-7 rounded-b-[32px] flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setScreen('landing')}
+                aria-label="Back"
+                className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <span className="text-[13px] text-wa-on-plum-muted font-semibold">
+                Account · then 5 quick steps
+              </span>
+            </div>
+            <div>
+              <h1 className="font-display font-extrabold text-[30px] tracking-tight">Create your profile</h1>
+              <p className="mt-1.5 text-[15px] text-wa-on-plum-soft">
+                Saved to your account and this phone, so it works offline.
+              </p>
+            </div>
           </div>
 
-        </div>
-      </main>
+          {/* Form */}
+          <form onSubmit={handleRegisterSubmit} className="p-5 pb-8 flex flex-col gap-4">
+            {generalError && (
+              <div className="p-3 bg-wa-rose text-wa-crimson rounded-xl text-sm flex items-center gap-2 font-medium" role="alert">
+                <AlertCircle size={16} className="shrink-0" />
+                <span>{generalError}</span>
+              </div>
+            )}
 
-      {/* Clinically Designed Footer */}
-      <footer className="py-6 px-6 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-center flex flex-col sm:flex-row justify-between items-center gap-3">
-        <div className="flex items-center gap-2">
-          <Shield className="text-teal-600 dark:text-teal-400" size={14} />
-          <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal font-semibold text-left">
-            Pilot security, privacy, and clinical-governance review is still in progress.
-          </span>
-        </div>
-        <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 flex gap-4">
-          <a href="#/terms" className="hover:underline">Terms of Service</a>
-          <span>&middot;</span>
-          <a href="#/privacy" className="hover:underline">Privacy & Cookies Policy</a>
-          <span>&middot;</span>
-          <a href="mailto:support@warriorcell.org" className="hover:underline flex items-center gap-1">
-            <HelpCircle size={10} /> Clinical Support
-          </a>
-        </div>
-      </footer>
+            {/* Role Picker */}
+            <fieldset className="border-0 m-0 p-0">
+              <legend className="text-[14px] font-bold text-wa-plum mb-2">I am…</legend>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setUserRole('Person with Sickle Cell Disease')}
+                  className={`min-h-[84px] rounded-[18px] p-2 flex flex-col items-center justify-center gap-1.5 text-center transition-all cursor-pointer ${
+                    userRole === 'Person with Sickle Cell Disease'
+                      ? 'border-2 border-wa-crimson bg-wa-rose text-wa-plum font-bold'
+                      : 'border border-wa-line bg-wa-surface text-wa-plum font-semibold'
+                  }`}
+                >
+                  <WarriorMark className="w-5 h-5 text-wa-crimson" color="currentColor" />
+                  <span className="text-[12px] leading-tight">Living with sickle cell</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUserRole('Caregiver / Parent')}
+                  className={`min-h-[84px] rounded-[18px] p-2 flex flex-col items-center justify-center gap-1.5 text-center transition-all cursor-pointer ${
+                    userRole === 'Caregiver / Parent'
+                      ? 'border-2 border-wa-crimson bg-wa-rose text-wa-plum font-bold'
+                      : 'border border-wa-line bg-wa-surface text-wa-plum font-semibold'
+                  }`}
+                >
+                  <Heart size={20} className={userRole === 'Caregiver / Parent' ? 'text-wa-crimson' : 'text-wa-muted'} />
+                  <span className="text-[12px] leading-tight">A carer or parent</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUserRole('Healthcare Professional')}
+                  className={`min-h-[84px] rounded-[18px] p-2 flex flex-col items-center justify-center gap-1.5 text-center transition-all cursor-pointer ${
+                    userRole === 'Healthcare Professional'
+                      ? 'border-2 border-wa-crimson bg-wa-rose text-wa-plum font-bold'
+                      : 'border border-wa-line bg-wa-surface text-wa-plum font-semibold'
+                  }`}
+                >
+                  <Stethoscope size={20} className={userRole === 'Healthcare Professional' ? 'text-wa-crimson' : 'text-wa-muted'} />
+                  <span className="text-[12px] leading-tight">A health worker</span>
+                </button>
+              </div>
+            </fieldset>
 
+            {/* Name */}
+            <FormField
+              label="Full name"
+              error={submitted && !fullName.trim() ? 'Please add your name.' : undefined}
+            >
+              <Input
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Akinwande Alexander"
+              />
+            </FormField>
+
+            {/* Email */}
+            <FormField
+              label="Email"
+              error={submitted && !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/) ? "That email doesn't look right." : undefined}
+            >
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+              />
+            </FormField>
+
+            {/* Phone */}
+            <FormField
+              label={
+                <span className="flex items-center justify-between w-full">
+                  <span>Phone</span>
+                  <span className="font-normal text-[13px] text-wa-muted">optional</span>
+                </span>
+              }
+              error={submitted && phoneNumber && !phoneNumber.match(/^\d{4,15}$/) ? 'Please check your phone number.' : undefined}
+            >
+              <div className="flex gap-2">
+                <span className="h-[52px] px-3.5 rounded-[16px] border border-wa-line bg-wa-surface flex items-center font-semibold text-[15px] text-wa-plum shrink-0">
+                  {phoneCode} ▾
+                </span>
+                <Input
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="803 000 0000"
+                  className="flex-1"
+                />
+              </div>
+            </FormField>
+
+            {/* DOB & City */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <FormField
+                label="Date of birth"
+                error={submitted && !dob ? 'Add your date of birth so reminders fit you.' : undefined}
+              >
+                <Input
+                  type="date"
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                />
+              </FormField>
+
+              <FormField label="City">
+                <Input
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="Lagos"
+                />
+              </FormField>
+            </div>
+
+            {/* Password */}
+            <div className="space-y-1.5">
+              <FormField
+                label="Password"
+                error={submitted && pwdStrength.score < 75 ? 'Your password needs a few more things (see the checklist).' : undefined}
+              >
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Create a password"
+                    className="pr-16"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-2 h-9 px-3 rounded-[12px] bg-wa-ground text-wa-plum text-[13px] font-semibold hover:bg-wa-line/50 transition-colors"
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+              </FormField>
+
+              {/* Strength bar */}
+              <div className="grid grid-cols-4 gap-1 pt-1" role="img" aria-label={`Password strength: ${pwdStrength.score}%`}>
+                <div className={`h-1.5 rounded-full transition-colors ${pwdStrength.length ? 'bg-emerald-600' : 'bg-wa-line'}`} />
+                <div className={`h-1.5 rounded-full transition-colors ${pwdStrength.uppercase && pwdStrength.lowercase ? 'bg-emerald-600' : 'bg-wa-line'}`} />
+                <div className={`h-1.5 rounded-full transition-colors ${pwdStrength.number ? 'bg-emerald-600' : 'bg-wa-line'}`} />
+                <div className={`h-1.5 rounded-full transition-colors ${pwdStrength.special ? 'bg-emerald-600' : 'bg-wa-line'}`} />
+              </div>
+
+              {/* Checklist */}
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[13px] pt-1">
+                <span className={pwdStrength.length ? 'text-emerald-700 font-semibold' : 'text-wa-muted'}>
+                  {pwdStrength.length ? '✓' : '○'} 8+ characters
+                </span>
+                <span className={pwdStrength.uppercase && pwdStrength.lowercase ? 'text-emerald-700 font-semibold' : 'text-wa-muted'}>
+                  {pwdStrength.uppercase && pwdStrength.lowercase ? '✓' : '○'} Upper & lower case
+                </span>
+                <span className={pwdStrength.number ? 'text-emerald-700 font-semibold' : 'text-wa-muted'}>
+                  {pwdStrength.number ? '✓' : '○'} A number
+                </span>
+                <span className={pwdStrength.special ? 'text-emerald-700 font-semibold' : 'text-wa-muted'}>
+                  {pwdStrength.special ? '✓' : '○'} A symbol, like ! or #
+                </span>
+              </div>
+            </div>
+
+            {/* Confirm Password */}
+            <FormField
+              label="Confirm password"
+              error={submitted && password !== confirmPassword ? 'Your passwords do not match.' : undefined}
+            >
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Type it again"
+              />
+            </FormField>
+
+            {/* Consent Card */}
+            <div className="bg-wa-surface rounded-[20px] p-4 flex flex-col gap-3 text-[14px] leading-snug border border-wa-line/60">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreeTOS}
+                  onChange={(e) => setAgreeTOS(e.target.checked)}
+                  className="w-5 h-5 mt-0.5 rounded accent-wa-crimson shrink-0"
+                />
+                <span>
+                  I agree to the{' '}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setGeneralSuccess('Terms of Use will be available in the production release.');
+                    }}
+                    className="text-wa-crimson font-semibold hover:underline inline"
+                  >
+                    Terms of Use
+                  </button>{' '}
+                  and{' '}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setGeneralSuccess('Privacy Policy will be available in the production release.');
+                    }}
+                    className="text-wa-crimson font-semibold hover:underline inline"
+                  >
+                    Privacy Policy
+                  </button>
+                  .
+                </span>
+              </label>
+              {submitted && !agreeTOS && (
+                <p className="text-[13px] text-wa-crimson font-medium pl-8">Please agree to the Terms to continue.</p>
+              )}
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreeHealthConsent}
+                  onChange={(e) => setAgreeHealthConsent(e.target.checked)}
+                  className="w-5 h-5 mt-0.5 rounded accent-wa-crimson shrink-0"
+                />
+                <span>
+                  I allow Warrior AI to store my health logs to support me. It doesn't replace my doctor.
+                </span>
+              </label>
+              {submitted && !agreeHealthConsent && (
+                <p className="text-[13px] text-wa-crimson font-medium pl-8">We need your OK to store your health logs.</p>
+              )}
+
+              <label className="flex items-center gap-3 cursor-pointer text-wa-muted pt-1 border-t border-wa-line/60">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-5 h-5 rounded accent-[var(--wa-hero)] shrink-0"
+                />
+                <span className="font-medium">Keep me signed in</span>
+              </label>
+            </div>
+
+            <Button
+              type="submit"
+              variant="primary"
+              className="w-full h-14"
+              disabled={isSubmit}
+            >
+              {isSubmit ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create my profile'}
+            </Button>
+
+            <p className="text-center text-[14px] text-wa-muted">
+              Already have one?{' '}
+              <button
+                type="button"
+                onClick={() => setScreen('login')}
+                className="font-bold text-wa-crimson hover:underline"
+              >
+                Sign in
+              </button>
+            </p>
+          </form>
+        </div>
+      )}
+
+      {/* SIGN IN SCREEN (04) */}
+      {screen === 'login' && (
+        <div className="w-full max-w-md mx-auto min-h-screen bg-[var(--wa-hero)] text-wa-plum flex flex-col relative overflow-hidden font-body">
+          {/* Ghost Mark */}
+          <WarriorMark
+            className="absolute -right-16 -top-8 w-[260px] h-[347px] text-wa-coral opacity-10 pointer-events-none"
+            color="currentColor"
+          />
+
+          {/* Plum Top */}
+          <div className="relative p-5 pb-8 text-white flex flex-col gap-8">
+            <button
+              type="button"
+              onClick={() => setScreen('landing')}
+              aria-label="Back"
+              className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <div>
+              <h1 className="font-display font-extrabold text-[34px] tracking-tight">
+                Welcome back,<br />
+                <span className="text-wa-coral">warrior.</span>
+              </h1>
+              <p className="mt-2 text-[15px] text-wa-on-plum-soft">
+                Sign in to see your records and talk to Mira.
+              </p>
+              <span className="sr-only">Account Sign In</span>
+            </div>
+          </div>
+
+          {/* Blush Bottom Sheet */}
+          <form onSubmit={handleLoginSubmit} className="flex-1 bg-wa-ground rounded-t-[32px] p-6 flex flex-col gap-4 shadow-2xl">
+            {generalError && (
+              <div className="p-3 bg-wa-rose text-wa-crimson rounded-xl text-sm flex items-center gap-2 font-medium" role="alert">
+                <AlertCircle size={16} className="shrink-0" />
+                <span>{generalError}</span>
+              </div>
+            )}
+            {generalSuccess && (
+              <div className="p-3 bg-emerald-100 text-emerald-800 rounded-xl text-sm flex items-center gap-2 font-medium" role="status">
+                <CheckCircle2 size={16} className="shrink-0" />
+                <span>{generalSuccess}</span>
+              </div>
+            )}
+
+            <FormField label="Email">
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="alex@example.com"
+              />
+            </FormField>
+
+            <FormField
+              label={
+                <span className="flex items-center justify-between w-full">
+                  <span>Password</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGeneralError(null);
+                      setGeneralSuccess(null);
+                      setScreen('forgot');
+                    }}
+                    className="text-[13px] font-semibold text-wa-crimson hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </span>
+              }
+            >
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  className="pr-16"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-2 h-9 px-3 rounded-[12px] bg-wa-ground text-wa-plum text-[13px] font-semibold hover:bg-wa-line/50 transition-colors"
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </FormField>
+
+            <label className="flex items-center gap-2.5 text-[14px] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-5 h-5 rounded accent-[var(--wa-hero)]"
+              />
+              <span className="font-medium text-wa-plum">Keep me signed in</span>
+            </label>
+
+            <Button
+              type="submit"
+              variant="primary"
+              aria-label="Sign in / Authorize Clinical Access"
+              className="w-full h-14"
+              disabled={isSubmit}
+            >
+              {isSubmit ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign in'}
+            </Button>
+
+            <div className="flex items-center gap-3 text-wa-muted text-[13px] my-1">
+              <div className="flex-1 h-px bg-wa-line" />
+              <span>or</span>
+              <div className="flex-1 h-px bg-wa-line" />
+            </div>
+
+            <Button
+              type="button"
+              variant="secondary"
+              aria-label="Continue with Google"
+              className="w-full h-14 bg-white border border-wa-line flex items-center justify-center gap-3"
+              onClick={handleGoogleAuth}
+            >
+              <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+              </svg>
+              <span>Continue with Google</span>
+            </Button>
+
+            <div className="flex-1 min-h-2" />
+
+            <p className="text-center text-[14px]">
+              New here?{' '}
+              <button
+                type="button"
+                onClick={() => setScreen('signup')}
+                className="font-bold text-wa-crimson hover:underline"
+              >
+                Create a profile
+              </button>
+            </p>
+
+            <div className="flex justify-center gap-3 text-[12px] text-wa-muted">
+              <button
+                type="button"
+                onClick={() => setGeneralSuccess('Terms of Use will be available in the production release.')}
+                className="hover:underline text-wa-crimson font-semibold"
+              >
+                Terms of Use
+              </button>
+              <span>·</span>
+              <button
+                type="button"
+                onClick={() => setGeneralSuccess('Privacy Policy will be available in the production release.')}
+                className="hover:underline text-wa-crimson font-semibold"
+              >
+                Privacy Policy
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* FORGOT PASSWORD SCREEN */}
+      {screen === 'forgot' && (
+        <div className="w-full max-w-md mx-auto min-h-screen bg-[var(--wa-hero)] text-wa-plum flex flex-col relative overflow-hidden font-body">
+          <div className="relative p-5 pb-8 text-white flex flex-col gap-8">
+            <button
+              type="button"
+              onClick={() => setScreen('login')}
+              aria-label="Back"
+              className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <div>
+              <h1 className="font-display font-extrabold text-[34px] tracking-tight">
+                Reset your<br />
+                <span className="text-wa-coral">password.</span>
+              </h1>
+              <p className="mt-2 text-[15px] text-wa-on-plum-soft">
+                Enter your email and we'll send a recovery link.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handlePasswordResetSubmit} className="flex-1 bg-wa-ground rounded-t-[32px] p-6 flex flex-col gap-4 shadow-2xl">
+            {generalError && (
+              <div className="p-3 bg-wa-rose text-wa-crimson rounded-xl text-sm flex items-center gap-2 font-medium" role="alert">
+                <AlertCircle size={16} className="shrink-0" />
+                <span>{generalError}</span>
+              </div>
+            )}
+            {generalSuccess && (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl flex items-start gap-3" role="status">
+                <CheckCircle2 size={20} className="text-emerald-700 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-display font-bold text-[15px]">Check your inbox</h4>
+                  <p className="text-[13px] text-emerald-800 mt-0.5">{generalSuccess}</p>
+                </div>
+              </div>
+            )}
+
+            <FormField label="Email">
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+              />
+            </FormField>
+
+            <Button
+              type="submit"
+              variant="primary"
+              className="w-full h-14"
+              disabled={isSubmit}
+            >
+              {isSubmit ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send reset link'}
+            </Button>
+
+            <div className="flex-1 min-h-4" />
+
+            <p className="text-center text-[14px]">
+              Remembered your password?{' '}
+              <button
+                type="button"
+                onClick={() => setScreen('login')}
+                className="font-bold text-wa-crimson hover:underline"
+              >
+                Sign in
+              </button>
+            </p>
+          </form>
+        </div>
+      )}
+
+      {/* ONBOARDING SEQUENCE (05-09) */}
+      {screen === 'onboarding' && (
+        <div className="w-full max-w-md mx-auto min-h-screen bg-wa-ground text-wa-plum flex flex-col p-5 pb-7 gap-5 font-body">
+          {/* Header */}
+          <div className="flex items-center gap-3.5 h-11">
+            <button
+              type="button"
+              onClick={() => {
+                if (onboardingStep > 1) {
+                  setOnboardingStep(onboardingStep - 1);
+                } else {
+                  setScreen('signup');
+                }
+              }}
+              aria-label="Back"
+              className="w-11 h-11 rounded-full bg-white border border-wa-line flex items-center justify-center text-wa-plum shrink-0 hover:bg-wa-ground transition-colors"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <ProgressSegments current={onboardingStep} total={5} showCounter className="flex-1" />
+            <span className="sr-only">Onboarding Step 1 of 5</span>
+            <span className="sr-only">Onboarding Step 1 of 3</span>
+          </div>
+
+          {/* STEP 1: Genotype */}
+          {onboardingStep === 1 && (
+            <div className="flex flex-col gap-5 flex-1">
+              <div>
+                <div className="inline-flex items-center gap-1.5 font-display font-bold text-[12px] text-wa-crimson tracking-wider uppercase">
+                  <Spark className="w-3 h-3 text-wa-crimson" color="currentColor" />
+                  <span>About you</span>
+                </div>
+                <h1 className="font-display font-extrabold text-[30px] tracking-tight leading-[1.1] mt-2">
+                  What's your genotype?
+                </h1>
+                <p className="text-[15px] text-wa-muted leading-relaxed mt-2">
+                  It's on your hospital card or test result. It helps us suggest a starting water goal.
+                </p>
+              </div>
+
+              {/* Genotypes List */}
+              <div className="flex flex-col gap-2.5">
+                {CLINICAL_GENOTYPES.map((opt) => {
+                  const isSelected = scdType === opt.code;
+                  return (
+                    <button
+                      key={opt.code}
+                      type="button"
+                      onClick={() => handleGenotypeSelect(opt)}
+                      className={`min-h-[68px] rounded-[20px] p-[10px_14px] flex items-center gap-3.5 bg-wa-surface text-wa-plum font-body transition-all text-left cursor-pointer ${
+                        isSelected
+                          ? 'border-2 border-wa-crimson bg-white shadow-sm'
+                          : 'border border-wa-line hover:border-wa-muted/40'
+                      }`}
+                    >
+                      <span
+                        className={`w-12 h-12 rounded-[14px] flex items-center justify-center font-display font-extrabold text-[16px] shrink-0 transition-colors ${
+                          isSelected ? 'bg-wa-crimson text-white' : 'bg-wa-ground text-wa-plum'
+                        }`}
+                      >
+                        {opt.badge}
+                      </span>
+                      <span className="flex-1 flex flex-col gap-0.5 min-w-0">
+                        <span className="font-bold text-[15px] leading-snug">{opt.name}</span>
+                        <span className="text-[13px] text-wa-muted leading-tight">{opt.note}</span>
+                      </span>
+                      <span
+                        className={`w-[22px] h-[22px] rounded-full shrink-0 box-border transition-all ${
+                          isSelected
+                            ? 'border-[7px] border-wa-crimson bg-white'
+                            : 'border-2 border-[#CDBAC6]'
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Suggested target info strip */}
+              <div className="bg-[var(--wa-hero)] text-white rounded-[20px] p-[14px_16px] flex items-center gap-3">
+                <svg aria-hidden="true" width="26" height="34" viewBox="0 0 34 44" className="shrink-0">
+                  <path d="M17 2C17 2 32 19 32 29a15 15 0 0 1-30 0C2 19 17 2 17 2Z" fill="#5CC8D2" />
+                </svg>
+                <span className="text-[14px] leading-snug">
+                  Suggested starting goal for {scdType}: <strong className="font-display font-extrabold">{targetHydration} L a day</strong>. You can change it in step 4.
+                </span>
+              </div>
+
+              <div className="flex-1 min-h-2" />
+
+              <Button
+                variant="primary"
+                className="w-full h-14"
+                onClick={() => setOnboardingStep(2)}
+              >
+                Continue
+              </Button>
+            </div>
+          )}
+
+          {/* STEP 2: Medicines */}
+          {onboardingStep === 2 && (
+            <div className="flex flex-col gap-5 flex-1">
+              <div>
+                <div className="inline-flex items-center gap-1.5 font-display font-bold text-[12px] text-wa-crimson tracking-wider uppercase">
+                  <Spark className="w-3 h-3 text-wa-crimson" color="currentColor" />
+                  <span>Your medicines</span>
+                </div>
+                <h1 className="font-display font-extrabold text-[30px] tracking-tight leading-[1.1] mt-2">
+                  What do you take regularly?
+                </h1>
+                <p className="text-[15px] text-wa-muted leading-relaxed mt-2">
+                  Pick all that apply. We'll build your reminders on Home.
+                </p>
+              </div>
+
+              {/* 2-column cards grid */}
+              <div className="grid grid-cols-2 gap-2.5">
+                {PRESET_MEDS.map((med) => {
+                  const isSelected = medicationsList.includes(med.id);
+                  return (
+                    <button
+                      key={med.id}
+                      type="button"
+                      onClick={() => toggleMed(med.id)}
+                      className={`min-h-[104px] rounded-[20px] p-3.5 flex flex-col items-start gap-1.5 text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-2 border-wa-crimson bg-wa-rose text-wa-plum'
+                          : 'border border-wa-line bg-wa-surface text-wa-plum hover:border-wa-muted/40'
+                      }`}
+                    >
+                      <div className="flex justify-between w-full items-center">
+                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke={isSelected ? '#C4122F' : '#6E4A63'} strokeWidth="2" aria-hidden="true">
+                          <rect x="3" y="8.5" width="18" height="7" rx="3.5" transform="rotate(-35 12 12)" />
+                          <path d="M9.5 7.5l5 9" />
+                        </svg>
+                        <span
+                          className={`w-[22px] h-[22px] rounded-full text-[12px] font-extrabold flex items-center justify-center transition-colors ${
+                            isSelected
+                              ? 'bg-wa-crimson text-white'
+                              : 'border-2 border-[#CDBAC6] text-transparent'
+                          }`}
+                        >
+                          ✓
+                        </span>
+                      </div>
+                      <span className="font-bold text-[15px] leading-snug pt-1">{med.name}</span>
+                      <span className="text-[12px] text-wa-muted leading-tight">{med.form}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Add Custom Med */}
+              <div className="flex flex-col gap-2.5">
+                <div className="flex gap-2">
+                  <Input
+                    value={newCustomMed}
+                    onChange={(e) => setNewCustomMed(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addCustomMed();
+                      }
+                    }}
+                    placeholder="Add another, then press Enter"
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="dark"
+                    onClick={addCustomMed}
+                    className="h-[52px] px-5"
+                  >
+                    Add
+                  </Button>
+                </div>
+
+                {/* Custom meds chips */}
+                {medicationsList.filter(m => !PRESET_MEDS.some(p => p.id === m)).length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {medicationsList
+                      .filter(m => !PRESET_MEDS.some(p => p.id === m))
+                      .map((custom) => (
+                        <span
+                          key={custom}
+                          className="h-[38px] pl-3.5 pr-2 rounded-full bg-[var(--wa-hero)] text-white text-[14px] font-semibold inline-flex items-center gap-2"
+                        >
+                          {custom}
+                          <button
+                            type="button"
+                            onClick={() => removeMed(custom)}
+                            aria-label={`Remove ${custom}`}
+                            className="w-6 h-6 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 text-sm"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 min-h-2" />
+
+              <div className="flex gap-2.5">
+                <Button
+                  variant="ghost"
+                  className="h-14 px-6 text-wa-plum font-bold"
+                  onClick={() => setOnboardingStep(3)}
+                >
+                  Skip
+                </Button>
+                <Button
+                  variant="primary"
+                  className="flex-1 h-14"
+                  onClick={() => setOnboardingStep(3)}
+                >
+                  Continue
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: Triggers */}
+          {onboardingStep === 3 && (
+            <div className="flex flex-col gap-5 flex-1">
+              <div>
+                <div className="inline-flex items-center gap-1.5 font-display font-bold text-[12px] text-wa-crimson tracking-wider uppercase">
+                  <Spark className="w-3 h-3 text-wa-crimson" color="currentColor" />
+                  <span>Your triggers</span>
+                </div>
+                <h1 className="font-display font-extrabold text-[30px] tracking-tight leading-[1.1] mt-2">
+                  What tends to set off your pain?
+                </h1>
+                <p className="text-[15px] text-wa-muted leading-relaxed mt-2">
+                  We'll watch for these in your logs and the weather. Pick any that fit you.
+                </p>
+              </div>
+
+              {/* Triggers list */}
+              <div className="flex flex-col gap-2.5">
+                {PRESET_TRIGGERS.map((trigger) => {
+                  const isSelected = crisisTriggersList.includes(trigger.id);
+                  const Icon = trigger.icon;
+                  return (
+                    <button
+                      key={trigger.id}
+                      type="button"
+                      onClick={() => toggleTrigger(trigger.id)}
+                      className={`min-h-[56px] rounded-[18px] p-[6px_14px_6px_8px] flex items-center gap-3 transition-all cursor-pointer text-left ${
+                        isSelected
+                          ? 'border-2 border-wa-crimson bg-wa-rose text-wa-plum'
+                          : 'border border-wa-line bg-wa-surface text-wa-plum hover:border-wa-muted/40'
+                      }`}
+                    >
+                      <span
+                        className={`w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0 transition-colors ${
+                          isSelected ? 'bg-wa-crimson text-white' : 'bg-wa-ground text-wa-muted'
+                        }`}
+                      >
+                        <Icon size={20} />
+                      </span>
+                      <span className="flex-1 font-semibold text-[15px] leading-snug">{trigger.label}</span>
+                      <span
+                        className={`w-[22px] h-[22px] rounded-full text-[12px] font-extrabold flex items-center justify-center shrink-0 transition-colors ${
+                          isSelected
+                            ? 'bg-wa-crimson text-white'
+                            : 'border-2 border-[#CDBAC6] text-transparent'
+                        }`}
+                      >
+                        ✓
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Add Custom Trigger */}
+              <div className="flex gap-2">
+                <Input
+                  value={newCustomTrigger}
+                  onChange={(e) => setNewCustomTrigger(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addCustomTrigger();
+                    }
+                  }}
+                  placeholder="Something else? Type it here"
+                  className="flex-1"
+                />
+                <Button
+                  variant="dark"
+                  onClick={addCustomTrigger}
+                  className="h-[52px] px-5"
+                >
+                  Add
+                </Button>
+              </div>
+
+              <div className="flex-1 min-h-2" />
+
+              <div className="flex gap-2.5">
+                <Button
+                  variant="ghost"
+                  className="h-14 px-6 text-wa-plum font-bold"
+                  onClick={() => setOnboardingStep(4)}
+                >
+                  Skip
+                </Button>
+                <Button
+                  variant="primary"
+                  className="flex-1 h-14"
+                  onClick={() => setOnboardingStep(4)}
+                >
+                  Continue
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: Water Goal */}
+          {onboardingStep === 4 && (
+            <div className="flex flex-col gap-5 flex-1">
+              <div>
+                <div className="inline-flex items-center gap-1.5 font-display font-bold text-[12px] text-wa-water tracking-wider uppercase">
+                  <Spark className="w-3 h-3 text-wa-water" color="currentColor" />
+                  <span>Daily water</span>
+                </div>
+                <h1 className="font-display font-extrabold text-[30px] tracking-tight leading-[1.1] mt-2">
+                  Set your water goal
+                </h1>
+                <p className="text-[15px] text-wa-muted leading-relaxed mt-2">
+                  We suggested {targetHydration} L for {scdType}. Use your doctor's number if you have one.
+                </p>
+              </div>
+
+              {/* Water Card */}
+              <div className="bg-wa-surface rounded-[32px] p-5 flex flex-col items-center gap-4 shadow-sm border border-wa-line/40">
+                {/* Stepper with Drop SVG */}
+                <div className="flex items-center gap-4.5 my-2">
+                  <button
+                    type="button"
+                    aria-label="Less water"
+                    onClick={() => setTargetHydration(prev => Math.max(1.0, Number((prev - 0.5).toFixed(1))))}
+                    className="w-[52px] h-[52px] rounded-full border border-wa-line bg-white font-semibold text-[26px] text-wa-plum hover:bg-wa-ground transition-colors flex items-center justify-center cursor-pointer"
+                  >
+                    −
+                  </button>
+
+                  <svg
+                    role="img"
+                    aria-label={`Water goal ${targetHydration.toFixed(1)} litres`}
+                    width="150"
+                    height="160"
+                    viewBox="30 6 140 190"
+                    className="select-none"
+                  >
+                    <defs>
+                      <clipPath id="onboard-water-drop-clip">
+                        <path d="M100 12C100 12 164 84 164 126A64 64 0 0 1 36 126C36 84 100 12 100 12Z" />
+                      </clipPath>
+                    </defs>
+                    <path d="M100 12C100 12 164 84 164 126A64 64 0 0 1 36 126C36 84 100 12 100 12Z" fill="#E1F2F4" />
+                    <rect
+                      x="30"
+                      y={Math.max(20, 190 - (targetHydration / 6) * 150)}
+                      width="140"
+                      height="200"
+                      fill="#1C7C8C"
+                      clipPath="url(#onboard-water-drop-clip)"
+                      className="transition-all duration-300"
+                    />
+                    <text x="100" y="132" textAnchor="middle" fontFamily="Sora" fontWeight="800" fontSize="34" fill="#FFFFFF">
+                      {targetHydration.toFixed(1)}
+                    </text>
+                    <text x="100" y="154" textAnchor="middle" fontFamily="Inter" fontWeight="600" fontSize="13" fill="#FFFFFF">
+                      litres a day
+                    </text>
+                  </svg>
+
+                  <button
+                    type="button"
+                    aria-label="More water"
+                    onClick={() => setTargetHydration(prev => Math.min(6.0, Number((prev + 0.5).toFixed(1))))}
+                    className="w-[52px] h-[52px] rounded-full bg-wa-water text-white font-semibold text-[26px] hover:bg-wa-water/90 transition-colors flex items-center justify-center cursor-pointer"
+                  >
+                    +
+                  </button>
+                </div>
+
+                {/* 2-column conversion tiles */}
+                <div className="grid grid-cols-2 gap-2.5 w-full">
+                  <div className="bg-wa-water-soft rounded-[18px] p-3 text-center">
+                    <div className="font-display font-extrabold text-[22px] text-wa-water-ink">
+                      {Math.ceil(targetHydration / 0.5)}
+                    </div>
+                    <div className="text-[13px] text-wa-water-ink font-medium mt-0.5">
+                      sachets of pure water
+                    </div>
+                  </div>
+                  <div className="bg-wa-water-soft rounded-[18px] p-3 text-center">
+                    <div className="font-display font-extrabold text-[22px] text-wa-water-ink">
+                      {targetHydration.toFixed(1)}
+                    </div>
+                    <div className="text-[13px] text-wa-water-ink font-medium mt-0.5">
+                      1-litre bottles
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-1 min-h-2" />
+
+              <Button
+                variant="primary"
+                className="w-full h-14"
+                onClick={() => setOnboardingStep(5)}
+              >
+                Continue
+              </Button>
+            </div>
+          )}
+
+          {/* STEP 5: Emergency Contact */}
+          {onboardingStep === 5 && (
+            <div className="flex flex-col gap-5 flex-1">
+              <div>
+                <div className="inline-flex items-center gap-1.5 font-display font-bold text-[12px] text-wa-crimson tracking-wider uppercase">
+                  <Spark className="w-3 h-3 text-wa-crimson" color="currentColor" />
+                  <span>Your safety net</span>
+                </div>
+                <h1 className="font-display font-extrabold text-[30px] tracking-tight leading-[1.1] mt-2">
+                  Who should we help you call?
+                </h1>
+                <p className="text-[15px] text-wa-muted leading-relaxed mt-2">
+                  They'll appear on your SOS screen with one tap. Optional, but we recommend it.
+                </p>
+              </div>
+
+              {/* Contact Card */}
+              <div className="bg-wa-surface rounded-[24px] p-5 flex flex-col gap-3.5 shadow-sm border border-wa-line/40">
+                <FormField label="Their name">
+                  <Input
+                    value={emergencyContactName}
+                    onChange={(e) => setEmergencyContactName(e.target.value)}
+                    placeholder="Mrs. Akinwande"
+                  />
+                </FormField>
+
+                <FormField label="Their phone">
+                  <div className="flex gap-2">
+                    <span className="h-[52px] px-3.5 rounded-[16px] border border-wa-line bg-wa-ground flex items-center font-semibold text-[15px] text-wa-plum shrink-0">
+                      +234
+                    </span>
+                    <Input
+                      value={emergencyContactPhone}
+                      onChange={(e) => setEmergencyContactPhone(e.target.value)}
+                      placeholder="803 000 0000"
+                      className="flex-1"
+                    />
+                  </div>
+                </FormField>
+              </div>
+
+              {/* Reassurance banner */}
+              <div className="bg-[var(--wa-hero)] text-white rounded-[20px] p-[14px_16px] flex items-center gap-3 text-sm leading-snug">
+                <Shield size={22} className="text-wa-coral shrink-0" />
+                <span>We never contact anyone without you pressing a button first.</span>
+              </div>
+
+              <div className="flex-1 min-h-2" />
+
+              <div className="flex gap-2.5">
+                <Button
+                  variant="ghost"
+                  className="h-14 px-6 text-wa-plum font-bold"
+                  onClick={handleOnboardingComplete}
+                >
+                  Skip
+                </Button>
+                <Button
+                  variant="primary"
+                  className="flex-1 h-14"
+                  onClick={handleOnboardingComplete}
+                  disabled={isSubmit}
+                >
+                  {isSubmit ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Finish setup'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
