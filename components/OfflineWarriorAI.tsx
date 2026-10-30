@@ -28,14 +28,26 @@ export const OfflineWarriorAI: React.FC<{
   onNavigateToTool?: (toolName: string) => void;
   userGenotype?: string;
   isOpenDefault?: boolean;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideFloatingButton?: boolean;
 }> = ({
   currentLanguage = 'en',
   onLanguageChange,
   onNavigateToTool,
   userGenotype = 'HbSS',
-  isOpenDefault = false
+  isOpenDefault = false,
+  isOpen: controlledOpen,
+  onOpenChange,
+  hideFloatingButton = false,
 }) => {
-  const [isOpen, setIsOpen] = useState(isOpenDefault);
+  const [internalOpen, setInternalOpen] = useState(isOpenDefault);
+  const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+
+  const setDrawerOpen = (open: boolean) => {
+    setInternalOpen(open);
+    onOpenChange?.(open);
+  };
   const [selectedLang, setSelectedLang] = useState<SupportedLanguage>(currentLanguage);
   const [inputText, setInputText] = useState('');
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
@@ -210,11 +222,15 @@ export const OfflineWarriorAI: React.FC<{
       {/* Floating Action Badge Button */}
       <button
         id="offline-warrior-ai-floating-trigger"
-        onClick={() => setIsOpen(true)}
+        onClick={() => setDrawerOpen(true)}
         type="button"
         data-ui-control
         aria-label="Open Offline AI"
-        className="flex min-h-11 items-center gap-2 rounded-control border border-line-strong bg-surface px-3 text-small font-semibold text-foreground hover:bg-surface-subtle"
+        className={
+          hideFloatingButton
+            ? 'sr-only'
+            : 'flex min-h-11 items-center gap-2 rounded-control border border-line-strong bg-surface px-3 text-small font-semibold text-foreground hover:bg-surface-subtle'
+        }
         title="Open Offline Multilingual AI Companion"
       >
         <Bot size={20} aria-hidden="true" />
@@ -287,7 +303,7 @@ export const OfflineWarriorAI: React.FC<{
                     aria-label="Close Offline AI"
                     onClick={() => {
                       if (isSpeaking) window.speechSynthesis.cancel();
-                      setIsOpen(false);
+                      setDrawerOpen(false);
                     }}
                     className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-xl p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
                   >

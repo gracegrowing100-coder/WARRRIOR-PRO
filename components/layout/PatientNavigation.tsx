@@ -4,8 +4,7 @@ import {
   Home,
   MessageSquare,
   MoreHorizontal,
-  ShieldCheck,
-  User,
+  Shield,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -24,19 +23,21 @@ export interface PatientNavigationLabels {
 export interface PatientNavigationProps {
   currentDestination: PatientNavigationDestination;
   onNavigate: (destination: PatientNavigationDestination) => void;
-  labels?: PatientNavigationLabels;
+  labels?: Partial<PatientNavigationLabels>;
   appName?: string;
   connectivityLabel?: string;
   isOffline?: boolean;
   profileLabel?: string;
   profilePhotoUrl?: string | null;
   onOpenProfile?: () => void;
+  onOpenEmergency?: () => void;
+  hidden?: boolean;
   className?: string;
 }
 
 const defaultLabels: PatientNavigationLabels = {
   home: 'Home',
-  chat: 'Chat',
+  chat: 'Mira',
   care: 'Care',
   community: 'Community',
   more: 'More',
@@ -45,103 +46,155 @@ const defaultLabels: PatientNavigationLabels = {
 const destinations: Array<{
   id: PatientNavigationDestination;
   icon: LucideIcon;
+  labelKey: keyof PatientNavigationLabels;
 }> = [
-  { id: 'home', icon: Home },
-  { id: 'chat', icon: MessageSquare },
-  { id: 'care', icon: HeartPulse },
-  { id: 'community', icon: Users },
-  { id: 'more', icon: MoreHorizontal },
+  { id: 'home', icon: Home, labelKey: 'home' },
+  { id: 'chat', icon: MessageSquare, labelKey: 'chat' },
+  { id: 'care', icon: HeartPulse, labelKey: 'care' },
+  { id: 'community', icon: Users, labelKey: 'community' },
+  { id: 'more', icon: MoreHorizontal, labelKey: 'more' },
 ];
 
 export const PatientNavigation: React.FC<PatientNavigationProps> = ({
   currentDestination,
   onNavigate,
   labels = defaultLabels,
-  appName = 'Warrior AI',
-  connectivityLabel = 'Live & Offline Protected',
-  isOffline = false,
   profileLabel = 'Profile',
   profilePhotoUrl,
   onOpenProfile,
+  onOpenEmergency,
+  hidden = false,
   className,
-}) => (
-  <aside
-    className={cn(
-      'fixed inset-x-0 bottom-0 z-50 border-t border-line bg-surface',
-      'md:inset-y-0 md:right-auto md:flex md:w-64 md:flex-col md:border-r md:border-t-0 md:pb-0',
-      className,
-    )}
-  >
-    <div className="hidden px-5 pb-7 pt-6 md:block">
-      <div className="flex items-center gap-3">
-        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-action-accent text-lg font-bold text-white shadow-subtle">W</span>
-        <span className="min-w-0">
-          <span className="block truncate text-lg font-bold tracking-tight text-foreground">{appName}</span>
-          <span className="mt-0.5 flex items-center gap-1.5 text-caption text-foreground-secondary">
-            <span className={cn('h-2 w-2 shrink-0 rounded-full', isOffline ? 'bg-status-warning' : 'bg-status-success')} />
-            <span className="truncate">{connectivityLabel}</span>
-          </span>
-        </span>
-      </div>
-    </div>
+}) => {
+  if (hidden) return null;
 
-    <nav aria-label="Patient navigation" className="pb-[var(--safe-area-bottom)] md:flex md:min-h-0 md:flex-1 md:flex-col md:pb-0">
-      <p className="hidden px-6 pb-2 text-caption font-bold uppercase tracking-[0.12em] text-foreground-secondary md:block">Patient hub</p>
-      <div className="grid min-h-[4.5rem] grid-cols-5 items-stretch px-1 md:flex md:min-h-0 md:flex-col md:gap-2 md:px-3">
-      {destinations.map(({ id, icon: Icon }) => {
-        const isCurrent = currentDestination === id;
-        return (
+  const handleEmergencyClick = () => {
+    if (onOpenEmergency) {
+      onOpenEmergency();
+    } else {
+      const fab = document.getElementById('emergency-fab');
+      if (fab) fab.click();
+    }
+  };
+
+  return (
+    <>
+      {/* Mobile Floating Pill Nav (< 768px) */}
+      <nav
+        aria-label="Patient navigation"
+        className={cn(
+          'fixed inset-x-4 bottom-4 z-40 md:hidden select-none',
+          className,
+        )}
+      >
+        <div className="h-[68px] w-full rounded-full bg-[var(--wa-hero)] shadow-wa-nav grid grid-cols-5 items-center px-1.5 box-border">
+          {destinations.map(({ id, icon: Icon, labelKey }) => {
+            const isCurrent = currentDestination === id;
+            const label = labels[labelKey] || defaultLabels[labelKey];
+
+            return (
+              <button
+                key={id}
+                type="button"
+                aria-current={isCurrent ? 'page' : undefined}
+                aria-label={label}
+                onClick={() => onNavigate(id)}
+                className={cn(
+                  'h-[56px] rounded-[28px] flex flex-col items-center justify-center gap-0.5 transition-colors font-body',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--wa-hero)]',
+                  isCurrent
+                    ? 'bg-wa-crimson text-white font-semibold'
+                    : 'text-wa-on-plum-muted hover:text-white',
+                )}
+              >
+                <Icon size={22} aria-hidden="true" strokeWidth={isCurrent ? 2.5 : 2} />
+                <span className="text-[11px] font-semibold leading-none">{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* Desktop Plum Sidebar (≥ 768px) */}
+      <aside
+        aria-label="Desktop sidebar navigation"
+        className={cn(
+          'hidden md:flex fixed inset-y-0 left-0 w-64 flex-col bg-[var(--wa-hero)] text-white z-40 p-4 border-r border-white/10 select-none font-body',
+          className,
+        )}
+      >
+        {/* Top Logo Lockup (Reverse) */}
+        <div className="px-2 pt-2 pb-6">
+          <img
+            src="/brand/svg/lockup/warrior-ai-horizontal-reverse.svg"
+            alt="Warrior AI"
+            className="h-8 w-auto"
+          />
+        </div>
+
+        {/* 5 Nav Items */}
+        <nav aria-label="Main menu" className="flex flex-col gap-2 flex-1">
+          {destinations.map(({ id, icon: Icon, labelKey }) => {
+            const isCurrent = currentDestination === id;
+            const label = labels[labelKey] || defaultLabels[labelKey];
+
+            return (
+              <button
+                key={id}
+                type="button"
+                aria-current={isCurrent ? 'page' : undefined}
+                onClick={() => onNavigate(id)}
+                className={cn(
+                  'flex items-center gap-3.5 h-12 px-4 rounded-full text-sm font-semibold transition-all text-left font-body',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--wa-hero)]',
+                  isCurrent
+                    ? 'bg-wa-crimson text-white font-bold shadow-sm'
+                    : 'text-wa-on-plum-muted hover:text-white hover:bg-white/10',
+                )}
+              >
+                <Icon size={20} aria-hidden="true" strokeWidth={isCurrent ? 2.5 : 2} />
+                <span>{label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Bottom Sidebar: SOS button + Profile trigger */}
+        <div className="mt-auto pt-4 border-t border-white/10 space-y-3">
           <button
-            key={id}
             type="button"
-            aria-current={isCurrent ? 'page' : undefined}
-            onClick={() => onNavigate(id)}
-            className={cn(
-              'flex min-h-16 min-w-0 touch-manipulation select-none flex-col items-center justify-center gap-1 rounded-control px-0 transition-colors duration-150',
-              'text-[11px] leading-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2',
-              'md:min-h-14 md:w-full md:flex-row md:justify-start md:gap-3 md:px-4 md:text-small',
-              isCurrent
-                ? 'bg-medical-50 font-bold text-action-accent dark:bg-medical-950/45 dark:text-medical-200'
-                : 'font-medium text-foreground-secondary hover:bg-surface-subtle hover:text-foreground',
-            )}
+            onClick={handleEmergencyClick}
+            aria-label="Emergency SOS"
+            className="w-full h-12 rounded-full bg-wa-crimson hover:bg-wa-crimson-press active:bg-wa-crimson-press text-white font-display font-extrabold text-sm flex items-center justify-center gap-2 shadow-wa-sos transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            <span className={cn('hidden h-8 w-1 rounded-full md:block', isCurrent ? 'bg-action-accent' : 'bg-transparent')} aria-hidden="true" />
-            <Icon aria-hidden="true" size={22} strokeWidth={isCurrent ? 2.5 : 2} />
-            <span className="block whitespace-nowrap">{labels[id]}</span>
-            <span
-              aria-hidden="true"
-              className={cn(
-                'h-0.5 w-5 rounded-full md:hidden',
-                isCurrent ? 'bg-action-accent' : 'bg-transparent',
-              )}
-            />
+            <Shield size={18} strokeWidth={2.5} aria-hidden="true" />
+            <span>EMERGENCY SOS</span>
           </button>
-        );
-      })}
-      </div>
-    </nav>
 
-    {onOpenProfile ? (
-      <div className="mt-auto hidden border-t border-line p-4 md:block">
-        <button
-          type="button"
-          aria-label="Open desktop profile"
-          className="flex min-h-14 w-full items-center gap-3 rounded-control bg-surface-subtle px-3 text-left transition-colors hover:bg-disabled focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-          onClick={onOpenProfile}
-        >
-          {profilePhotoUrl ? (
-            <img src={profilePhotoUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
-          ) : (
-            <span aria-hidden="true" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-medical-50 text-action-accent dark:bg-medical-950/50 dark:text-medical-200">
-              <User size={19} />
-            </span>
+          {onOpenProfile && (
+            <button
+              type="button"
+              onClick={onOpenProfile}
+              aria-label="Open profile"
+              className="flex w-full items-center gap-3 rounded-full bg-white/5 p-2 hover:bg-white/10 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              {profilePhotoUrl ? (
+                <img src={profilePhotoUrl} alt="" className="h-9 w-9 rounded-full object-cover shrink-0" />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white shrink-0 font-display font-bold text-xs">
+                  {profileLabel.slice(0, 2).toUpperCase()}
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-bold text-white font-body">{profileLabel}</p>
+                <p className="truncate text-[10px] text-wa-on-plum-muted font-body">View profile</p>
+              </div>
+            </button>
           )}
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-small font-semibold text-foreground">{profileLabel}</span>
-            <span className="mt-0.5 flex items-center gap-1 text-caption text-foreground-secondary"><ShieldCheck size={13} aria-hidden="true" /> Secure account</span>
-          </span>
-        </button>
-      </div>
-    ) : null}
-  </aside>
-);
+        </div>
+      </aside>
+    </>
+  );
+};
+
+PatientNavigation.displayName = 'PatientNavigation';

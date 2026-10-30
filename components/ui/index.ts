@@ -13,5 +13,6 @@ export * from './ProgressBar';
 export * from './ProgressSegments';
 export * from './SafetyBanner';
 export * from './Skeleton';
+export * from './SosPill';
 export * from './StateMessage';
 export * from './utils';

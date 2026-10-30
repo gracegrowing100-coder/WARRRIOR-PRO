@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   User,
@@ -24,6 +23,7 @@ import { AuthFlow } from './components/AuthFlow';
 import { OfflineWarriorAI } from './components/OfflineWarriorAI';
 import { SyntheticDemo } from './components/SyntheticDemo';
 import { CareHub } from './components/care';
+import { SosPill } from './components/ui';
 import {
   AppHeader,
   AppShell,
@@ -173,7 +173,6 @@ const App: React.FC = () => {
     };
   }, []);
 
-
   useEffect(() => {
     const handleHashChange = () => {
       setCurrentPage(pageFromHash());
@@ -290,9 +289,10 @@ const App: React.FC = () => {
             profileLabel={user?.displayName || 'Your profile'}
             profilePhotoUrl={user?.photoURL}
             onOpenProfile={() => setShowProfile(true)}
+            hidden={showProfile}
             labels={{
               home: t.home,
-              chat: t.chat,
+              chat: 'Mira',
               care: t.care,
               community: language === 'en' ? 'Community' : t.group,
               more: 'More',
@@ -307,6 +307,7 @@ const App: React.FC = () => {
             onHome={() => navigate('home')}
             actions={(
               <div className="flex items-center justify-end gap-2 sm:gap-3">
+                <SosPill className="hidden md:inline-flex" />
                 {/* Multilingual Selector */}
                 <div className="flex min-h-11 items-center rounded-control border border-line bg-surface-subtle px-2">
                   <Globe size={18} className="mr-1.5 shrink-0 text-foreground-secondary" />
@@ -369,15 +370,14 @@ const App: React.FC = () => {
         <PageContainer width={currentPage === 'home' ? 'home' : 'patient'}>{renderPage()}</PageContainer>
       </AppShell>
 
-      {/* Emergency Action & Offline Multilingual AI Companion */}
-      <div data-semantic className="fixed bottom-[calc(4.5rem+var(--safe-area-bottom)+0.75rem)] left-3 right-3 z-50 flex h-11 items-center justify-end gap-2 md:inset-x-0 md:left-64 md:bottom-0 md:h-[calc(4rem+var(--safe-area-bottom))] md:gap-3 md:border-t md:border-line md:bg-surface md:px-4 md:pb-[var(--safe-area-bottom)]" aria-label="Patient support">
-        <EmergencyButton userId={user?.uid || ''} />
-        <OfflineWarriorAI
-          currentLanguage={language}
-          onLanguageChange={handleLanguageChange}
-          onNavigateToTool={handleToolNavigation}
-        />
-      </div>
+      {/* Emergency Action & Offline Multilingual AI Companion (modal overlays preserved, floating buttons hidden) */}
+      <EmergencyButton userId={user?.uid || ''} hideFloatingButton />
+      <OfflineWarriorAI
+        currentLanguage={language}
+        onLanguageChange={handleLanguageChange}
+        onNavigateToTool={handleToolNavigation}
+        hideFloatingButton
+      />
     </>
   );
 };

@@ -6,12 +6,27 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { firebaseService } from '../services/firebaseService';
 
-interface EmergencyButtonProps {
+export interface EmergencyButtonProps {
   userId: string;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideFloatingButton?: boolean;
 }
 
-export const EmergencyButton: React.FC<EmergencyButtonProps> = ({ userId }) => {
-  const [isOpen, setIsOpen] = useState(false);
+export const EmergencyButton: React.FC<EmergencyButtonProps> = ({
+  userId,
+  isOpen: controlledOpen,
+  onOpenChange,
+  hideFloatingButton = false,
+}) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isModalOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+
+  const setOpen = (open: boolean) => {
+    setInternalOpen(open);
+    onOpenChange?.(open);
+  };
+
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   
@@ -40,7 +55,7 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({ userId }) => {
       setLoading(false);
     };
     fetchInfo();
-  }, [userId, isOpen]);
+  }, [userId, isModalOpen]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,13 +72,18 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({ userId }) => {
 
   return (
     <>
-      {/* Floating Action Button */}
+      {/* Trigger Button - hidden or floating based on prop */}
       <button
         id="emergency-fab"
-        onClick={() => setIsOpen(true)}
+        onClick={() => setOpen(true)}
         type="button"
         data-ui-control
-        className="flex min-h-11 flex-1 touch-manipulation select-none items-center justify-center gap-2 rounded-control bg-action-accent px-4 text-small font-semibold text-white shadow-elevated active:bg-action-accent-hover hover:bg-action-accent-hover md:flex-none md:shadow-none"
+        aria-label="Emergency HUD"
+        className={
+          hideFloatingButton
+            ? 'sr-only'
+            : 'flex min-h-11 flex-1 touch-manipulation select-none items-center justify-center gap-2 rounded-control bg-action-accent px-4 text-small font-semibold text-white shadow-elevated active:bg-action-accent-hover hover:bg-action-accent-hover md:flex-none md:shadow-none'
+        }
       >
         <ShieldAlert className="h-5 w-5" aria-hidden="true" />
         <span>Emergency HUD</span>
@@ -71,7 +91,7 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({ userId }) => {
 
       {/* Modal Overlay */}
       <AnimatePresence>
-        {isOpen && (
+        {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -97,7 +117,7 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({ userId }) => {
                   type="button"
                   aria-label="Close emergency information"
                   onClick={() => {
-                    setIsOpen(false);
+                    setOpen(false);
                     setIsEditing(false);
                   }}
                   className="flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/20 p-2 text-white outline-none transition-all hover:bg-black/30"

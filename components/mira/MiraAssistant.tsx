@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, HeartPulse, MessageSquarePlus, Mic, Pause, Pencil, Play, RotateCcw, Send, Settings2, ShieldAlert, Square, Volume2 } from 'lucide-react';
-import { Alert, Button, Card, FormField, IconButton, Modal, SelectInput, Textarea } from '../ui';
+import { Alert, Button, Card, FormField, IconButton, Modal, SelectInput, Textarea, cn } from '../ui';
 import {
   MIRA_LANGUAGES,
   MIRA_TEXT_CHAT_NOTE,
@@ -127,6 +127,19 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
 
   useEffect(() => {
     languageRef.current = language;
+  }, [language]);
+
+  const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, [language]);
 
   // Auto-scroll to bottom when messages change
@@ -501,7 +514,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
             </span>
             <div className="min-w-0">
               <h2 id="mira-heading" className="text-heading-3 text-foreground">Mira</h2>
-              <p className="truncate text-caption text-foreground-secondary">AI sickle-cell assistant</p>
+              <p className="truncate text-caption text-foreground-secondary">{isOffline ? 'Offline mode · Local advice' : 'AI sickle-cell assistant'}</p>
               <span className="sr-only">by Warrior AI</span>
             </div>
           </div>
@@ -516,6 +529,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
               <MessageSquarePlus size={19} aria-hidden="true" />
               <span className="hidden sm:inline">New chat</span>
             </button>
+            <button type="button" aria-label="Open Offline AI Companion" onClick={() => { const trigger = document.getElementById('offline-warrior-ai-floating-trigger'); if (trigger) trigger.click(); }} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-small font-semibold text-foreground hover:bg-surface-subtle transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"><span className={cn('h-2 w-2 rounded-full', isOffline ? 'bg-status-warning' : 'bg-status-success')} /><span>{isOffline ? 'Offline mode' : 'Offline AI'}</span></button>
             <IconButton label="Mira settings" icon={<Settings2 size={19} />} onClick={() => setSettingsOpen(true)} />
           </div>
         </header>

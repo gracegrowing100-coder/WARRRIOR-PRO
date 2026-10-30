@@ -3,7 +3,7 @@ import { ArrowLeft, CalendarDays, ChevronRight, ClipboardList, HeartPulse, Pill 
 import { CareVault } from '../CareVault';
 import { HealthHistory } from '../health';
 import { PageHeader } from '../layout';
-import { Button, Card, HealthStatusBadge } from '../ui';
+import { Button, Card, HealthStatusBadge, SosPill } from '../ui';
 
 type CareView = 'overview' | 'history' | 'records';
 
@@ -72,7 +72,11 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
 
   return (
     <div className="space-y-8" data-semantic>
-      <PageHeader title="Care" description="Your health history, care requests, and medical information in one place." />
+      <PageHeader
+        title="Care"
+        description="Your health history, care requests, and medical information in one place."
+        actions={<SosPill onClick={() => document.getElementById('emergency-fab')?.click()} />}
+      />
 
       <section aria-label="Care destinations" className="space-y-6">
         <Card padding="none" className="overflow-hidden border-line/80 shadow-none">

@@ -16,11 +16,11 @@ export const AppShell: React.FC<AppShellProps> = ({
 }) => (
   <div
     className={cn(
-      'h-[100dvh] overflow-hidden bg-canvas text-foreground flex flex-col md:flex-row',
+      'h-[100dvh] overflow-hidden bg-wa-ground text-wa-plum flex flex-col md:flex-row font-body',
       className,
     )}
   >
-    <main className="mb-[calc(8.75rem+var(--safe-area-bottom))] min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain md:mb-[calc(4rem+var(--safe-area-bottom))] md:ml-64">
+    <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pb-[120px] md:pb-8 md:ml-64">
       {header}
       {children}
     </main>

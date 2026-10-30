@@ -13,7 +13,7 @@ import { ScheduledRemindersManager } from './ScheduledRemindersManager';
 import { PatternInsightsDoctorReport } from './PatternInsightsDoctorReport';
 import { SymptomPainCheckIn } from './health';
 import { HomeActionHub, RecentHealthSummary, TodaysHealthCard, UpcomingAppointmentCard } from './home';
-import { Button } from './ui';
+import { Button, SosPill } from './ui';
 import { firebaseService } from '../services/firebaseService';
 import { auth } from '../firebase-init';
 
@@ -112,12 +112,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
 
   return (
     <div data-semantic className="space-y-7 pb-8 sm:space-y-8 lg:space-y-9">
-      <header className="px-1 pb-1 lg:pt-2">
-        <p className="text-small font-bold uppercase tracking-[0.08em] text-action-accent">
-          {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
-        </p>
-        <h1 className="mt-2 max-w-3xl text-[1.9rem] font-bold leading-tight tracking-[-0.03em] text-foreground sm:text-[2.25rem] lg:text-[2.65rem]">{greeting}, {firstName}</h1>
-        <p className="mt-2 max-w-2xl text-body text-foreground-secondary sm:text-lg">Your health, routines, and next steps for today.</p>
+      <header className="px-1 pb-1 lg:pt-2 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-small font-bold uppercase tracking-[0.08em] text-wa-crimson">
+            {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+          </p>
+          <h1 className="mt-2 max-w-3xl text-[1.9rem] font-bold leading-tight tracking-[-0.03em] text-foreground sm:text-[2.25rem] lg:text-[2.65rem] font-display">
+            {greeting}, {firstName}
+          </h1>
+          <p className="mt-2 max-w-2xl text-body text-foreground-secondary sm:text-lg">
+            Your health, routines, and next steps for today.
+          </p>
+        </div>
+        <SosPill onClick={() => document.getElementById('emergency-fab')?.click()} />
       </header>
 
       <TodaysHealthCard

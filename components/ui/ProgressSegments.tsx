@@ -45,3 +45,4 @@ export const ProgressSegments: React.FC<ProgressSegmentsProps> = ({
 };
 
 ProgressSegments.displayName = 'ProgressSegments';
+

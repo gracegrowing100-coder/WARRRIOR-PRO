@@ -97,3 +97,4 @@ export const DropProgress: React.FC<DropProgressProps> = ({
 };
 
 DropProgress.displayName = 'DropProgress';
+
