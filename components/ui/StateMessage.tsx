@@ -1,8 +1,10 @@
 import React from 'react';
-import { CircleAlert, CircleCheck, Inbox } from 'lucide-react';
+import { CircleAlert, CircleCheck } from 'lucide-react';
+import { WarriorMark } from '../brand/WarriorMark';
+import { Button } from './Button';
 import { cn } from './utils';
 
-export type StateMessageState = 'empty' | 'error' | 'success';
+export type StateMessageState = 'empty' | 'error' | 'success' | 'loading';
 
 export interface StateMessageProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   state: StateMessageState;
@@ -10,14 +12,10 @@ export interface StateMessageProps extends Omit<React.HTMLAttributes<HTMLDivElem
   description?: React.ReactNode;
   icon?: React.ReactNode;
   action?: React.ReactNode;
+  onRetry?: () => void;
+  retryLabel?: string;
   live?: 'off' | 'polite' | 'assertive';
 }
-
-const stateStyles = {
-  empty: { icon: 'bg-surface-subtle text-foreground-secondary', defaultIcon: <Inbox size={24} /> },
-  error: { icon: 'bg-status-danger-soft text-status-danger', defaultIcon: <CircleAlert size={24} /> },
-  success: { icon: 'bg-status-success-soft text-status-success', defaultIcon: <CircleCheck size={24} /> },
-};
 
 export const StateMessage: React.FC<StateMessageProps> = ({
   state,
@@ -25,25 +23,55 @@ export const StateMessage: React.FC<StateMessageProps> = ({
   description,
   icon,
   action,
+  onRetry,
+  retryLabel = 'Try again',
   live = 'off',
   className,
   ...props
 }) => {
-  const styles = stateStyles[state];
   return (
     <div
       data-ui
       role={live === 'assertive' ? 'alert' : live === 'polite' ? 'status' : undefined}
       aria-live={live === 'off' ? undefined : live}
-      className={cn('flex flex-col items-center rounded-card border border-line bg-surface p-6 text-center', className)}
+      className={cn(
+        'flex flex-col items-center justify-center rounded-[28px] bg-wa-surface p-8 text-center font-body',
+        className,
+      )}
       {...props}
     >
-      <span aria-hidden="true" className={cn('mb-3 inline-flex h-11 w-11 items-center justify-center rounded-control', styles.icon)}>
-        {icon ?? styles.defaultIcon}
-      </span>
-      <h3 className="text-heading-3 text-foreground">{title}</h3>
-      {description && <p className="mt-1 max-w-prose text-small text-foreground-secondary">{description}</p>}
-      {action && <div className="mt-4">{action}</div>}
+      <div aria-hidden="true" className="mb-4">
+        {icon ? (
+          icon
+        ) : state === 'empty' ? (
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-wa-rose/40 text-wa-crimson/50">
+            <WarriorMark className="h-10 w-10 opacity-40" />
+          </div>
+        ) : state === 'error' ? (
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-wa-rose text-wa-crimson">
+            <CircleAlert size={28} />
+          </div>
+        ) : (
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-wa-water-soft text-wa-success">
+            <CircleCheck size={28} />
+          </div>
+        )}
+      </div>
+
+      <h3 className="font-display text-lg font-bold text-wa-plum">{title}</h3>
+      {description && (
+        <p className="mt-1.5 max-w-sm text-sm text-wa-muted font-normal">{description}</p>
+      )}
+
+      {action ? (
+        <div className="mt-5">{action}</div>
+      ) : onRetry ? (
+        <div className="mt-5">
+          <Button variant="outline" size="sm" onClick={onRetry}>
+            {retryLabel}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 };

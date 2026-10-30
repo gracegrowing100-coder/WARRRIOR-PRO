@@ -1,2678 +1,321 @@
-# Sickle Cell Patient Monitoring App
-## Product UI/UX Design System & Implementation Specification
+# Warrior AI — DESIGN.md (v2)
 
-> **Status:** Canonical Design Specification  
-> **Primary audience:** Codex and developers working on the application  
-> **Location:** `/DESIGN.md`  
-> **Design authority:** This document is the primary visual and UX source of truth for the application.
-
----
-
-# 1. Purpose
-
-This document defines the visual language, UX principles, component behavior, responsive rules, accessibility requirements, screen hierarchy, implementation strategy, and visual references for the Sickle Cell Patient Monitoring application.
-
-Codex and other coding agents MUST read this document before performing substantial frontend or UI/UX work.
-
-The objective is to transform the existing application into a polished, modern, patient-friendly healthcare product while preserving all working application logic.
-
-The application should feel:
-
-- Calm
-- Modern
-- Trustworthy
-- Clinically credible
-- Personal
-- Accessible
-- Easy to understand
-- Supportive
-- Reassuring
-- Purpose-built for ongoing health monitoring
-
-The application MUST NOT feel like:
-
-- An ICU monitor
-- Hospital administration software
-- A generic SaaS dashboard
-- A cryptocurrency dashboard
-- A futuristic medical control panel
-- An overly technical analytics application
-- A visually alarming interface
-
-The patient should feel that the application helps them understand and manage their health rather than constantly reminding them that they have a medical condition.
+> **For the coding agent (Gemini).** This is the canonical visual spec for the Warrior AI redesign.
+> It replaces the colour, type and layout rules in the repo's current `DESIGN.md`.
+> Product scope, data contracts and clinical rules in `PRODUCT.md`, `docs/DATA_CONTRACTS.md` and `docs/REGRESSION_CHECKLIST.md` still apply.
+> Visual reference: the "Screens v2" page of the design canvas (19 screens + bottom-nav component). Logo files: `warrior-ai-logo-pack.zip`.
 
 ---
 
-# 2. Existing Application Comes First
+## 0. Ground rules (read first)
 
-This is an EXISTING application.
+This is a **brownfield restyle, not a rewrite.**
 
-The redesign is primarily a UI/UX improvement, not permission to rebuild the application from scratch.
-
-Before modifying frontend code, Codex MUST inspect the existing project.
-
-Identify:
-
-- Framework
-- Framework version
-- Project structure
-- Application entry points
-- Routes
-- Pages/screens
-- Layouts
-- Existing components
-- Existing design system
-- CSS architecture
-- Tailwind configuration, if present
-- Authentication flow
-- API integrations
-- Database interactions
-- State management
-- Forms
-- Validation
-- Charts
-- Icon libraries
-- Animation libraries
-- Patient data structures
-- Medication functionality
-- Symptom functionality
-- Pain tracking
-- Hydration functionality
-- Appointments
-- Notifications
-- Profile/settings
-- Clinician functionality
-- Existing responsive behavior
-
-Do not assume functionality exists simply because this document describes a possible interface for it.
-
-The existing codebase determines what currently exists.
+- **Keep:** all hash routes (`#/home`, `#/chat`, `#/care`, `#/community`, `#/more`), `App.tsx` page state, Firebase auth and Firestore schemas, `firebaseService.ts` method signatures, localStorage keys, offline fallbacks, Mira/YarnGPT providers, demo mode.
+- **Change:** markup, Tailwind classes, component composition, copy, icons, layout.
+- Work one screen at a time, in the order of §8. After each: `npm run lint`, `npm run build`, check 360 / 375 / 768 / 1280 px, keyboard Tab through it, no console errors, test offline.
+- Never add emoji. Icons come from `lucide-react` (already installed) or the brand SVGs.
+- Don't add or remove code comments unless asked; follow existing patterns; prefer compact code.
 
 ---
 
-# 3. Preservation Rule
-
-Preserve working functionality.
-
-Prefer:
-
-1. Restyling existing components
-2. Improving component composition
-3. Extracting reusable UI components
-4. Improving spacing and hierarchy
-5. Replacing inconsistent styling
-6. Improving accessibility
-7. Improving responsive behavior
-8. Incrementally refactoring weak UI architecture
-
-over rewriting functional application logic.
-
-Do NOT remove or rename existing:
-
-- Routes
-- APIs
-- Database fields
-- Actions
-- Hooks
-- State structures
-- Authentication logic
-- Business logic
-- Working integrations
-
-unless technically necessary.
-
-Before replacing an existing component ask:
-
-1. Does it already work?
-2. Can it simply be restyled?
-3. Can its public API remain unchanged?
-4. Can its state logic be preserved?
-5. Can it be incrementally refactored?
-
-Prefer incremental improvement.
-
----
-
-# 4. Product Design Philosophy
-
-The interface combines the friendliness of a consumer wellness application with the trustworthiness of a healthcare product.
-
-The design should prioritize:
-
-**CLARITY > DECORATION**
-
-**USABILITY > VISUAL COMPLEXITY**
-
-**ACCESSIBILITY > AESTHETIC NOVELTY**
-
-**PATIENT REASSURANCE > CLINICAL INTIMIDATION**
-
-**CONSISTENCY > ONE-OFF DESIGNS**
-
-**MEANINGFUL DATA > DASHBOARD CLUTTER**
-
-Use:
-
-- Large readable cards
-- Generous whitespace
-- Rounded surfaces
-- Clear typography
-- Simple charts
-- Concise labels
-- Familiar interactions
-- Clear health-status indicators
-- Progressive disclosure
-
-Do not expose every available metric simultaneously.
-
----
-
-# 5. Core Patient Questions
-
-The primary patient experience should answer seven questions:
-
-1. How am I doing today?
-2. Is anything requiring my attention?
-3. Have I taken my medication?
-4. Am I sufficiently hydrated?
-5. What symptoms have I recorded?
-6. How has my health changed recently?
-7. What should I do if I need help?
-
-These questions should guide information hierarchy.
-
----
-
-# 6. Brand Color Direction
-
-The visual identity combines:
-
-- Dark navy blue
-- Medical red
-- Clean white
-- Soft blue-gray neutrals
-- Controlled red-to-navy gradients
-
-Dark navy should provide stability and trust.
-
-White should provide breathing room.
-
-Medical red should provide identity and emphasis.
-
-Strong red MUST NOT dominate ordinary screens because red must remain meaningful when communicating urgency.
-
----
-
-# 7. Primary Navy Palette
-
-```css
---navy-950: #071426;
---navy-900: #0B1F3A;
---navy-800: #102A4C;
---navy-700: #173B68;
---navy-600: #21518B;
-```
-
-Primary brand:
-
-```css
---primary: #0B1F3A;
-```
-
-Use navy for:
-
-- Navigation
-- Primary text
-- Headers
-- Selected navigation states
-- Primary buttons
-- Important data
-- Hero cards
-- Charts
-- Section titles
-- Selected controls
-
----
-
-# 8. Medical Red Palette
-
-```css
---red-700: #B91C32;
---red-600: #D1223E;
---red-500: #E63950;
---red-400: #F05A6E;
---red-100: #FDE8EC;
---red-50: #FFF4F6;
-```
-
-Primary accent:
-
-```css
---accent: #D1223E;
-```
-
-Strong red should primarily communicate:
-
-- Crisis
-- Important symptoms
-- High pain
-- Urgent attention
-- Missed important medication
-- Important health alerts
-- Destructive actions
-
-Soft red backgrounds may be used for:
-
-- Medication reminders
-- Wellness prompts
-- Selected states
-- Brand accents
-- Low-intensity informational cards
-
-Never create an ordinary screen dominated by bright red.
-
----
-
-# 9. Neutral Palette
-
-```css
---white: #FFFFFF;
-
---gray-25: #FCFCFD;
---gray-50: #F8FAFC;
---gray-100: #F1F5F9;
---gray-200: #E2E8F0;
---gray-300: #CBD5E1;
---gray-400: #94A3B8;
---gray-500: #64748B;
---gray-600: #475569;
---gray-700: #334155;
---gray-800: #1E293B;
---gray-900: #0F172A;
-```
-
-Application background:
-
-```css
---background: #F7F9FC;
-```
-
-Surface:
-
-```css
---surface: #FFFFFF;
-```
-
-Primary text:
-
-```css
---text-primary: #0B1F3A;
-```
-
-Secondary text:
-
-```css
---text-secondary: #64748B;
-```
-
-Border:
-
-```css
---border: #E2E8F0;
-```
-
----
-
-# 10. Semantic Health Colors
-
-Color MUST NOT be the only health indicator.
-
-Always combine:
-
-**ICON + TEXT + COLOR**
-
-## Stable
-
-```css
---success: #168A5B;
---success-soft: #EAF8F1;
-```
-
-Example:
-
-`✓ Stable`
-
-## Attention
-
-```css
---warning: #D98C10;
---warning-soft: #FFF6DF;
-```
-
-Example:
-
-`! Needs attention`
-
-## Critical
-
-```css
---danger: #D1223E;
---danger-soft: #FDE8EC;
-```
-
-Example:
-
-`! Seek medical help`
-
-## Information
-
-```css
---info: #2563EB;
---info-soft: #EAF2FF;
-```
-
----
-
-# 11. Gradient System
-
-Gradients should feel sophisticated rather than decorative.
-
-## Primary Brand Gradient
-
-```css
-linear-gradient(
-  135deg,
-  #D1223E 0%,
-  #8B2745 35%,
-  #173B68 70%,
-  #0B1F3A 100%
+## 1. Brand
+
+### 1.1 Logo (approved: mark D2 + wordmark W1)
+A blood drop with a four-point spark cut out of it: blood and care, plus Mira's intelligence. The wordmark is "Warrior" in Sora ExtraBold with a crimson "AI" badge.
+
+Put the pack in `public/brand/`:
+
+| Use | File |
+|---|---|
+| Header / landing on light | `svg/lockup/warrior-ai-horizontal-primary.svg` |
+| On plum / dark | `svg/lockup/warrior-ai-horizontal-reverse.svg` |
+| Small mark, avatars, Mira icon, loaders | `svg/mark/warrior-ai-mark-coral.svg` (on plum), `…-crimson.svg` (on light) |
+| Favicon, PWA, app icons | `favicon.ico`, `favicon.svg`, `png/icon/*` (manifest: 192 + 512, `theme_color` and `background_color` `#3B0F2C`) |
+
+Rules: clear space = height of the AI badge; lockup ≥ 120 px wide; mark ≥ 16 px; never retype the wordmark in live text, stretch, outline, add effects, or put the coral mark on crimson. **Product name is "Warrior AI" everywhere** (the app currently mixes "Warrior Cell" and "WARRIOR AI").
+
+For inline use in React, the mark is one path (`fill-rule="evenodd"`, `viewBox="14 2 72 96"`):
+
+```tsx
+export const WarriorMark = ({ className = '', color = 'currentColor' }) => (
+  <svg viewBox="14 2 72 96" className={className} aria-hidden="true">
+    <path fill={color} fillRule="evenodd" d="M50 6C50 6 82 42 82 63A32 32 0 0 1 18 63C18 42 50 6 50 6ZM50 40L44.5 56.5L28 62L44.5 67.5L50 84L55.5 67.5L72 62L55.5 56.5Z"/>
+  </svg>
+);
+export const Spark = ({ className = '', color = 'currentColor' }) => (
+  <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+    <path fill={color} d="M12 2L14.6 9.4 22 12 14.6 14.6 12 22 9.4 14.6 2 12 9.4 9.4Z"/>
+  </svg>
 );
 ```
 
-Suitable for:
+### 1.2 Personality
+Calm, warm, confident; a companion, not a hospital monitor. **Not** an ICU dashboard, crypto dashboard, or futuristic control panel.
 
-- Main health hero
-- Welcome/onboarding
-- Important branded surfaces
-- Selected premium visual elements
-
----
-
-## Navy Gradient
-
-```css
-linear-gradient(
-  145deg,
-  #173B68 0%,
-  #0B1F3A 100%
-);
-```
-
-Suitable for:
-
-- Health overview
-- Profile header
-- Data summary cards
+### 1.3 Signature moves (what makes v2 look like Warrior AI, not a template)
+1. **Plum hero blocks**: the top of Home, Log pain, History, Profile, auth screens is a deep plum panel with 36 px bottom corners. Content cards float up over its lower edge.
+2. **The spark ✦** as the brand's bullet and accent: section eyebrows, tips, Mira's avatar, AI-related actions. Never decorative clutter; max 3 per screen.
+3. **Ghost mark**: one oversized drop mark at 8–12 % opacity bleeding off the edge of a plum block (Home, Login, Care history tile, Profile).
+4. **Floating plum pill nav** with a crimson active tab.
+5. **Water is drops and sachets**, never ml-only: drop-shaped progress, rows of sachet tiles.
+6. **Big Sora numbers** for anything the user records (pain 96 px on Log pain, 26–36 px in tiles).
 
 ---
 
-## Soft Red Gradient
+## 2. Tokens
 
-```css
-linear-gradient(
-  135deg,
-  #FFF4F6 0%,
-  #FDE8EC 100%
-);
-```
-
-Suitable for:
-
-- Medication reminders
-- Mild symptom cards
-- Wellness prompts
-
----
-
-# 12. Gradient Rules
-
-Maximum approximately one strong gradient surface per viewport.
-
-If the hero card uses the brand gradient, surrounding cards should generally remain white.
-
-Avoid:
-
-- Rainbow gradients
-- Neon gradients
-- Gradients behind long paragraphs
-- Multiple competing gradient cards
-- Gradient buttons everywhere
-
----
-
-# 13. Typography
-
-Preferred font:
-
-**Inter**
-
-Fallback:
-
-```css
-font-family:
-  Inter,
-  ui-sans-serif,
-  system-ui,
-  -apple-system,
-  BlinkMacSystemFont,
-  "Segoe UI",
-  sans-serif;
-```
-
-Typography hierarchy:
-
-## Display
-
-32px / 40px  
-Weight 700
-
-## H1
-
-28px / 36px  
-Weight 700
-
-## H2
-
-24px / 32px  
-Weight 700
-
-## H3
-
-20px / 28px  
-Weight 600
-
-## Body Large
-
-18px / 28px  
-Weight 400–500
-
-## Body
-
-16px / 24px  
-Weight 400
-
-## Small
-
-14px / 20px  
-Weight 400–500
-
-## Caption
-
-12px / 16px  
-Weight 500
-
-Avoid normal body text below 14px.
-
-Important health information should generally be 16px or larger.
-
-Large numerical health values may use 24–32px.
-
----
-
-# 14. Spacing System
-
-Use an 8px-oriented spacing system:
-
-```text
-4px
-8px
-12px
-16px
-20px
-24px
-32px
-40px
-48px
-64px
-```
-
-Mobile horizontal padding:
-
-```text
-16px–20px
-```
-
-Desktop:
-
-```text
-24px–32px
-```
-
-Card padding:
-
-```text
-16px mobile
-20px–24px larger screens
-```
-
-Major section spacing:
-
-```text
-24px–32px
-```
-
-Whitespace is intentional.
-
-Avoid cramped dashboards.
-
----
-
-# 15. Border Radius
-
-```css
---radius-sm: 8px;
---radius-md: 12px;
---radius-lg: 16px;
---radius-xl: 20px;
---radius-2xl: 24px;
---radius-pill: 9999px;
-```
-
-Recommended:
-
-Standard cards: 16–20px
-
-Hero cards: 20–24px
-
-Buttons: 12–14px
-
-Inputs: 12px
-
-Bottom sheets: 24px top corners
-
-Chips: pill radius
-
----
-
-# 16. Shadows
-
-Avoid heavy shadows.
-
-Standard:
-
-```css
-box-shadow:
-  0 1px 2px rgba(15, 23, 42, 0.03),
-  0 4px 12px rgba(15, 23, 42, 0.05);
-```
-
-Elevated:
-
-```css
-box-shadow:
-  0 8px 24px rgba(15, 23, 42, 0.08);
-```
-
-Prefer subtle borders over excessive floating shadows.
-
----
-
-# 17. Application Navigation
-
-Recommended patient navigation:
-
-```text
-Home
-Chat
-Care
-Community
-More
-Profile
-```
-
-Conceptually:
-
-```text
-Home      Chat      Care      Community      More      Profile
-```
-
-Use a consistent outline icon library rather than emoji in production.
-
-Secondary functionality belongs inside those sections.
-
-The target information architecture contains six top-level destinations: Home,
-Chat, Care, Community, More, and Profile. The final mobile navigation
-presentation remains subject to Phase 2.2B usability validation at 360px,
-375px, 390px, and 430px widths.
-
-Phase 2.2B will determine whether all six destinations can safely appear in the
-persistent mobile navigation, or whether Home, Chat, Care, Community, and More
-appear in bottom navigation while Profile remains persistently accessible
-through the application header.
-
-Do not shrink labels, controls, or touch targets below these design and
-accessibility requirements merely to fit six bottom-navigation items.
-
----
-
-# 18. Mobile Navigation
-
-Bottom navigation should:
-
-- Remain easy to reach
-- Clearly show active state
-- Include icon + short label
-- Maintain sufficient touch target
-- Avoid excessive visual decoration
-
-The number and placement of bottom-navigation items remains deferred to Phase
-2.2B as described above.
-
-Selected item:
-
-Navy or brand accent.
-
-Inactive:
-
-Gray.
-
----
-
-# 19. Desktop Navigation
-
-Where appropriate, mobile bottom navigation may become a left sidebar.
-
-Example:
-
-```text
-Logo
-
-Home
-Chat
-Care
-Community
-More
-
-────────
-
-Profile
-```
-
-Do not create duplicate navigation systems unnecessarily.
-
----
-
-# 20. Patient Home Dashboard
-
-Home is the most important patient screen.
-
-Information priority:
-
-1. Greeting
-2. Current health status
-3. Daily check-in
-4. Pain
-5. Hydration
-6. Medication
-7. Health trends
-8. Upcoming appointment
-9. Crisis/help
-
-Conceptual structure:
-
-```text
-Good morning, Alex                   Notifications
-Tuesday, 22 September
-
-
-TODAY'S HEALTH
-
-Stable
-
-Pain                   Hydration
-2 / 10                 5 / 8 cups
-
-Last updated 10:32 AM
-
-
-How are you feeling?
-
-Good       Okay       Unwell
-
-
-TODAY
-
-Medication              Hydration
-2 of 3 taken             5 / 8 cups
-
-
-PAIN TREND
-
-[ simple 7-day line chart ]
-
-
-NEXT MEDICATION
-
-Hydroxyurea
-500 mg
-8:00 PM
-
-[ Mark as Taken ]
-
-
-NEXT APPOINTMENT
-
-Haematology Clinic
-24 September • 10:30 AM
-
-[ View Details ]
-
-
-Feeling a crisis coming on?
-
-Know what to do and get help.
-
-[ Get Help ]
-```
-
-Do not interpret this wireframe as a requirement to invent missing backend features.
-
-Map existing data into this hierarchy where possible.
-
----
-
-# 21. Today's Health Hero
-
-This should be one of the strongest visual elements.
-
-Use:
-
-- Navy gradient
-- Or controlled brand gradient
-
-Example content:
-
-```text
-TODAY'S HEALTH
-
-✓ Stable
-
-Pain
-2 / 10
-
-Hydration
-5 / 8 cups
-```
-
-White text on the dark background.
-
-Maximum approximately 3–4 important metrics.
-
-Do not turn the hero into a mini dashboard containing everything.
-
----
-
-# 22. Daily Check-In
-
-Check-in should require minimal effort.
-
-Initial interaction:
-
-```text
-How are you feeling today?
-
-Good
-Okay
-Unwell
-```
-
-Use expressive but professional icons where appropriate.
-
-After selection, optionally ask:
-
-```text
-Any symptoms today?
-
-Pain
-Fatigue
-Headache
-Fever
-Breathing difficulty
-Dizziness
-Swelling
-Other
-```
-
-Use large selectable chips/cards.
-
-Avoid long mandatory forms for routine daily check-ins.
-
----
-
-# 23. Pain Tracking
-
-Pain tracking is a primary feature.
-
-Use a clear 0–10 scale:
-
-```text
-0 ───────────────────────── 10
-
-No pain                 Severe pain
-```
-
-Recommended descriptions:
-
-```text
-0       No pain
-1–3     Mild
-4–6     Moderate
-7–10    Severe
-```
-
-Always show:
-
-- Numeric value
-- Text description
-
-Example:
-
-```text
-Pain level
-
-6 / 10
-
-Moderate pain
-```
-
-Do not rely only on color.
-
----
-
-# 24. Body Pain Map
-
-If body-location tracking already exists or is part of planned functionality, present a simple anatomical selector.
-
-Possible areas:
-
-- Head
-- Chest
-- Abdomen
-- Back
-- Left arm
-- Right arm
-- Left leg
-- Right leg
-- Joints
-
-Selected areas may use medical red.
-
-Keep anatomy simple and non-graphic.
-
-Do not use graphic injury imagery.
-
----
-
-# 25. Hydration
-
-Hydration tracking should feel encouraging.
-
-Example:
-
-```text
-Hydration
-
-5 / 8 cups
-
-██████████░░░░
-
-[ + Add Water ]
-```
-
-Alternative:
-
-```text
-1.25 L / 2 L
-```
-
-Preferred language:
-
-`3 cups to reach today's goal.`
-
-Avoid guilt-based language.
-
-Do not say:
-
-`You failed to drink enough water.`
-
----
-
-# 26. Medication Card
-
-Example:
-
-```text
-Hydroxyurea
-
-500 mg
-8:00 PM
-
-Next dose in 2h 15m
-
-[ Mark as Taken ]
-```
-
-Medication statuses:
-
-```text
-Upcoming
-Taken
-Missed
-Skipped
-```
-
-Taken:
-
-Success styling.
-
-Upcoming:
-
-Neutral/navy.
-
-Missed:
-
-Warning or soft red.
-
-Do not make entire medication cards bright red.
-
----
-
-# 27. Medication Screen
-
-Recommended sections:
-
-```text
-Today
-Upcoming
-History
-```
-
-Each item may include:
-
-- Medication name
-- Dosage
-- Scheduled time
-- Status
-- Optional instructions
-
-Primary action:
-
-`Mark as Taken`
-
-Secondary:
-
-`Skip`
-
-If skipping requires a reason, prefer a bottom sheet rather than unnecessary page navigation.
-
----
-
-# 28. Symptoms
-
-Symptoms should use selectable cards or chips.
-
-Example:
-
-```text
-What are you experiencing?
-
-Pain
-
-Fatigue
-
-Fever
-
-Headache
-
-Dizziness
-
-Shortness of breath
-
-Swelling
-
-Other
-```
-
-Selected state:
-
-```text
-✓ Fatigue
-```
-
-Ask severity only where useful.
-
-Avoid forcing patients to complete irrelevant fields.
-
----
-
-# 29. Health Screen
-
-Health should focus on longitudinal understanding.
-
-Possible sections:
-
-```text
-Health Overview
-
-Pain
-
-Hydration
-
-Medication adherence
-
-Symptoms
-
-Vitals
-
-Crisis history
-```
-
-Do not display every metric simultaneously.
-
-Allow users to switch between important metrics.
-
----
-
-# 30. Charts
-
-Prefer:
-
-- Line charts
-- Area charts
-- Progress bars
-- Simple bar charts
-- Progress rings where appropriate
-
-Avoid:
-
-- 3D charts
-- Complex pie charts
-- Excessive grid lines
-- Too many colors
-- Tiny labels
-- Dense analytics dashboards
-
-Pain trend:
-
-Primarily navy line.
-
-High or critical points may use red.
-
-Hydration:
-
-Blue/navy progress.
-
-Medication adherence:
-
-Progress ring, percentage, or simple trend.
-
----
-
-# 31. Chart Accessibility
-
-Charts should not be the only way health information is communicated.
-
-Where useful, include a textual summary such as:
-
-```text
-Average pain this week
-
-3.2 / 10
-
-Down from 4.1 last week
-```
-
-Do not communicate positive/negative changes through color alone.
-
----
-
-# 32. Crisis / Emergency UX
-
-Help should always be easy to locate.
-
-The application should NOT constantly look like an emergency interface.
-
-Example:
-
-```text
-Need urgent help?
-
-If you're experiencing severe symptoms,
-follow your care plan or contact your
-healthcare provider.
-
-[ Get Help ]
-```
-
-Critical action may use strong red.
-
-Do not:
-
-- Flash warnings
-- Use frightening animation
-- Use unnecessarily alarming language
-- Imply that the application replaces emergency medical care
-
----
-
-# 33. Alert Hierarchy
-
-## Information
-
-Blue/navy.
-
-## Reminder
-
-Neutral.
-
-## Attention
-
-Amber.
-
-## Critical
-
-Red.
-
-Example:
-
-```text
-! Important
-
-Your recorded symptoms may require attention.
-
-[ View guidance ]
-```
-
-Always pair status with text/icon.
-
----
-
-# 34. Appointments
-
-Compact Home card:
-
-```text
-NEXT APPOINTMENT
-
-Haematology Clinic
-
-24 Sep
-10:30 AM
-
-[ View Details ]
-```
-
-Avoid putting every appointment detail on Home.
-
-Full details belong on the appointment screen.
-
----
-
-# 35. Profile
-
-Possible structure:
-
-```text
-Personal Information
-Care Team
-Emergency Contact
-Health Information
-Medication
-Notification Preferences
-Privacy & Security
-Accessibility
-Sign Out
-```
-
-Avoid exposing sensitive information unnecessarily on the first profile screen.
-
----
-
-# 36. Notifications
-
-Categories may include:
-
-```text
-Medication
-Health
-Appointments
-System
-```
-
-Unread state:
-
-Small red dot or clearly labelled unread styling.
-
-Avoid large aggressive notification counters.
-
----
-
-# 37. Buttons
-
-## Primary
-
-```css
-background: #0B1F3A;
-color: #FFFFFF;
-```
-
-Use for everyday primary actions.
-
-## Accent
-
-```css
-background: #D1223E;
-color: #FFFFFF;
-```
-
-Use selectively.
-
-## Secondary
-
-```css
-background: #FFFFFF;
-border: 1px solid #CBD5E1;
-color: #0B1F3A;
-```
-
-## Ghost
-
-Transparent background.
-
-## Danger
-
-Strong red.
-
-Reserve for:
-
-- Destructive actions
-- Critical actions
-
-Recommended height:
-
-44–52px.
-
-Touch targets should generally be at least approximately 44px.
-
----
-
-# 38. Inputs
-
-Inputs require:
-
-- Visible label
-- Optional supporting text
-- Clear focus state
-- Clear validation
-- Appropriate touch height
-
-Example:
-
-```text
-Pain notes
-
-┌──────────────────────────────┐
-│ Describe how you feel...     │
-└──────────────────────────────┘
-```
-
-Never use placeholder text as the only label.
-
-Focus:
-
-Navy border/ring.
-
-Error:
-
-Red border + icon + explanatory text.
-
-Do not expose raw backend validation errors.
-
----
-
-# 39. Cards
-
-Standard card:
-
-```css
-background: #FFFFFF;
-border: 1px solid #E2E8F0;
-border-radius: 18px;
-padding: 16px;
-```
-
-Hierarchy:
-
-1. Hero
-2. Primary health cards
-3. Secondary cards
-4. Utility cards
-
-Not every section needs a floating card.
-
-Group related information naturally.
-
----
-
-# 40. Icons
-
-Preferred:
-
-- Lucide
-- Heroicons
-- Existing consistent icon library already used by the application
-
-Do not introduce another icon library if the project already has a suitable one.
-
-Recommended sizes:
-
-```text
-16px inline
-20px standard
-24px navigation
-```
-
-Avoid mixing filled, outline, 3D, emoji, and unrelated icon styles.
-
----
-
-# 41. Bottom Sheets
-
-On mobile, bottom sheets are suitable for:
-
-- Quick symptom entry
-- Medication actions
-- Filters
-- Date selection
-- Quick health logging
-
-Example:
-
-```text
-────────
-
-Log symptom
-
-Pain
-Fatigue
-Fever
-Headache
-
-[ Continue ]
-```
-
-Top radius:
-
-Approximately 24px.
-
----
-
-# 42. Modals
-
-Use modals for:
-
-- Confirmation
-- Important decisions
-- Destructive actions
-
-Do not use modal dialogs as ordinary navigation.
-
----
-
-# 43. Empty States
-
-Never leave unexplained blank screens.
-
-Example:
-
-```text
-No symptoms recorded today
-
-Your daily check-in helps you understand
-changes in your health over time.
-
-[ Start Check-in ]
-```
-
-Use simple icons/illustrations sparingly.
-
----
-
-# 44. Loading States
-
-Prefer skeleton loading for page/card content.
-
-Do not use a full-screen spinner for small updates.
-
-Buttons performing asynchronous actions should provide inline feedback.
-
-Prevent duplicate submissions.
-
----
-
-# 45. Success States
-
-Example:
-
-```text
-✓ Check-in saved
-
-Your health log has been updated.
-```
-
-Keep success messaging concise.
-
----
-
-# 46. Error States
-
-Example:
-
-```text
-We couldn't save your check-in.
-
-Your information hasn't been lost.
-
-[ Try Again ]
-```
-
-Never expose raw API errors to patients.
-
-Technical details belong in logs.
-
----
-
-# 47. Mobile-First Design
-
-Primary target widths:
-
-```text
-360px
-375px
-390px
-430px
-```
-
-Design for mobile first and expand gracefully.
-
-Do not create a desktop dashboard and merely compress it.
-
----
-
-# 48. Tablet
-
-Tablet may use two-column layouts.
-
-Example:
-
-```text
-Health Overview      Medication
-
-Pain Trend           Appointments
-
-Symptoms             Hydration
-```
-
-Do not force two columns when content readability would suffer.
-
----
-
-# 49. Desktop
-
-Maximum primary content width:
-
-```text
-1200px–1440px
-```
-
-Patient dashboards should not stretch cards across extremely wide displays.
-
-Use a centered container.
-
-Possible desktop structure:
-
-```text
-Sidebar | Main Health Content | Supporting Information
-```
-
----
-
-# 50. Responsive Rules
-
-Mobile:
-
-1 column.
-
-Tablet:
-
-1–2 columns.
-
-Desktop:
-
-2–3 columns where useful.
-
-Never make health information tiny simply to increase information density.
-
----
-
-# 51. Accessibility
-
-Target WCAG 2.2 AA where practical.
-
-Requirements include:
-
-- Minimum 4.5:1 contrast for normal text
-- Large touch targets
-- Keyboard navigation
-- Visible focus states
-- Semantic HTML
-- Screen-reader labels
-- Explicit form labels
-- Accessible error messages
-- Accessible charts
-- Reduced-motion support
-
-Never use color alone to communicate:
-
-- Pain severity
-- Medication status
-- Health status
-- Errors
-- Crisis state
-
-Always prefer:
-
-```text
-Icon + Text + Color
-```
-
----
-
-# 52. Motion
-
-Recommended timing:
-
-```text
-Fast:   120ms
-Normal: 180ms
-Slow:   250ms
-```
-
-Appropriate animation:
-
-- Button feedback
-- Progress changes
-- Bottom-sheet transitions
-- Check-in completion
-- Subtle card transitions
-
-Avoid:
-
-- Constant pulsing
-- Bouncing UI
-- Decorative spinning
-- Flashing warnings
-- Excessive parallax
-- Animations that delay tasks
-
-Respect:
-
-```css
-prefers-reduced-motion
-```
-
----
-
-# 53. Dark Mode
-
-Dark mode is optional.
-
-Do not prioritize dark mode over core usability unless the application already supports it.
-
-Suggested palette:
-
-Background:
-
-```css
-#071426
-```
-
-Surface:
-
-```css
-#0B1F3A
-```
-
-Elevated surface:
-
-```css
-#102A4C
-```
-
-Primary text:
-
-```css
-#F8FAFC
-```
-
-Secondary:
-
-```css
-#CBD5E1
-```
-
-Border:
-
-```css
-rgba(255,255,255,0.10)
-```
-
-Do not simply invert light mode.
-
----
-
-# 54. Recommended CSS Variables
+Put these in the global CSS and map them in `tailwind.config` (`colors.wa.*`, `fontFamily.display/body`, `borderRadius.*`). Remove the old navy/red palette.
 
 ```css
 :root {
-  --background: #F7F9FC;
-  --surface: #FFFFFF;
+  /* brand */
+  --wa-plum: #3B0F2C;        /* ink text, hero blocks, nav, dark buttons */
+  --wa-crimson: #C4122F;     /* primary actions, pain, selected, AI badge */
+  --wa-crimson-press: #9E0E26;
+  --wa-coral: #E8344F;       /* mark and accents ON plum only (not text on white) */
+  --wa-rose: #FBE4E8;        /* selected chip fill, tips, red-flag box */
+  --wa-rose-text: #FF8A9B;   /* numbers/accents on plum */
 
-  --primary: #0B1F3A;
-  --primary-light: #173B68;
+  /* neutrals */
+  --wa-ground: #F7F2F5;      /* app background (blush) */
+  --wa-surface: #FFFFFF;     /* cards, sheets, inputs */
+  --wa-line: #E6D8E0;        /* borders */
+  --wa-line-soft: #F1E6EC;   /* list dividers */
+  --wa-muted: #6E4A63;       /* secondary text on light (7:1 on white) */
+  --wa-on-plum-muted: #D9B9CC;  /* secondary text on plum */
+  --wa-on-plum-soft: #E8D3DF;
 
-  --accent: #D1223E;
-  --accent-light: #FDE8EC;
-
-  --text-primary: #0B1F3A;
-  --text-secondary: #64748B;
-
-  --border: #E2E8F0;
-
-  --success: #168A5B;
-  --success-soft: #EAF8F1;
-
-  --warning: #D98C10;
-  --warning-soft: #FFF6DF;
-
-  --danger: #D1223E;
-  --danger-soft: #FDE8EC;
-
-  --info: #2563EB;
-  --info-soft: #EAF2FF;
-
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 24px;
-  --radius-pill: 9999px;
+  /* functional */
+  --wa-water: #1C7C8C;  --wa-water-soft: #E1F2F4;  --wa-water-ink: #11535E;  --wa-water-bright: #7FD6DF; /* bright = on plum */
+  --wa-sun: #B45309;    --wa-sun-soft: #FDF0DC;    --wa-sun-ink: #7A3E06;
+  --wa-success: #1E7B4A; --wa-success-bright: #9FE3B5;  --wa-online: #3DDC84;
 }
-```
-
----
-
-# 55. Tailwind Direction
-
-If Tailwind is already installed, extend the existing theme.
-
-Do not replace the application's styling architecture unnecessarily.
-
-Conceptual mapping:
-
-```js
-colors: {
-  navy: {
-    950: "#071426",
-    900: "#0B1F3A",
-    800: "#102A4C",
-    700: "#173B68",
-    600: "#21518B"
-  },
-
-  medical: {
-    700: "#B91C32",
-    600: "#D1223E",
-    500: "#E63950",
-    400: "#F05A6E",
-    100: "#FDE8EC",
-    50: "#FFF4F6"
-  }
+:root[data-theme="dark"] {
+  --wa-ground: #1A0A15; --wa-surface: #2A1323; --wa-line: #44243A; --wa-line-soft: #3A1E31;
+  --wa-plum: #F7F2F5;          /* ink flips to light text */
+  --wa-muted: #C9A9BC;
+  --wa-rose: #4A1626; --wa-water-soft: #0F3036; --wa-sun-soft: #3A2610;
+  /* hero blocks and nav keep #3B0F2C on a darker ground: use --wa-hero */
+  --wa-hero: #3B0F2C;
 }
+:root { --wa-hero: #3B0F2C; }
 ```
 
-Adapt this to the project's Tailwind version and existing theme structure.
+High-contrast mode: text `#000`/`#FFF` only, borders 2 px `#3B0F2C`, no tinted fills behind text.
 
----
-
-# 56. Component Architecture
-
-Create reusable components where doing so improves consistency.
-
-Potential structure:
-
-```text
-components/
-  ui/
-    Button
-    Card
-    Badge
-    Input
-    Textarea
-    Progress
-    Modal
-    BottomSheet
-    Skeleton
-    Alert
-
-  health/
-    HealthStatusCard
-    PainScore
-    PainTrendChart
-    HydrationCard
-    MedicationCard
-    MedicationStatus
-    SymptomChip
-    DailyCheckIn
-    AppointmentCard
-    CrisisHelpCard
-
-  layout/
-    AppHeader
-    BottomNavigation
-    Sidebar
-    PageContainer
-    SectionHeader
+### Type
+```html
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 ```
+| Token | Font | Size / line-height | Weight | Use |
+|---|---|---|---|---|
+| `display-hero` | Sora | 96 / 0.9, −0.04em | 800 | Pain number on Log pain |
+| `display-xl` | Sora | 34–38 / 1.05, −0.03em | 800 | Landing, Login, Emergency titles |
+| `display-l` | Sora | 30–32 / 1.1, −0.02em | 800 | Screen titles (h1) |
+| `stat` | Sora | 22–36 | 800 | Numbers in tiles |
+| `title` | Sora | 16–20 / 1.25 | 700–800 | Card and section titles |
+| `eyebrow` | Sora | 12, +0.06em, uppercase | 700 | Onboarding eyebrows with ✦ |
+| `body-l` | Inter | 15–16 / 1.5 | 400 | Intros, chat |
+| `label` | Inter | 13–15 | 600–700 | Buttons, chips, form labels |
+| `caption` | Inter | 12–13 / 1.4 | 500–600 | Meta, disclaimers |
 
-This is conceptual.
+Minimum 12 px; inputs 16 px. Test Yorùbá/Igbo diacritics (ẹ ọ ṣ ị ụ ń) in both fonts.
 
-Adapt it to the existing repository.
-
-Do NOT restructure the whole application simply to reproduce this folder tree.
-
----
-
-# 57. Patient vs Clinician Experience
-
-If clinician functionality exists, do not simply reuse the patient dashboard.
-
-## Patient
-
-Prioritize:
-
-- Simplicity
-- Reassurance
-- Actions
-- Daily tasks
-- Limited data density
-
-## Clinician
-
-May prioritize:
-
-- Higher information density
-- Patient lists
-- Alerts
-- Longitudinal trends
-- Medication adherence
-- Crisis history
-- Search
-- Filtering
-
-Both should share:
-
-- Color tokens
-- Typography
-- Components
-- Status language
-- Accessibility rules
+### Shape, space, depth
+- Radius: chip/pill/button **full** (height/2); input 16; small card 18–22; card **26–28**; hero/sheet **32–36**; icon tile 12–16 (quick-action tiles 22).
+- Screen padding 16 (cards) / 20 (forms). Card gap 14–16. Card padding 16–18.
+- Shadows only: floating nav `0 12px 30px rgb(59 15 44 / .35)`; card overlapping a hero `0 12px 30px rgb(59 15 44 / .12)`; SOS call button `0 16px 40px rgb(196 18 47 / .45)`.
+- Cards on light ground have **no border**; white on blush is enough. Inputs and unselected chips get a 1 px `--wa-line` border.
+- Motion (Motion/framer-motion, already installed): 180 ms ease-out for selection, 260 ms spring for sheets, number count-up on stats ≤ 400 ms. Wrap all in `useReducedMotion()`.
 
 ---
 
-# 58. Clinician Patient Card
+## 3. Components (`components/ui/`, restyle the existing primitives)
 
-Conceptual example:
-
-```text
-Alex Johnson
-
-✓ Stable
-
-Pain          3 / 10
-Adherence     92%
-Last check    Today, 9:42 AM
-
-[ View Patient ]
-```
-
-Urgent state may use:
-
-- Red badge
-- Red left border
-- Alert icon
-
-Do not make entire cards bright red.
+| Primitive | Spec |
+|---|---|
+| `Button` variants | `primary` crimson h56 full-pill white 16/700 · `dark` plum · `water` teal · `outline` 1.5 px plum border · `ghost` crimson text · `onPlum` white bg plum text · `icon` 40–44 circle (needs `aria-label`) |
+| `ChoiceChip` | h42–46 pill. Off: white + line border. On: **crimson fill + white text** (Log pain) or rose fill + 2 px crimson border (onboarding cards). Custom chip: plum fill + × remove button (30 px circle). Add-own: dashed `#A8909F` |
+| `OptionCard` (new) | min-h 56–68, radius 18–20, leading icon tile or code badge (48 px, crimson when selected), trailing radio dot or ✓ circle |
+| `Card` | `surface` (white r28) · `hero` (plum r36 bottom-only or all) · `tint` (rose / water-soft / sun-soft) · `glass` (white 8 % on plum, 1 px white 12 % border) |
+| `FormField` | label 14/700 above; input h52 r16; helper 13 muted; error 13 crimson with icon; focus = 2 px plum border |
+| `ProgressSegments` (new) | N equal bars h6 r3 gap 5, crimson done, line upcoming, plus "2/5" in Sora |
+| `Modal` → `Sheet` | Bottom sheet on mobile (r36 top, 44×5 handle, plum 85 % scrim), centred dialog ≥768 px. Focus trap, Esc closes |
+| `StateMessage` | loading = skeletons same height as content; empty = ghost mark + one line + action; error = one line + retry, never a white screen |
+| `PatientNavigation` | See §4 |
+| `SafetyBanner` (new) | crimson card r22, white text, one "Get help" button → emergency |
+| `DropProgress` (new) | SVG drop with clipPath fill = value/goal; label inside switches to dark text when fill < 40 % |
 
 ---
 
-# 59. Design Anti-Patterns
+## 4. Navigation
 
-DO NOT:
-
-- Cover the application in red
-- Use gradients everywhere
-- Create excessive glassmorphism
-- Use neon colors
-- Use tiny dashboard text
-- Use excessive shadows
-- Create 3D charts
-- Use more than five bottom-nav destinations
-- Hide important labels behind icons
-- Use color as the only health indicator
-- Create hospital-monitor aesthetics
-- Show every available metric on Home
-- Use giant decorative illustrations where data matters more
-- Add animation that delays health tasks
-- Replace functioning components merely because they are not written in a preferred style
-- Change business logic solely for visual reasons
-- Remove existing functionality during redesign
-- Introduce unnecessary dependencies
-- Create visual inconsistency between pages
-- Copy reference designs pixel-for-pixel
+- **Mobile (< 768):** floating plum pill nav, 16 px from sides and bottom, h68, five tabs: **Home · Mira · Care · Community · More** (routes unchanged; "Chat" is labelled "Mira"). Active tab = crimson pill with white icon + label; others `--wa-on-plum-muted`. Page content gets 120 px bottom padding. Hide on auth/onboarding/emergency/sheets.
+- **Desktop (≥ 768):** left sidebar in plum, same five items, logo lockup (reverse) at top, SOS button at bottom.
+- **SOS:** crimson pill "SOS" in the top-right of Home and Care (and every main page header on desktop). Opens the Emergency screen. This **replaces the floating "Emergency HUD" + "Offline AI" buttons**, which cover content on mobile. Offline AI becomes reachable from Mira (it is still Mira when offline: show "Offline mode" in Mira's status line).
+- **Profile:** avatar button on Home header, and first row of More.
+- **Language:** "EN" pill on Home header opens the language sheet; also in Profile → Preferences.
 
 ---
 
-# 60. Desired Visual Impression
+## 5. Copy rules
 
-When users first open the application, the intended reaction is:
+Plain, warm, second person. Keep honesty, lose jargon. Replace these strings from `AuthFlow.tsx` and elsewhere:
 
-> "This feels calm."
+| Current | New |
+|---|---|
+| Create Medical Profile | Create my profile |
+| Full name is required for medical reference. | Please add your name. |
+| Please enter a valid institutional address. | That email doesn't look right. |
+| Date of birth is critical for automated medication schedules. | Add your date of birth so reminders fit you. |
+| Please choose a password meeting safe protocol guidelines. | Your password needs a few more things (see the checklist). |
+| You must authorize the standard terms of use. | Please agree to the Terms to continue. |
+| SCD health metrics access is required for clinical assistance. | We need your OK to store your health logs. |
+| We couldn't locate matching credentials… | Email or password is wrong. Try again or reset your password. |
+| Sudden Atmospheric Cold (Thermal Shock) | Cold weather or rain |
+| Extreme Dryness / Passive Dehydration | Not drinking enough water |
+| Infectious Fever or Physiological Load | Fever or infection |
+| Strenuous Skeletal Fatigue / Exhaustion | Overdoing it physically |
+| Prolonged Sleep Deficit | Poor sleep |
+| Emotional Distress or Sympathetic Stress | Stress or worry |
+| Hypoxia / Low Oxygen Environments | Low oxygen (flights, high places) |
+| Genotype severity labels ("High vigilance", "Moderate control") | Remove from patient view. Keep the suggested water target only |
+| Hello, [Name] | Good morning / afternoon / evening, [first name] |
 
-> "I can immediately understand how I'm doing."
+**Keep the stored values** for triggers/genotypes exactly as they are in Firestore. Change only the displayed label via a label map, so existing data still matches.
 
-> "I know what I need to do today."
-
-> "I can log my health quickly."
-
-> "I know where to go if something is wrong."
-
-The intended reaction is NOT:
-
-> "This looks like I'm in a hospital."
-
-or:
-
-> "There is too much medical information."
-
-or:
-
-> "Everything looks urgent."
-
----
-
-# 61. Visual References
-
-The following external designs are VISUAL REFERENCES ONLY.
-
-They are NOT specifications to reproduce pixel-for-pixel.
-
-Do not copy:
-
-- Logos
-- Brand names
-- Proprietary illustrations
-- Photographs
-- Unique graphical assets
-- Exact screen compositions
-
-Study them for:
-
-- Information hierarchy
-- Composition
-- Spacing
-- Card proportions
-- Typography scale
-- Navigation patterns
-- Chart presentation
-- Health metric presentation
-- Symptom logging UX
-- Medication UX
-- Whitespace
-- Visual polish
-- Micro-interaction ideas
-
-The rules in this `DESIGN.md` take precedence over visual references.
+Clinical lines that must appear:
+- Landing + login footer: "Pilot version for product evaluation. Use sample information only."
+- Mira header: "AI assistant, not a doctor. It can make mistakes."
+- Weather card: "General wellbeing tips, not medical advice."
+- History patterns: "…a pattern in your records, not a diagnosis."
+- Onboarding water step: "Use your doctor's number if you have one."
+- Never show AI confidence scores, never claim crisis prediction.
 
 ---
 
-# 62. Reference 1 — Primary Visual Reference
+## 6. Languages (fix "Yorùbá doesn't work")
 
-## Health Tracker App UI Design — Habibur Rahman
-
-URL:
-
-https://dribbble.com/shots/26903087-Health-Tracker-App-UI-Design
-
-This is the PRIMARY visual reference for the patient-facing experience.
-
-Study it primarily for:
-
-- Overall visual quality
-- Mobile composition
-- Rounded components
-- Soft visual treatment
-- Health tracking cards
-- Symptom presentation
-- Reports and insights
-- Whitespace
-- Typography hierarchy
-- Friendly health tracking experience
-- Card sizing
-- Screen rhythm
-- Modern consumer-health aesthetics
-
-IMPORTANT:
-
-Do NOT copy its purple/pink palette.
-
-Translate its visual language into this application's:
-
-**DARK NAVY + MEDICAL RED + WHITE**
-
-identity.
-
-Its strongest influence should be:
-
-**visual softness + layout polish + patient friendliness**
-
-rather than exact appearance.
+1. `i18n/{en,yo,ig,ha,pcm}.json`, keys grouped by screen. Seed from `APP_TRANSLATIONS` in `offlineKnowledgeBase.ts`.
+2. `LanguageProvider` context at the top of `App.tsx`, reading/writing the existing localStorage key; `useT()` hook returns `t(key)`; English fallback per key; dev warning on missing keys.
+3. Components call `useT()`; no prop drilling.
+4. Set `document.documentElement.lang` (`pcm` for Pidgin).
+5. Same setting drives Mira (`yo-NG`, `ig-NG`, `ha-NG`, `pcm-NG` already fixed). Mira's in-chat language chips change only Mira's language unless the user ticks "use for whole app".
+6. Add Pidgin to every selector. Native-speaker review before release.
 
 ---
 
-# 63. Reference 2 — Symptom + Medication UX
+## 7. Data shown, and where it comes from
 
-## Medical Reminder & Symptom Tracker App UI
-
-URL:
-
-https://dribbble.com/shots/27156799-Medical-Reminder-Symptom-Tracker-App-UI-Healthcare-Mobile-De
-
-Study primarily for:
-
-- Medication cards
-- Medication scheduling
-- Daily dosage presentation
-- Symptom selection
-- Anatomical/body symptom interaction
-- Calendar layout
-- Healthcare information hierarchy
-- Mobile health logging
-
-Use this reference mainly when working on:
-
-- Symptoms
-- Pain
-- Medication
-- Daily logging
-
-Do not copy its branding or assets.
+| UI | Source (existing) |
+|---|---|
+| Greeting name | `getUserProfile().displayName` → first name |
+| Streak pill | `updateStreak` value |
+| Pain tile / Log pain | `addSymptomLog`, `getPainLogs` (latest today; "↓ from 6" compares with previous entry) |
+| Water tiles, sachet row, drop | `getWaterLog(today)`, `saveWaterLog`; goal from profile; sachets = ceil(goal ÷ 0.5) |
+| Medicine card | existing `MedicationReminder` data |
+| Next appointment | `UpcomingAppointmentCard` data |
+| Your week line | `getPainLogs` last 7 days; days with no entry = hollow dot, no line through them |
+| History stats/chart/top symptoms | `getSymptomHistory`, `getHydrationHistory` → pure function `utils/trends.ts` |
+| Community list | existing support-centre data in `Community.tsx` |
+| XP, level, daily challenge | existing `GamesHub` state |
 
 ---
 
-# 64. Reference 3 — Dashboard Architecture
+## 8. Screens (build in this order)
 
-## Healthcare Dashboard Mobile App — Smart Health Monitoring
+Mobile frame 390 wide; everything must also work at 360.
 
-URL:
+### 8.1 Splash · `App.tsx` loading state
+Plum full-bleed. Three concentric coral rings (18–35 % opacity) + soft radial glow behind a 120 px coral mark. Reverse lockup below. 3 tiny sparks scattered. Bottom: thin coral progress bar + "Pilot version · sample data only". Show while auth resolves (max ~1.2 s if cached).
 
-https://dribbble.com/shots/27003477-Healthcare-Dashboard-Mobile-App-Smart-Health-Monitoring
+### 8.2 Landing · `AuthFlow` screen `landing`
+Plum top: small lockup, language pill, theme toggle. Three tilted floating cards (pain 3/10 with 10-segment bar, teal water card with mini drop "5 sachets", crimson Mira bubble in Pidgin). Headline "Live strong. / Track smart." (second line coral). One-line description. Blush bottom sheet (r32 top): **Get started** (crimson) → signup, **Sign in** (outline) → login, **Try the demo first →** (ghost) → `onOpenDemo`, pilot disclaimer + Terms · Privacy.
 
-Study primarily for:
+### 8.3 Sign up · `signup`
+Plum header (back, "Account · then 5 quick steps", title "Create your profile", offline reassurance). Role picker as 3 cards ("Living with sickle cell" / "A carer or parent" / "A health worker") mapped to the existing role values. Fields: Full name, Email, Phone (country code defaults to **+234**, not +1), Date of birth + City side by side, Password with Show toggle, 4-segment strength bar and a live checklist (8+, upper & lower, number, symbol), Confirm password. White consent card: Terms + Privacy, health-data consent, "Keep me signed in" (= Remember me). Crimson "Create my profile". Keep all existing validation logic; only the messages change (§5). Errors show inline under each field.
 
-- Dashboard hierarchy
-- Health overview
-- Health status presentation
-- Trend cards
-- Quick actions
-- Appointment/consultation presentation
-- Patient profile presentation
-- Health snapshots
-- Information prioritization
+### 8.4 Sign in · `login` (and `forgot`)
+Plum top with ghost mark: "Welcome back, / warrior." Blush sheet: Email, Password (Forgot password? link right of label, Show toggle), Keep me signed in, Sign in, divider, Continue with Google, "New here? Create a profile", Terms · Privacy. **Forgot password** reuses this layout: title "Reset your password", one email field, "Send reset link", success state with a check and "Check your inbox".
 
-Use this reference mainly for STRUCTURE.
+### 8.5 Onboarding · `onboarding`, steps 1–5
+Shared header: back, 5-segment progress, "n/5". Each step: ✦ eyebrow, h1, one-line intro, content, bottom CTA (Skip + Continue on optional steps). Save each step as today.
+1. **Genotype**: six option rows with a code badge (SS, SC, Sβ⁰, Sβ⁺, AS, ?), name, short note. Below: plum info strip "Suggested starting goal for SS: 3.8 L a day" (from `CLINICAL_GENOTYPES`).
+2. **Medicines**: 2-column cards for `PRESET_MEDS` (name + form, ✓ circle), add-your-own field + Add button, custom meds as plum chips with ×.
+3. **Triggers**: one row per `PRESET_TRIGGERS` with icon tile, plain label (§5), ✓ circle; add-your-own field.
+4. **Water goal**: white card with − / + and a **DropProgress** showing the goal (1–6 L, 0.5 steps), tiles "8 sachets of pure water" and "3.8 1-litre bottles"; reminder frequency pills.
+5. **Emergency contact**: name, phone (+234), relationship chips, plum reassurance "We never contact anyone without you pressing a button first." CTA "Finish setup".
 
-The Sickle Cell Patient Monitoring app should remain visually softer and less dashboard-heavy.
+### 8.6 Home · `Dashboard.tsx`, `TodaysHealthCard`, `HomeActionHub`, `WaterIntakeTracker`, `UpcomingAppointmentCard`, `HealthTipsWisdom`, `DailyMoodCheckIn`
+Top to bottom:
+1. **Plum hero** (r36 bottom, ghost mark): mark · EN pill · SOS pill · avatar. Date, "Good morning, Alex", streak pill with ✦. Three glass tiles: Pain (rose number, change vs last), Water (teal number + mini bar), Medicine (taken/total, next time). Tiles link to Log pain / Add water / medicine card.
+2. **Check-in card** overlapping the hero by 48 px: "How are you feeling?" with 4 mood pills (Thriving, Good & steady, Exhausted, Pain flare) + "More feelings · add a note" (opens the full existing mood list). Selected = plum fill + ✓. **Choosing "Severe crisis" opens the Emergency screen** in addition to saving.
+3. **Quick actions**: four 64 px rounded tiles with labels: Log pain (crimson), Add water (teal), Medicine (plum), Ask Mira (white with crimson ✦).
+4. **Weather card** (§8.12).
+5. **Today's water**: "4 of 8 sachets", row of 8 sachet tiles (filled teal / soft), buttons + Sachet, + Bottle (one tap, no sheet), More… (opens Add water sheet).
+6. **Medicine**: checklist rows, "Mark taken", "Full schedule" link.
+7. **Next appointment**: date block (plum) + title + time/place → Care.
+8. **Your week**: 7-day pain line, gaps for missing days, "Trends →" History.
+9. **Warrior tip**: rose card with ✦ (from `HealthTipsWisdom`).
+The other existing widgets (Pain trends, Mood & hydration trends, Care vault, Caregiver widget, Reminders manager, Doctor report) move: trends → History; Care vault/records → Care; Caregiver + reminders → Profile; Doctor report → Care. Keep the components, change where they mount.
 
----
+### 8.7 Log pain · `SymptomPainCheckIn.tsx`
+Full screen on mobile, sheet on desktop. Plum top: close, "How's your pain?", time; **96 px pain number** (rose at ≥ 7) + plain label; 11-button scale (0–10) in the plum block (selected crimson with white ring, lower values tinted coral) replacing the slider (keep the slider's value/state). **SafetyBanner at ≥ 8.** White cards: "Where does it hurt?", "Other symptoms" (presets + custom input, keep Enter-to-add), "Possible triggers (optional)". Teal row "Add water with this check-in +" opens the water sheet in-context. Crimson "Save check-in". After save: toast "Saved. Your history is updated."
 
-# 65. Reference 4 — Health Monitoring Data
+### 8.8 Add water · `WaterIntakeTracker.tsx` (shared with Log pain)
+Bottom sheet. Mini DropProgress + "Add water" + "2.0 L of 3.8 L today". Three container cards: **Sachet** (50cl), **Bottle** (1 L), **Litres** (0.25 L steps), selected = teal fill. Quantity: − / n× / + and quick pills 1×–5× (max 10). Example line ("3 sachets = 1.5 L"). Summary + big teal total. "Add 1.5 L". Keep existing multiplier logic and storage in litres.
 
-## MedAxis — Heart Health Monitoring Mobile App UI
+### 8.9 Mira · `ChatWorkspace.tsx`
+Plum header (r28 bottom): crimson avatar with white ✦ and online dot (grey + "Offline mode" when offline), name, one-line disclaimer, new-chat and voice-replies buttons; language chips row (English, Yorùbá, Igbo, Hausa, Pidgin). Bubbles: user = plum r22/22/6/22; Mira = white r22/22/22/6 with soft shadow. Mira health replies include the rose red-flag box and action chips (Log this pain, Add water, **Draft appointment** = existing appointment-draft handoff), plus play-aloud. Suggested prompts above the composer. Composer: pill input + crimson hold-to-speak mic. Replace the "Make Mira yours" card with the language chips row.
 
-URL:
+### 8.10 Care · `CareHub.tsx`
+Title + SOS. **Health history** = large plum tile with ghost mark, 30-day pain sparkline and two stat chips → History. **Appointments** card: next appointment + 3-step status bar (Requested ✓ → Clinic confirmed ✓ → Visit) + "+ Request" button. **Medical records** row. **Report for your doctor** rose card with Share / Download (`PatternInsightsDoctorReport`).
 
-https://dribbble.com/shots/27156733-MedAxis-Heart-Health-Monitoring-Mobile-App-UI
+### 8.11 Health history · `HealthHistory.tsx`, `RecordedPainChart.tsx`, `RecordedHistoryTimeline.tsx`
+Plum top: back to Care, share, title, range segmented control (7 days / 30 days / 3 months), 2×2 glass stats (Average pain, Highest + date, Days logged of range, Water daily avg). White chart card: line with **breaks for missing days**, tinted band for flagged periods (e.g. a rainy week from weather data), highest point labelled. "What showed up most": top 3 symptom bars + pattern sentence with ✦ (only when ≥ 5 entries on each side). Share with doctor / Download CSV. Entries list: pain number tile (sun tint < 4, rose ≥ 4), date, symptoms · triggers · water.
 
-Study primarily for:
+**Fix the crash before restyling.** Guard every access (`history?.symptoms ?? []`), parse dates safely, skip entries with missing/invalid pain, coerce Firestore Timestamps vs ISO strings, give list items stable keys, and wrap chart + timeline in an error boundary that shows "We couldn't draw your chart. Your entries are safe." Move stats into `utils/trends.ts` with unit tests for empty, single, and malformed data.
 
-- Health metric cards
-- Health analytics
-- Trend visualization
-- Data-heavy health screens
-- Mobile health-data presentation
+### 8.12 Weather · new `components/home/WeatherCard.tsx` + `server/weather.ts`
+Express route `GET /api/weather?lat&lon` (or `?city=`), key in server env only, 30 min cache. Card: sun-soft bg, location + "now", 36 px temperature + feels-like + condition, condition icon, **max two** ✦ tips from a rules table (hot ≥ 32 °C feels-like; cold/rain ≤ 22 °C; drop ≥ 6 °C vs yesterday; heat + humidity; harmattan dry/dusty Nov–Feb), footer disclaimer. States: skeleton, "Turn on weather tips" (no location), last cached + "Updated 2h ago" (offline), hidden on error.
 
-Do NOT make the application resemble a heart-monitoring product.
+### 8.13 Community · `Community.tsx`
+Title + intro, pill search with icon, city chips (Lagos, Abuja, London, Houston), underline tabs (All, Groups, NGOs, Clinics). First result as a plum feature card (type tag, name, description, Call + Directions). Others as white rows: tinted icon tile (rose = clinic/NGO, teal = group), type · city eyebrow, name, area, 44 px call button.
 
-Borrow presentation patterns, not medical content.
+### 8.14 More · `GamesHub.tsx`
+"Learn & play". Plum level card: level circle, XP to next level, coral progress bar, daily-challenge strip with Play. 3×2 tile grid: Academy, Games, Body (Anatomy), Stories (Empathy), Rewards (Progression/skins), Advocacy. Games row: three colour cards (Blood Flow Puzzle crimson, Red Cell Racer plum, Gene Journey teal). Settings list: Profile & health details, Language, Accessibility (text size, colour-blind modes), Help, terms & privacy.
 
----
+### 8.15 Profile · `UserProfile.tsx`
+Plum header with ghost mark, back, Edit, 84 px coral initials avatar, name, role pill + genotype pill. **Health profile** list: Medicines, Triggers, Daily water goal, Emergency contact (each opens the same editor used in onboarding). **Preferences**: language segmented (EN YO IG HA PCM), Dark mode, High contrast, Read Mira's replies aloud, Text size (A / A / A). Account: email, Sign out (crimson). Caregiver widget and reminders manager live here too.
 
-# 66. Reference 5 — Daily Health Monitoring
-
-## Smart Daily Health Monitoring Mobile App
-
-URL:
-
-https://dribbble.com/shots/26936644-Smart-Daily-Health-Monitoring-Mobile-App
-
-Study primarily for:
-
-- Daily monitoring
-- Metric hierarchy
-- Compact health cards
-- Mobile dashboard organization
-- Quick health understanding
-
-Do not treat this as a required screen layout.
-
----
-
-# 67. Visual Reference Priority
-
-When references conflict, use this priority:
-
-1. `DESIGN.md`
-2. Existing working application functionality
-3. Health Tracker App UI Design
-4. Medical Reminder & Symptom Tracker
-5. Smart Health Monitoring Dashboard
-6. MedAxis
-7. Smart Daily Health Monitoring
-8. Other references
-
-Never sacrifice:
-
-- Accessibility
-- Functionality
-- Readability
-- Medical clarity
-- Responsiveness
-
-simply to resemble a reference.
+### 8.16 Emergency · `EmergencyButton` target
+Plum full screen, works offline from cache. "Works offline" pill, close. "Get help now / You're not alone. Pick one." Crimson **Call 112** card (`tel:112`, white phone disc, glow shadow). Two glass tiles: Call [contact], Share location (SMS with last check-in, **confirm before sending**). Clinic row with Directions. Blush **Medical card**: name, genotype, medicines, last pain. Confirm 112 coverage with the team before launch.
 
 ---
 
-# 68. Design Synthesis Rule
+## 9. Responsive
 
-Do NOT reproduce any reference exactly.
-
-The final product must feel like an original sickle-cell monitoring application.
-
-Combine:
-
-**Health Tracker**
-
-→ visual softness  
-→ polish  
-→ spacing  
-→ patient-friendly composition
-
-**Symptom Tracker**
-
-→ symptoms  
-→ medication UX  
-→ body/pain interaction
-
-**Healthcare Dashboard**
-
-→ information architecture  
-→ status hierarchy  
-→ dashboard organization
-
-**MedAxis**
-
-→ health-data visualization  
-→ metric presentation
-
-**DESIGN.md**
-
-→ colors  
-→ branding  
-→ accessibility  
-→ components  
-→ interaction rules  
-→ final design authority
-
-Translate everything into:
-
-**DARK NAVY + MEDICAL RED + WHITE**
-
-The finished application must be recognizably its own product.
+- < 768: single column, floating nav, sheets from bottom.
+- 768–1279: plum sidebar; content max-width 720; Home hero spans content width with tiles in a row of 3.
+- ≥ 1280: content max-width 1080; Home = 2 columns (left: hero, check-in, quick actions, water, medicine; right: weather, appointment, your week, tip). History: stats + chart side by side. Auth screens: plum panel left (illustration/floating cards), form right.
 
 ---
 
-# 69. External Reference Browsing Rule
+## 10. Accessibility
 
-If Codex has browser/web access:
-
-Inspect the reference pages before implementing major visual changes.
-
-Focus on:
-
-- Overall composition
-- Visual hierarchy
-- Card sizing
-- Spacing
-- Typography
-- Navigation
-- Health-data presentation
-- Interaction concepts
-
-Do not attempt to scrape or reproduce proprietary assets.
-
-If browser access is unavailable:
-
-Continue using this `DESIGN.md`.
-
-External references are supplementary.
-
-They are NOT required for implementation.
-
-Do not block development merely because a Dribbble page cannot be accessed.
+Real buttons/links/inputs with labels; `aria-label` on icon buttons; selected state shown by fill + ✓ or border weight, never colour alone; text ≥ 4.5:1 (every token pair here passes; don't put coral text on white); charts have a text summary and the entries list as alternative; focus ring 2 px plum (white on plum) with 2 px offset; layouts survive 200 % text; reduced motion respected.
 
 ---
 
-# 70. Implementation Process
-
-The redesign should proceed in phases.
-
-Do not redesign every screen simultaneously.
-
----
-
-# 71. Phase 1 — Audit
-
-Before changing code inspect:
-
-- Existing screens
-- Components
-- Routes
-- Styles
-- Forms
-- Charts
-- Navigation
-- Responsive behavior
-- Data flow
-- APIs
-- State management
-- Authentication-related UI
-
-Identify what can be reused.
-
----
-
-# 72. Phase 2 — Design Foundation
-
-Establish:
-
-- Color tokens
-- Typography
-- Spacing
-- Border radii
-- Shadows
-- Borders
-- Buttons
-- Cards
-- Forms
-- Status badges
-- Alerts
-- Progress
-- Skeletons
-- Layout primitives
-
-Do not redesign every page yet.
-
----
-
-# 73. Phase 3 — Navigation
-
-Improve:
-
-- Application shell
-- Header
-- Mobile bottom navigation
-- Desktop sidebar where appropriate
-- Active states
-- Responsive navigation
-
-Preserve routes.
-
----
-
-# 74. Phase 4 — Patient Home
-
-Home establishes the design language.
-
-Prioritize:
-
-- Greeting
-- Health hero
-- Daily check-in
-- Pain
-- Hydration
-- Medication
-- Health trend
-- Appointment
-- Crisis/help
-
-Do not overload Home.
-
----
-
-# 75. Phase 5 — Daily Health Tracking
-
-Improve:
-
-- Daily check-in
-- Symptoms
-- Pain
-- Body location where applicable
-- Hydration
-- Health logging
-
-Optimize for fast interaction.
-
----
-
-# 76. Phase 6 — Health Trends
-
-Improve:
-
-- Pain trends
-- Symptom history
-- Hydration history
-- Medication adherence
-- Other existing health metrics
-
-Prioritize interpretation over chart complexity.
-
----
-
-# 77. Phase 7 — Medication
-
-Improve:
-
-- Today's medication
-- Scheduling
-- History
-- Adherence
-- Medication actions
-- Missed medication state
-
-Preserve existing medication logic.
-
----
-
-# 78. Phase 8 — Supporting Screens
-
-Apply the established system to:
-
-- Appointments
-- Notifications
-- Profile
-- Settings
-- Onboarding
-- Authentication screens
-
-Only after the core design language is stable.
-
----
-
-# 79. Phase 9 — Clinician Experience
-
-If clinician functionality exists, improve:
-
-- Dashboard
-- Patient list
-- Patient detail
-- Alerts
-- Trends
-- Reports
-- Search/filtering
-
-Do not invent a clinician system if one does not exist.
-
----
-
-# 80. Phase 10 — Polish
-
-Verify:
-
-- Responsive behavior
-- Empty states
-- Loading
-- Errors
-- Success states
-- Accessibility
-- Keyboard navigation
-- Focus states
-- Motion
-- Typography
-- Component consistency
-- Visual rhythm
-
----
-
-# 81. Validation Requirements
-
-After each major implementation phase:
-
-- Run the application
-- Run existing tests
-- Run linting if configured
-- Run type checking if configured
-- Run the build
-- Inspect console errors
-- Verify navigation
-- Verify forms
-- Verify API interactions
-- Verify authentication
-- Verify mobile layout
-- Verify desktop layout
-
-Fix regressions before continuing.
-
-Do not leave the project in a broken intermediate state.
-
----
-
-# 82. Visual QA
-
-If browser automation or browser inspection is available, inspect the actual rendered interface.
-
-Recommended viewport checks:
-
-```text
-375px mobile
-768px tablet
-1440px desktop
-```
-
-Look for:
-
-- Clipping
-- Horizontal scrolling
-- Overflowing text
-- Inconsistent spacing
-- Poor alignment
-- Broken navigation
-- Weak contrast
-- Awkward card heights
-- Excessive whitespace
-- Cramped sections
-- Inconsistent typography
-- Unclear action hierarchy
-
-Do not consider implementation finished simply because code compiles.
-
-Rendered UI quality matters.
-
----
-
-# 83. Existing Data vs Mockup Rule
-
-The conceptual layouts in this document show the intended information hierarchy.
-
-They do NOT authorize the creation of fake backend functionality.
-
-For example, if the Home specification shows:
-
-```text
-Hydration
-5 / 8 cups
-```
-
-but the current application does not track hydration:
-
-Do NOT silently fabricate a hydration API or database field just to reproduce the mockup.
-
-Instead:
-
-- Use existing functionality
-- Identify the missing capability
-- Keep architecture extensible
-- Report the gap
-
-UI redesign and product-feature development should remain distinguishable.
-
----
-
-# 84. Medical Content Rule
-
-Do not invent clinical thresholds, medical advice, treatment instructions, medication dosages, emergency criteria, or diagnostic logic merely for UI completeness.
-
-Existing medically reviewed application content should be preserved unless explicitly being updated.
-
-Placeholder/sample data used during development must clearly remain sample data.
-
-Visual redesign must not accidentally change clinical meaning.
-
----
-
-# 85. Copywriting Tone
-
-Patient-facing copy should be:
-
-- Clear
-- Short
-- Calm
-- Respectful
-- Action-oriented
-- Non-judgmental
-
-Prefer:
-
-`3 cups to reach today's goal.`
-
-over:
-
-`You haven't consumed enough water.`
-
-Prefer:
-
-`Medication missed`
-
-over:
-
-`You failed to take your medication.`
-
-Prefer:
-
-`How are you feeling today?`
-
-over:
-
-`Enter today's clinical condition.`
-
-Avoid unnecessary medical jargon.
-
----
-
-# 86. Responsive Content Priority
-
-On small screens prioritize:
-
-1. Health status
-2. Important actions
-3. Daily tasks
-4. Medication
-5. Symptoms
-6. Trends
-7. Supporting information
-
-Do not merely reduce font sizes to make desktop information fit.
-
-Reorganize information according to priority.
-
----
-
-# 87. Component Consistency Rule
-
-Every screen should feel like the same product.
-
-Users should never encounter:
-
-- Different button languages
-- Random radii
-- Different card shadows
-- Unrelated palettes
-- Multiple icon styles
-- Inconsistent spacing
-- Different input treatments
-- Inconsistent status terminology
-
-Use shared design tokens and components.
-
----
-
-# 88. Dependency Rule
-
-Do not introduce a new package simply because a design reference appears to use it.
-
-Before adding dependencies:
-
-1. Check what the application already uses.
-2. Determine whether existing tools can achieve the result.
-3. Avoid adding libraries for trivial UI effects.
-4. Prefer maintainability.
-
-Examples:
-
-If a chart library already exists, use it where practical.
-
-If an icon library already exists, use it.
-
-If Tailwind already exists, extend it.
-
----
-
-# 89. Performance Rule
-
-Visual improvements must not substantially degrade application performance.
-
-Avoid:
-
-- Huge image assets
-- Unnecessary animation libraries
-- Excessive client-side JavaScript
-- Rendering dozens of hidden charts
-- Large decorative video backgrounds
-- Unnecessary network requests
-
-Health information should load quickly.
-
----
-
-# 90. Final Acceptance Criteria
-
-The redesign is complete only when:
-
-- Existing core functionality continues to work.
-- Navigation remains functional.
-- Mobile layouts work from approximately 360px upward.
-- Desktop layouts remain appropriately constrained.
-- Dark navy, white, and medical red form a consistent identity.
-- Gradients remain restrained.
-- Red is not overused.
-- Home clearly communicates current health status.
-- Pain information is easy to understand.
-- Medication status is clear.
-- Hydration is clear where the feature exists.
-- Symptoms can be logged with minimal friction where supported.
-- Health trends are readable.
-- Crisis/help functionality is easy to locate where supported.
-- Critical states use icon + text + color.
-- Forms have labels and accessible errors.
-- Loading, empty, success, and error states are handled.
-- Touch targets are appropriately sized.
-- Shared components are used consistently.
-- The interface feels like a modern consumer healthcare application.
-- The interface does not feel like hospital administration software.
-- No existing API, database, authentication, or application functionality has been unnecessarily broken or rewritten.
-- Visual references have been synthesized rather than copied.
-- The application has its own recognizable identity.
-
----
-
-# 91. Final Instruction to Codex
-
-Treat this document as the visual and UX source of truth.
-
-Before coding:
-
-1. Read this entire document.
-2. Inspect the existing application.
-3. Understand its architecture.
-4. Identify what already works.
-5. Compare the current UI against this specification.
-6. Determine what can be reused.
-7. Plan incremental improvements.
-
-Do NOT blindly generate an entirely new frontend.
-
-Preserve working functionality.
-
-Reuse existing components where practical.
-
-Create shared design primitives where inconsistency exists.
-
-Implement improvements incrementally.
-
-When external visual references are accessible, study them for visual context.
-
-Do not copy them.
-
-When external references are unavailable, continue using this document without blocking implementation.
-
-Remember the priority:
-
-**FUNCTIONALITY**
-
-↓
-
-**ACCESSIBILITY**
-
-↓
-
-**CLARITY**
-
-↓
-
-**CONSISTENCY**
-
-↓
-
-**VISUAL POLISH**
-
-The final product should look polished enough for a healthcare startup demonstration while remaining practical, maintainable, accessible, and capable of evolving into a real patient-monitoring product.
+## 11. Definition of done
+
+- [ ] Logo pack in `public/brand`, favicon + manifest updated, name "Warrior AI" everywhere.
+- [ ] Tokens + fonts in CSS and Tailwind; old palette removed; dark + high-contrast work.
+- [ ] Primitives restyled and used by every screen; floating nav + SOS replace Emergency HUD / Offline AI buttons.
+- [ ] Full flow works: splash → landing (+ demo) → sign up / sign in / forgot → 5 onboarding steps → Home.
+- [ ] All copy in §5 replaced; stored values unchanged.
+- [ ] Language switch changes the whole UI and Mira; Pidgin present.
+- [ ] Health History renders with 0, 1, many and malformed entries; trends, CSV, share work.
+- [ ] Weather card with all four states; key never in client bundle.
+- [ ] `npm run lint` + `npm run build` pass; regression checklist passes; checked at 360 / 375 / 768 / 1280; online + offline.

@@ -1,7 +1,18 @@
 import React, { forwardRef } from 'react';
 import { cn } from './utils';
 
-export type ButtonVariant = 'primary' | 'accent' | 'secondary' | 'ghost' | 'danger';
+export type ButtonVariant =
+  | 'primary'
+  | 'dark'
+  | 'water'
+  | 'outline'
+  | 'ghost'
+  | 'onPlum'
+  | 'icon'
+  | 'accent'
+  | 'secondary'
+  | 'danger';
+
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -15,17 +26,22 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-action text-foreground-inverse hover:bg-action-hover',
-  accent: 'bg-action-accent text-white hover:bg-action-accent-hover',
-  secondary: 'border border-line-strong bg-surface text-foreground hover:bg-surface-subtle',
-  ghost: 'bg-transparent text-foreground hover:bg-surface-subtle',
-  danger: 'bg-status-danger text-white hover:bg-medical-700',
+  primary: 'bg-wa-crimson text-white hover:bg-wa-crimson-press active:bg-wa-crimson-press shadow-sm',
+  dark: 'bg-wa-plum text-white hover:bg-wa-plum/90 active:bg-wa-plum/95',
+  water: 'bg-wa-water text-white hover:bg-wa-water-ink active:bg-wa-water-ink',
+  outline: 'border-[1.5px] border-wa-plum bg-transparent text-wa-plum hover:bg-wa-rose/30 active:bg-wa-rose/50',
+  ghost: 'bg-transparent text-wa-crimson hover:bg-wa-rose/40 active:bg-wa-rose/60',
+  onPlum: 'bg-white text-wa-plum hover:bg-wa-on-plum-soft active:bg-wa-on-plum-muted',
+  icon: 'border border-wa-line bg-wa-surface text-wa-plum hover:bg-wa-ground p-0 flex items-center justify-center',
+  accent: 'bg-wa-crimson text-white hover:bg-wa-crimson-press shadow-sm',
+  secondary: 'border-[1.5px] border-wa-line bg-wa-surface text-wa-plum hover:bg-wa-ground',
+  danger: 'bg-wa-crimson text-white hover:bg-wa-crimson-press',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'min-h-11 px-3 text-small',
-  md: 'min-h-11 px-4 text-body font-semibold',
-  lg: 'min-h-12 px-5 text-body font-semibold',
+  sm: 'h-10 px-4 text-[13px] font-semibold',
+  md: 'h-12 px-5 text-sm sm:text-[15px] font-bold',
+  lg: 'h-14 px-6 text-base font-bold',
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -47,6 +63,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) => {
     const isDisabled = disabled || loading;
+    const isIconVariant = variant === 'icon';
 
     return (
       <button
@@ -57,10 +74,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={isDisabled}
         aria-busy={loading || undefined}
         className={cn(
-          'relative inline-flex items-center justify-center gap-2 rounded-control font-medium',
-          'disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-foreground disabled:opacity-100',
+          'relative inline-flex items-center justify-center gap-2 rounded-full font-body transition-colors duration-150',
+          'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-inherit',
           variantClasses[variant],
-          sizeClasses[size],
+          isIconVariant ? 'h-11 w-11 rounded-full p-0 shrink-0' : sizeClasses[size],
           fullWidth && 'w-full',
           className,
         )}
@@ -70,9 +87,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           aria-hidden={loading || undefined}
           className={cn('inline-flex items-center justify-center gap-2', loading && 'invisible')}
         >
-          {leadingIcon && <span aria-hidden="true">{leadingIcon}</span>}
-          <span>{children}</span>
-          {trailingIcon && <span aria-hidden="true">{trailingIcon}</span>}
+          {leadingIcon && <span aria-hidden="true" className="shrink-0">{leadingIcon}</span>}
+          {children && <span>{children}</span>}
+          {trailingIcon && <span aria-hidden="true" className="shrink-0">{trailingIcon}</span>}
         </span>
         {loading && (
           <span className="absolute inset-0 inline-flex items-center justify-center px-3" role="status">

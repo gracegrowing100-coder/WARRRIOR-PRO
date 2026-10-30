@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Bangers&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700;800;900&family=Bangers&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,6 +7,37 @@
 /* Warrior AI design foundation. Values are RGB channels so Tailwind opacity
    modifiers can consume the same runtime theme tokens. */
 :root {
+  /* Warrior AI v2 brand tokens */
+  --wa-plum: #3B0F2C;
+  --wa-crimson: #C4122F;
+  --wa-crimson-press: #9E0E26;
+  --wa-coral: #E8344F;
+  --wa-rose: #FBE4E8;
+  --wa-rose-text: #FF8A9B;
+
+  /* neutrals */
+  --wa-ground: #F7F2F5;
+  --wa-surface: #FFFFFF;
+  --wa-line: #E6D8E0;
+  --wa-line-soft: #F1E6EC;
+  --wa-muted: #6E4A63;
+  --wa-on-plum-muted: #D9B9CC;
+  --wa-on-plum-soft: #E8D3DF;
+
+  /* functional */
+  --wa-water: #1C7C8C;
+  --wa-water-soft: #E1F2F4;
+  --wa-water-ink: #11535E;
+  --wa-water-bright: #7FD6DF;
+  --wa-sun: #B45309;
+  --wa-sun-soft: #FDF0DC;
+  --wa-sun-ink: #7A3E06;
+  --wa-success: #1E7B4A;
+  --wa-success-bright: #9FE3B5;
+  --wa-online: #3DDC84;
+
+  --wa-hero: #3B0F2C;
+
   --navy-950: 7 20 38;
   --navy-900: 11 31 58;
   --navy-800: 16 42 76;
@@ -72,7 +103,18 @@
   --safe-area-left: env(safe-area-inset-left, 0px);
 }
 
+:root[data-theme="dark"],
 .dark {
+  --wa-ground: #1A0A15;
+  --wa-surface: #2A1323;
+  --wa-line: #44243A;
+  --wa-line-soft: #3A1E31;
+  --wa-plum: #F7F2F5;
+  --wa-muted: #C9A9BC;
+  --wa-rose: #4A1626;
+  --wa-water-soft: #0F3036;
+  --wa-sun-soft: #3A2610;
+  --wa-hero: #3B0F2C;
   color-scheme: dark;
   --color-canvas: 7 20 38;
   --color-surface: 11 31 58;

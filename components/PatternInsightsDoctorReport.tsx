@@ -135,7 +135,7 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
           </head>
           <body>
             <div class="header">
-              <h2>WARRIOR CELL — AI-GENERATED PATIENT DISCUSSION SUMMARY</h2>
+              <h2>WARRIOR AI — AI-GENERATED PATIENT DISCUSSION SUMMARY</h2>
               <p>Informational draft from patient-recorded data. Not a clinical record or clinician-verified report.</p>
             </div>
             <div>

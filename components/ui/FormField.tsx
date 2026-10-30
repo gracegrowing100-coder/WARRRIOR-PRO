@@ -15,7 +15,7 @@ const FieldContext = createContext<FieldContextValue | null>(null);
 
 export interface FormFieldProps extends React.HTMLAttributes<HTMLDivElement> {
   id?: string;
-  label: React.ReactNode;
+  label?: React.ReactNode;
   helpText?: React.ReactNode;
   error?: React.ReactNode;
   required?: boolean;
@@ -41,8 +41,8 @@ export const FormField: React.FC<FormFieldProps> = ({
 
   return (
     <FieldContext.Provider value={context}>
-      <div data-ui className={cn('space-y-1.5 text-foreground', className)} {...props}>
-        <Label>{label}</Label>
+      <div data-ui className={cn('space-y-1 text-wa-plum font-body', className)} {...props}>
+        {label && <Label>{label}</Label>}
         {children}
         {helpText && <HelpText>{helpText}</HelpText>}
         {error && <ValidationMessage>{error}</ValidationMessage>}
@@ -69,12 +69,12 @@ export const Label: React.FC<LabelProps> = ({
     <label
       data-ui
       htmlFor={htmlFor ?? field?.controlId}
-      className={cn('block text-small font-semibold text-foreground', className)}
+      className={cn('block text-[14px] font-bold text-wa-plum font-body tracking-tight', className)}
       {...props}
     >
       {children}
       {isRequired && (
-        <span className="ml-1 text-status-danger">
+        <span className="ml-1 text-wa-crimson">
           <span aria-hidden="true">*</span>
           <span className="sr-only"> {requiredIndicator}</span>
         </span>
@@ -93,7 +93,7 @@ export const HelpText: React.FC<React.HTMLAttributes<HTMLParagraphElement>> = ({
     <p
       data-ui
       id={id ?? field?.helpId}
-      className={cn('text-small text-foreground-secondary', className)}
+      className={cn('text-[13px] text-wa-muted font-body', className)}
       {...props}
     />
   );
@@ -110,10 +110,10 @@ export const ValidationMessage: React.FC<React.HTMLAttributes<HTMLParagraphEleme
     <p
       data-ui
       id={id ?? field?.errorId}
-      className={cn('flex items-start gap-1.5 text-small font-medium text-status-danger', className)}
+      className={cn('flex items-center gap-1.5 text-[13px] font-medium text-wa-crimson font-body mt-1', className)}
       {...props}
     >
-      <CircleAlert aria-hidden="true" className="mt-0.5 shrink-0" size={16} />
+      <CircleAlert aria-hidden="true" className="shrink-0" size={15} />
       <span>{children}</span>
     </p>
   );

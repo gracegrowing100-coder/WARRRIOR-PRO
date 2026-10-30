@@ -389,7 +389,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
         });
       }
 
-      setLoadingPhase("Entering protected WARRIOR AI workspace...");
+      setLoadingPhase("Entering protected Warrior AI workspace...");
       await new Promise(resolve => setTimeout(resolve, 800));
 
       // 8. Finished & enter app
@@ -604,7 +604,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
 
               <div className="space-y-2">
                 <h3 className="text-white text-base font-extrabold uppercase tracking-widest font-sans">
-                  WARRIOR AI Portal
+                  Warrior AI Portal
                 </h3>
                 <p className="text-slate-400 text-xs font-semibold">
                   Securing health database session...
@@ -647,7 +647,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
             W
           </div>
           <div>
-            <h1 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-tight leading-none mb-1">WARRIOR AI</h1>
+            <h1 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-tight leading-none mb-1">Warrior AI</h1>
             <span className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">Sickle Cell Patient Support</span>
           </div>
         </div>
@@ -760,7 +760,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onAuthSuccess, onOpenDemo, i
                 >
                   <div className="text-center md:text-left space-y-2">
                     <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-                      Welcome to WARRIOR AI
+                      Welcome to Warrior AI
                     </h2>
                     <p className="text-body text-foreground-secondary leading-relaxed">
                       Sign in to continue tracking your health journey.

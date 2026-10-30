@@ -3,9 +3,10 @@ import { useFieldControlProps } from './FormField';
 import { cn } from './utils';
 
 const controlClasses = [
-  'min-h-11 w-full rounded-control border border-line bg-surface px-3 text-body text-foreground',
-  'placeholder:text-foreground-secondary disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-foreground',
-  'aria-[invalid=true]:border-status-danger',
+  'h-[52px] min-h-[52px] w-full rounded-[16px] border border-wa-line bg-wa-surface px-4 text-[16px] text-wa-plum font-body',
+  'placeholder:text-wa-muted/60 focus:border-wa-plum focus:outline-none focus:ring-1 focus:ring-wa-plum',
+  'disabled:cursor-not-allowed disabled:bg-wa-ground disabled:text-wa-muted/70',
+  'aria-[invalid=true]:border-wa-crimson aria-[invalid=true]:focus:ring-wa-crimson',
 ].join(' ');
 
 function mergeDescribedBy(fieldValue?: string, propValue?: string) {
@@ -69,7 +70,11 @@ export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttrib
         aria-invalid={invalid ?? field['aria-invalid']}
         aria-describedby={mergeDescribedBy(field['aria-describedby'], describedBy)}
         aria-errormessage={errorMessage ?? field['aria-errormessage']}
-        className={cn(controlClasses, 'min-h-24 resize-y py-2.5', className)}
+        className={cn(
+          controlClasses,
+          'h-auto min-h-[96px] resize-y py-3',
+          className,
+        )}
         {...props}
       />
     );

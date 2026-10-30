@@ -13,6 +13,32 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        wa: {
+          plum: 'var(--wa-plum)',
+          crimson: 'var(--wa-crimson)',
+          'crimson-press': 'var(--wa-crimson-press)',
+          coral: 'var(--wa-coral)',
+          rose: 'var(--wa-rose)',
+          'rose-text': 'var(--wa-rose-text)',
+          ground: 'var(--wa-ground)',
+          surface: 'var(--wa-surface)',
+          line: 'var(--wa-line)',
+          'line-soft': 'var(--wa-line-soft)',
+          muted: 'var(--wa-muted)',
+          'on-plum-muted': 'var(--wa-on-plum-muted)',
+          'on-plum-soft': 'var(--wa-on-plum-soft)',
+          water: 'var(--wa-water)',
+          'water-soft': 'var(--wa-water-soft)',
+          'water-ink': 'var(--wa-water-ink)',
+          'water-bright': 'var(--wa-water-bright)',
+          sun: 'var(--wa-sun)',
+          'sun-soft': 'var(--wa-sun-soft)',
+          'sun-ink': 'var(--wa-sun-ink)',
+          success: 'var(--wa-success)',
+          'success-bright': 'var(--wa-success-bright)',
+          online: 'var(--wa-online)',
+          hero: 'var(--wa-hero)',
+        },
         navy: {
           950: 'rgb(var(--navy-950) / <alpha-value>)',
           900: 'rgb(var(--navy-900) / <alpha-value>)',
@@ -91,6 +117,11 @@ module.exports = {
         panel: 'var(--radius-xl)',
         dialog: 'var(--radius-2xl)',
         pill: 'var(--radius-pill)',
+        'wa-input': '16px',
+        'wa-sm': '20px',
+        'wa-card': '28px',
+        'wa-hero': '36px',
+        'wa-sheet': '36px',
       },
       boxShadow: {
         subtle: 'var(--shadow-subtle)',
@@ -98,8 +129,13 @@ module.exports = {
         elevated: 'var(--shadow-elevated)',
         floating: 'var(--shadow-floating)',
         overlay: 'var(--shadow-overlay)',
+        'wa-nav': '0 12px 30px rgb(59 15 44 / 0.35)',
+        'wa-hero': '0 12px 30px rgb(59 15 44 / 0.12)',
+        'wa-sos': '0 16px 40px rgb(196 18 47 / 0.45)',
       },
       fontFamily: {
+        display: ['Sora', 'sans-serif'],
+        body: ['Inter', 'sans-serif'],
         sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
       },
       fontSize: {

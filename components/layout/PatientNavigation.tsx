@@ -57,7 +57,7 @@ export const PatientNavigation: React.FC<PatientNavigationProps> = ({
   currentDestination,
   onNavigate,
   labels = defaultLabels,
-  appName = 'WARRIOR AI',
+  appName = 'Warrior AI',
   connectivityLabel = 'Live & Offline Protected',
   isOffline = false,
   profileLabel = 'Profile',

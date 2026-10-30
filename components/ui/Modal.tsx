@@ -7,7 +7,7 @@ import { cn } from './utils';
 export interface ModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title: React.ReactNode;
+  title?: React.ReactNode;
   description?: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
@@ -18,12 +18,13 @@ export interface ModalProps {
   dismissOnBackdrop?: boolean;
   contentClassName?: string;
   footerClassName?: string;
+  hideCloseButton?: boolean;
 }
 
 const sizeClasses = {
   sm: 'max-w-md',
   md: 'max-w-xl',
-  lg: 'max-w-3xl',
+  lg: 'max-w-2xl',
 };
 
 const focusableSelector = [
@@ -51,10 +52,11 @@ export const Modal: React.FC<ModalProps> = ({
   closeLabel = 'Close dialog',
   initialFocusRef,
   size = 'md',
-  presentation = 'centered',
+  presentation = 'bottom-sheet',
   dismissOnBackdrop = true,
   contentClassName,
   footerClassName,
+  hideCloseButton = false,
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
   const onOpenChangeRef = useRef(onOpenChange);
@@ -141,16 +143,14 @@ export const Modal: React.FC<ModalProps> = ({
       data-ui
       data-modal-root
       className={cn(
-        'fixed inset-0 z-[200] flex min-h-full bg-navy-950/65',
+        'fixed inset-0 z-[200] flex min-h-full bg-wa-plum/85 backdrop-blur-sm transition-opacity duration-200',
         presentation === 'side-panel'
           ? 'items-stretch justify-end p-0'
-          : presentation === 'bottom-sheet'
-            ? 'items-end justify-center overflow-y-auto p-0 sm:items-center sm:p-4'
-            : 'items-center justify-center overflow-y-auto p-4',
+          : 'items-end justify-center overflow-y-auto p-0 md:items-center md:p-4',
       )}
       style={{
-        paddingTop: presentation === 'side-panel' || presentation === 'bottom-sheet' ? undefined : 'calc(1rem + var(--safe-area-top))',
-        paddingBottom: presentation === 'side-panel' || presentation === 'bottom-sheet' ? undefined : 'calc(1rem + var(--safe-area-bottom))',
+        paddingTop: presentation === 'side-panel' ? undefined : 'calc(0.5rem + var(--safe-area-top))',
+        paddingBottom: presentation === 'side-panel' ? undefined : 'calc(0.5rem + var(--safe-area-bottom))',
       }}
       onMouseDown={(event) => {
         if (dismissOnBackdrop && event.target === event.currentTarget) onOpenChange(false);
@@ -160,35 +160,64 @@ export const Modal: React.FC<ModalProps> = ({
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={titleId}
+        aria-labelledby={title ? titleId : undefined}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
         className={cn(
-          'relative flex w-full flex-col overflow-hidden bg-surface text-foreground shadow-overlay',
+          'relative flex w-full flex-col overflow-hidden bg-wa-surface text-wa-plum shadow-2xl font-body',
           presentation === 'side-panel'
             ? 'ml-auto h-[100dvh] max-h-[100dvh] max-w-md rounded-none'
-            : presentation === 'bottom-sheet'
-              ? cn('max-h-[calc(100dvh-1rem)] rounded-t-[1.5rem] sm:my-auto sm:rounded-dialog', sizeClasses[size])
-              : cn('my-auto max-h-[calc(100dvh-2rem)] rounded-dialog', sizeClasses[size]),
+            : cn(
+                'max-h-[92dvh] rounded-t-[36px] md:my-auto md:max-h-[85dvh] md:rounded-[28px]',
+                sizeClasses[size],
+              ),
         )}
       >
-        <div
-          className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6"
-          style={{ paddingTop: presentation === 'side-panel' ? 'calc(1rem + var(--safe-area-top))' : undefined }}
-        >
-          <div className="min-w-0">
-            <h2 id={titleId} className="text-heading-2 text-foreground">{title}</h2>
-            {description && <p id={descriptionId} className="mt-1 text-small text-foreground-secondary">{description}</p>}
+        {/* Mobile drag handle for bottom sheet */}
+        {presentation !== 'side-panel' && (
+          <div className="flex md:hidden w-full items-center justify-center pt-2.5 pb-1">
+            <div className="h-[5px] w-11 rounded-full bg-wa-line" aria-hidden="true" />
           </div>
-          <IconButton label={closeLabel} icon={<X size={20} />} onClick={() => onOpenChange(false)} />
-        </div>
-        <div className={cn('min-h-0 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6', contentClassName)}>
+        )}
+
+        {(title || !hideCloseButton) && (
+          <div
+            className="flex shrink-0 items-start justify-between gap-4 border-b border-wa-line-soft px-5 py-4 md:px-6"
+            style={{ paddingTop: presentation === 'side-panel' ? 'calc(1rem + var(--safe-area-top))' : undefined }}
+          >
+            <div className="min-w-0 flex-1">
+              {title && (
+                <h2 id={titleId} className="font-display text-xl font-bold text-wa-plum">
+                  {title}
+                </h2>
+              )}
+              {description && (
+                <p id={descriptionId} className="mt-1 text-[13px] text-wa-muted">
+                  {description}
+                </p>
+              )}
+            </div>
+            {!hideCloseButton && (
+              <IconButton
+                label={closeLabel}
+                icon={<X size={20} />}
+                onClick={() => onOpenChange(false)}
+                className="text-wa-muted hover:text-wa-plum hover:bg-wa-ground rounded-full"
+              />
+            )}
+          </div>
+        )}
+
+        <div className={cn('min-h-0 overflow-y-auto overscroll-contain px-5 py-5 md:px-6', contentClassName)}>
           {children}
         </div>
+
         {footer && (
           <div
-            className={cn('shrink-0 border-t border-line px-5 py-4 sm:px-6', footerClassName)}
-            style={{ paddingBottom: presentation === 'side-panel' || presentation === 'bottom-sheet' ? 'calc(1rem + var(--safe-area-bottom))' : undefined }}
+            className={cn('shrink-0 border-t border-wa-line-soft px-5 py-4 md:px-6 bg-wa-surface', footerClassName)}
+            style={{
+              paddingBottom: 'calc(1rem + var(--safe-area-bottom))',
+            }}
           >
             {footer}
           </div>
@@ -198,3 +227,5 @@ export const Modal: React.FC<ModalProps> = ({
     document.body,
   );
 };
+
+export const Sheet = Modal;

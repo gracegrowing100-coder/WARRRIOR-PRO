@@ -184,7 +184,7 @@ export const PremaritalGenotypeEducation: React.FC<PremaritalGenotypeEducationPr
   // Formatted Printable Summary
   const handleCopySummaryReport = () => {
     const txt = `
-WARRIOR AI PREMARITAL GENOTYPE COUNSELING REPORT
+Warrior AI Premarital Genotype Counseling Report
 ------------------------------------------------
 Mode: ${mode === 'couple' ? 'Couple Relationship Matching' : 'Individual Genotype Assessment'}
 User Genotype: ${userGenotype}

@@ -1,4 +1,4 @@
-// Mira by WARRIOR AI — shared assistant configuration.
+// Mira by Warrior AI — shared assistant configuration.
 //
 // Imported by both the Express backend and the React client, so this file must
 // stay free of Node and browser APIs.

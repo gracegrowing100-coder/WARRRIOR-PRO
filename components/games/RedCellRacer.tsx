@@ -799,7 +799,7 @@ const RedCellRacer: React.FC<RedCellRacerProps> = ({
                   "{t.shareMsg}"
                 </p>
                 <div className="border-t border-white/20 pt-3 flex justify-between items-center text-[8px] uppercase tracking-widest text-indigo-200 font-bold">
-                  <span>Warrior Cell Portal</span>
+                  <span>Warrior AI Portal</span>
                   <span>Break the Stigma</span>
                 </div>
               </div>
