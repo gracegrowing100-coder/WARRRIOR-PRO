@@ -189,7 +189,7 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
           className="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white p-3 rounded-2xl flex flex-col items-center justify-center text-center shadow-lg shadow-rose-950/60 transition-all active:scale-95 group cursor-pointer border border-rose-400/40"
         >
           <AlertTriangle className="w-5 h-5 mb-1 text-yellow-300 animate-bounce" />
-          <span className="text-[11px] font-black uppercase tracking-wider text-yellow-200">SOS Broadcast</span>
+          <span className="text-[11px] font-black uppercase tracking-wider text-yellow-200">Emergency Alert</span>
           <span className="text-[9px] text-rose-100 opacity-90">Send Crisis Alert</span>
         </button>
       </div>}
@@ -272,7 +272,7 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">Custom Emergency SOS Message</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">Custom Emergency Message</label>
                 <textarea
                   rows={2}
                   value={formData.customSosText}
@@ -311,7 +311,7 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
                 <AlertTriangle className="w-8 h-8 animate-bounce" />
               </div>
               <div>
-                <h4 className="font-black text-lg text-white">Confirm Emergency SOS</h4>
+                <h4 className="font-black text-lg text-white">Confirm Emergency Alert</h4>
                 <p className="text-xs text-rose-300 font-bold">Primary Caregiver: {caregiver.name}</p>
               </div>
             </div>
@@ -338,7 +338,7 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
                   onClick={triggerSosBroadcast}
                   className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-black uppercase text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-red-950/60"
                 >
-                  <Send size={16} /> Send SOS Now
+                  <Send size={16} /> Send Emergency Alert Now
                 </button>
               </div>
             )}

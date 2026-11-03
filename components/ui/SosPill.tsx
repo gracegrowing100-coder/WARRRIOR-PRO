@@ -29,7 +29,7 @@ export const SosPill: React.FC<SosPillProps> = ({
       type="button"
       data-ui-control
       onClick={handleClick}
-      aria-label="Emergency SOS"
+      aria-label="Emergency"
       className={cn(
         'h-10 px-3.5 rounded-full bg-wa-crimson hover:bg-wa-crimson-press active:bg-wa-crimson-press text-white font-display font-extrabold text-[13px] inline-flex items-center gap-1.5 shadow-wa-sos transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white shrink-0',
         className,
@@ -37,7 +37,7 @@ export const SosPill: React.FC<SosPillProps> = ({
       {...props}
     >
       <Shield size={14} strokeWidth={2.5} aria-hidden="true" />
-      <span>SOS</span>
+      <span>Emergency</span>
     </button>
   );
 };

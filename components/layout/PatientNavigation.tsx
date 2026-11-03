@@ -164,11 +164,11 @@ export const PatientNavigation: React.FC<PatientNavigationProps> = ({
           <button
             type="button"
             onClick={handleEmergencyClick}
-            aria-label="Emergency SOS"
+            aria-label="Emergency"
             className="w-full h-12 rounded-full bg-wa-crimson hover:bg-wa-crimson-press active:bg-wa-crimson-press text-white font-display font-extrabold text-sm flex items-center justify-center gap-2 shadow-wa-sos transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             <Shield size={18} strokeWidth={2.5} aria-hidden="true" />
-            <span>EMERGENCY SOS</span>
+            <span>EMERGENCY</span>
           </button>
 
           {onOpenProfile && (

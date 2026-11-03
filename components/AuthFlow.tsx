@@ -1750,7 +1750,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({
                   Who should we help you call?
                 </h1>
                 <p className="text-[15px] text-wa-muted leading-relaxed mt-2">
-                  They'll appear on your SOS screen with one tap. Optional, but we recommend it.
+                  They'll appear on your Emergency screen with one tap. Optional, but we recommend it.
                 </p>
               </div>
 

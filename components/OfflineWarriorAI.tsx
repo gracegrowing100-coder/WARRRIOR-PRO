@@ -76,7 +76,7 @@ export const OfflineWarriorAI: React.FC<{
         text: "👋 Sannu / Ẹ n lẹ́ / Ndewo / Hello, Warrior! I am your 100% Offline Sickle Cell Companion. I work instantly anywhere without internet or network coverage in English, Yoruba, Hausa, and Igbo.\n\nAsk me about pain crisis management, hydration science, Nigerian nutrition, Hydroxyurea, or genotype compatibility!",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         lang: 'en',
-        suggestedTools: ["Emergency SOS", "Water Intake Tracker", "Medication Reminder"]
+        suggestedTools: ["Emergency", "Water Intake Tracker", "Medication Reminder"]
       }
     ];
   });
