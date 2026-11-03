@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const service = vi.hoisted(() => ({
   getSymptomHistory: vi.fn(),
@@ -20,7 +20,10 @@ const overviewValue = (label: string) => {
 };
 
 describe('HealthHistory', () => {
+  afterEach(() => { vi.useRealTimers(); });
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-26T12:00:00'));
     vi.clearAllMocks();
     service.getSymptomHistory.mockResolvedValue(symptomMissing);
     service.getHydrationHistory.mockResolvedValue([]);

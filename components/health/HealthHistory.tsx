@@ -175,7 +175,7 @@ export const HealthHistory: React.FC<HealthHistoryProps> = ({ userId }) => {
     () => history?.checkIns.filter(isPresent).sort((a, b) => b.dateStr.localeCompare(a.dateStr)) ?? [],
     [history],
   );
-  const symptomTrends = useMemo(() => analyzeSymptomTrends(history.symptoms), [history.symptoms]);
+  const symptomTrends = useMemo(() => analyzeSymptomTrends(history?.symptoms ?? []), [history]);
 
   if (loading) {
     return (
