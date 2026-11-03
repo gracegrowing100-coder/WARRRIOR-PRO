@@ -147,7 +147,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
         <h2 id="todays-health-title" className="text-heading-2">Today&apos;s Health</h2>
         <Alert
           tone="warning"
-          title="Today's summary is unavailable"
+          title="Today’s summary is unavailable"
           className="mt-4"
           action={(
             <Button variant="secondary" size="sm" leadingIcon={<RefreshCw size={16} />} onClick={() => void loadSnapshot()}>
@@ -187,7 +187,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
         id="home-header-stats"
         aria-labelledby="todays-health-title"
         data-semantic
-        className="relative overflow-hidden rounded-[1.75rem] border-0 bg-gradient-to-br from-medical-500 via-medical-600 to-medical-900 p-6 text-white shadow-[0_22px_52px_-26px_rgb(165_25_42_/_0.78)] dark:from-medical-700 dark:via-medical-900 dark:to-navy-950 sm:p-8 lg:min-h-[24rem] lg:p-10 xl:p-12"
+        className="relative overflow-hidden rounded-[28px] border-0 bg-[var(--wa-hero)] p-6 text-white shadow-none sm:p-8 lg:p-10"
         padding="none"
       >
         <span className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/[0.07]" aria-hidden="true" />
@@ -222,7 +222,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
           ) : null}
 
           <dl className="mt-auto grid grid-cols-2 gap-3 sm:grid-cols-3 lg:gap-4">
-            <div className="min-h-32 rounded-card bg-white/[0.11] p-4 ring-1 ring-inset ring-white/20 sm:min-h-36 sm:p-5 lg:min-h-40 lg:p-6">
+            <div className="min-h-32 rounded-[20px] bg-white/[0.08] p-4 border border-white/12 sm:min-h-36 sm:p-5 lg:min-h-40 lg:p-6">
               <div className="flex items-center gap-2 text-small font-semibold text-white/85">
                 <HeartPulse size={18} className="text-medical-100" aria-hidden="true" />
                 <dt>Recorded pain</dt>
@@ -231,7 +231,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                 {snapshot.painLevel === null ? 'Not recorded' : `${snapshot.painLevel} / 10`}
               </dd>
             </div>
-            <div className="min-h-32 rounded-card bg-white/[0.11] p-4 ring-1 ring-inset ring-white/20 sm:min-h-36 sm:p-5 lg:min-h-40 lg:p-6">
+            <div className="min-h-32 rounded-[20px] bg-white/[0.08] p-4 border border-white/12 sm:min-h-36 sm:p-5 lg:min-h-40 lg:p-6">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-small font-semibold text-white/85">
                   <Droplets size={18} className="text-sky-300" aria-hidden="true" />

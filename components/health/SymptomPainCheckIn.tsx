@@ -207,8 +207,8 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
     <Modal
       open={open}
       onOpenChange={handleOpenChange}
-      title="Log how you feel today"
-      description="Track your pain level, symptoms, and water intake to monitor your health over time."
+      title="Log symptoms and pain"
+      description="Record how you feel today. Track your pain level, symptoms, and water intake to monitor your health over time."
       closeLabel="Close symptom and pain log"
       initialFocusRef={painRangeRef}
       size="lg"

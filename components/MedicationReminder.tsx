@@ -268,7 +268,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
 
   return (
     <div className={compact ? 'relative h-full' : 'bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-sm border border-gray-100 dark:border-slate-800/80 flex flex-col relative overflow-hidden transition-all duration-300'}>
-      {compact && <Card data-semantic className="min-h-[18rem] h-full border-line/80 shadow-surface sm:min-h-[19rem]" padding="lg">
+      {compact && <div data-semantic="medication-card" className="flex flex-col gap-3 rounded-[28px] bg-wa-surface p-[18px] text-wa-plum shadow-none border border-wa-line-soft">
         <div className="flex items-center gap-3">
           <span aria-hidden="true" className="inline-flex h-11 w-11 items-center justify-center rounded-control bg-medical-50 text-action-accent dark:bg-medical-950/55 dark:text-medical-200">
             <Pill size={22} />
@@ -309,7 +309,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
           <Button variant="secondary" size="sm" onClick={triggerTestAlarm}>Test Alarm</Button>
           <Button size="sm" onClick={() => setShowAddForm(true)}>Add medication</Button>
         </div>}
-      </Card>}
+      </div>}
       {!compact && <div>
       {operationMessage && <p role="status" className="mb-3 text-xs font-semibold text-gray-600 dark:text-slate-300">{operationMessage}</p>}
       {/* Header */}

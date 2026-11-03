@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { Check } from 'lucide-react';
 import { firebaseService } from '../services/firebaseService';
-import { Button, Card } from './ui';
 
 interface DailyMoodCheckInProps {
   userId: string;
@@ -15,117 +13,48 @@ interface MoodOption {
   label: string;
   description: string;
   score: number;
-  color: string;
-  bgActive: string;
-  borderActive: string;
 }
 
-const MOOD_OPTIONS: MoodOption[] = [
-  { 
-    emoji: '🌟', 
-    label: 'Thriving', 
-    description: 'High energy, zero pain, clear circulation', 
-    score: 9.5, 
-    color: 'text-amber-500', 
-    bgActive: 'bg-amber-50 dark:bg-amber-950/40', 
-    borderActive: 'border-amber-400 dark:border-amber-600' 
-  },
-  { 
-    emoji: '😊', 
-    label: 'Good & Steady', 
-    description: 'Normal mobility, well hydrated, positive mindset', 
-    score: 8.0, 
-    color: 'text-emerald-500', 
-    bgActive: 'bg-emerald-50 dark:bg-emerald-950/40', 
-    borderActive: 'border-emerald-400 dark:border-emerald-600' 
-  },
-  { 
-    emoji: '🕊️', 
-    label: 'Calm & Restful', 
-    description: 'Relaxed breathing, peaceful resting baseline', 
-    score: 7.5, 
-    color: 'text-blue-500', 
-    bgActive: 'bg-blue-50 dark:bg-blue-950/40', 
-    borderActive: 'border-blue-400 dark:border-blue-600' 
-  },
-  { 
-    emoji: '😐', 
-    label: 'Managing / OK', 
-    description: 'Mild joint stiffness or fatigue, pacing myself', 
-    score: 6.0, 
-    color: 'text-yellow-600 dark:text-yellow-400', 
-    bgActive: 'bg-yellow-50 dark:bg-yellow-950/40', 
-    borderActive: 'border-yellow-400 dark:border-yellow-600' 
-  },
-  { 
-    emoji: '🥱', 
-    label: 'Exhausted', 
-    description: 'Low oxygen reserves, high tiredness, resting', 
-    score: 4.5, 
-    color: 'text-indigo-500', 
-    bgActive: 'bg-indigo-50 dark:bg-indigo-950/40', 
-    borderActive: 'border-indigo-400 dark:border-indigo-600' 
-  },
-  { 
-    emoji: '⚡', 
-    label: 'Pain Flare', 
-    description: 'Active sickle discomfort, increasing fluids & heat', 
-    score: 3.0, 
-    color: 'text-orange-500', 
-    bgActive: 'bg-orange-50 dark:bg-orange-950/40', 
-    borderActive: 'border-orange-400 dark:border-orange-600' 
-  },
-  { 
-    emoji: '😰', 
-    label: 'Anxious / Stressed', 
-    description: 'Mental strain or crisis anticipation, need calm', 
-    score: 2.5, 
-    color: 'text-purple-500', 
-    bgActive: 'bg-purple-50 dark:bg-purple-950/40', 
-    borderActive: 'border-purple-400 dark:border-purple-600' 
-  },
-  { 
-    emoji: '🚨', 
-    label: 'Severe Crisis', 
-    description: 'Intense VAS pain, initiating emergency protocol', 
-    score: 1.0, 
-    color: 'text-red-500', 
-    bgActive: 'bg-red-50 dark:bg-red-950/40', 
-    borderActive: 'border-red-500 dark:border-red-600 animate-pulse' 
-  },
+const PRIMARY_OPTIONS: MoodOption[] = [
+  { emoji: '🌟', label: 'Thriving', description: 'High energy, zero pain', score: 9.5 },
+  { emoji: '😊', label: 'Good & Steady', description: 'Normal mobility, well hydrated', score: 8.0 },
+  { emoji: '🥱', label: 'Exhausted', description: 'Low oxygen reserves, high tiredness', score: 4.5 },
+  { emoji: '⚡', label: 'Pain flare', description: 'Active discomfort, increasing fluids & warmth', score: 3.0 },
+];
+
+const MORE_OPTIONS: MoodOption[] = [
+  { emoji: '🕊️', label: 'Calm & Restful', description: 'Relaxed baseline', score: 7.5 },
+  { emoji: '😐', label: 'Managing / OK', description: 'Mild joint stiffness or fatigue', score: 6.0 },
+  { emoji: '😰', label: 'Anxious / Stressed', description: 'Mental strain or crisis anticipation', score: 2.5 },
+  { emoji: '🚨', label: 'Severe Crisis', description: 'Intense pain, initiating emergency protocol', score: 1.0 },
 ];
 
 export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCheckInSaved, compact = false }) => {
-  const todayStr = new Date().toLocaleDateString('sv'); // YYYY-MM-DD
-  const [selectedOption, setSelectedOption] = useState<MoodOption | null>(null);
+  const todayStr = new Date().toLocaleDateString('sv');
+  const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [note, setNote] = useState('');
-  const [showNoteInput, setShowNoteInput] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savedEntry, setSavedEntry] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [saveOutcome, setSaveOutcome] = useState<'recorded' | 'device-only' | 'partial' | null>(null);
   const [saveError, setSaveError] = useState('');
 
+  const normalizeLabel = (l: string) => l.toLowerCase().replace('&', '&amp;');
+
   useEffect(() => {
     const loadTodayMood = async () => {
       const existing = await firebaseService.getDailyMoodCheckIn(userId, todayStr);
       if (existing) {
         setSavedEntry(existing);
-        const match = MOOD_OPTIONS.find(m => m.label === existing.emotion || m.emoji === existing.emoji);
-        if (match) setSelectedOption(match);
+        const all = [...PRIMARY_OPTIONS, ...MORE_OPTIONS];
+        const match = all.find(m => normalizeLabel(m.label) === normalizeLabel(existing.emotion || ''));
+        if (match) setSelectedLabel(match.label);
         if (existing.note) setNote(existing.note);
       }
     };
     loadTodayMood();
   }, [userId, todayStr]);
-
-  const handleSelectMood = async (option: MoodOption) => {
-    setSelectedOption(option);
-    if (!showNoteInput && !isEditing) {
-      // Direct quick save with one tap
-      await executeSave(option, note);
-    }
-  };
 
   const executeSave = async (option: MoodOption, userNote: string) => {
     setIsSaving(true);
@@ -137,27 +66,8 @@ export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCh
         emotion: option.label,
         score: option.score,
         note: userNote.trim(),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-
-      // Play soft harmonic confirmation tone
-      try {
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioCtx) {
-          const ctx = new AudioCtx();
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
-          osc.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.12); // E5
-          gain.gain.setValueAtTime(0.04, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-          osc.start();
-          osc.stop(ctx.currentTime + 0.15);
-        }
-      } catch (e) {}
 
       const outcome = res.state === 'recorded' && res.historyState === 'recorded'
         ? 'recorded'
@@ -168,9 +78,14 @@ export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCh
       setSaveOutcome(outcome);
       setIsEditing(false);
 
-      // Trigger global event so Recharts trends and stats immediately update
       window.dispatchEvent(new CustomEvent('warrior-streak-updated'));
       if (onCheckInSaved) onCheckInSaved();
+
+      // Choosing "Severe crisis" opens Emergency screen in addition to saving
+      if (option.label.toLowerCase().includes('crisis')) {
+        const fab = document.getElementById('emergency-fab');
+        if (fab) fab.click();
+      }
     } catch (e) {
       console.warn("Failed to save daily mood check-in:", e);
       setSaveError('Your check-in could not be saved. Your previous entry has not been changed.');
@@ -179,111 +94,133 @@ export const DailyMoodCheckIn: React.FC<DailyMoodCheckInProps> = ({ userId, onCh
     }
   };
 
-  const formattedSavedTime = savedEntry?.timestamp 
-    ? new Date(savedEntry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    : 'Earlier today';
+  const handleSelectMood = async (option: MoodOption) => {
+    setSelectedLabel(option.label);
+    if (!showMore && !isEditing) {
+      await executeSave(option, note);
+    }
+  };
 
-  if (compact) {
-    return (
-      <Card data-semantic className="h-full min-h-[17rem] border-line/80 shadow-surface" padding="lg">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-medical-50 text-action-accent">
-              <Activity size={22} />
-            </span>
-            <div>
-              <p className="text-caption font-bold uppercase tracking-[0.12em] text-action-accent">Your daily check-in</p>
-              <h2 className="mt-0.5 text-heading-3">How are you feeling?</h2>
-            </div>
-          </div>
-          {savedEntry && !isEditing && <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)}>Edit</Button>}
-        </div>
-        {savedEntry && !isEditing ? (
-          <div className="mt-5 rounded-card bg-status-success-soft p-4">
-            <p className="flex items-center gap-2 text-body font-semibold text-foreground"><Check size={19} className="text-status-success-text" aria-hidden="true" />{savedEntry.emotion}</p>
-            <p className="mt-1 text-small text-foreground-secondary">Recorded at {formattedSavedTime}</p>
-            {savedEntry.note && <p className="mt-2 text-small text-foreground-secondary">{savedEntry.note}</p>}
-            <p role="status" className="text-small text-foreground-secondary">
-              {saveOutcome === 'recorded' && 'Saved to your account.'}
-              {saveOutcome === 'partial' && 'Check-in saved to your account; the history copy is only on this device.'}
-              {saveOutcome === 'device-only' && 'Saved on this device only.'}
-              {saveOutcome === null && 'Previously recorded check-in.'}
-            </p>
-          </div>
-        ) : (
-          <div className="mt-5 space-y-3">
-            <p className="text-small text-foreground-secondary">Choose the option closest to how you feel now.</p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {MOOD_OPTIONS.map(option => (
-                <Button key={option.label} variant={selectedOption?.label === option.label ? 'primary' : 'secondary'} size="sm"
-                  aria-pressed={selectedOption?.label === option.label} title={option.description}
-                  disabled={isSaving} onClick={() => handleSelectMood(option)}>
-                  {option.label}
-                </Button>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setShowNoteInput(!showNoteInput)} aria-expanded={showNoteInput}>
-                {showNoteInput ? 'Hide note' : '+ Add note'}
-              </Button>
-              {isEditing && <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>}
-            </div>
-            {showNoteInput && <label className="block text-small font-medium">Note
-              <textarea value={note} onChange={e => setNote(e.target.value)} rows={2} data-ui-field data-ui
-                className="mt-2 w-full rounded-control border border-line-strong bg-surface p-3 text-body text-foreground" />
-            </label>}
-            {(showNoteInput || isEditing) && selectedOption && <Button loading={isSaving} onClick={() => executeSave(selectedOption, note)}>Save ({selectedOption.label})</Button>}
-          </div>
-        )}
-        {saveError && <p role="alert" className="mt-3 text-small text-status-danger">{saveError}</p>}
-      </Card>
-    );
-  }
+  const allVisibleOptions = (showMore || isEditing) ? [...PRIMARY_OPTIONS, ...MORE_OPTIONS] : PRIMARY_OPTIONS;
 
   return (
-    <Card data-semantic>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-heading-3">Daily check-in</h2>
-        {savedEntry && !isEditing && <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)}>Edit</Button>}
+    <div
+      data-semantic="daily-check-in-card"
+      className="relative flex flex-col gap-3 rounded-[28px] bg-wa-surface p-[18px] text-wa-plum shadow-lg shadow-wa-hero/10"
+    >
+      <div className="flex items-center justify-between">
+        <span className="font-display text-[17px] font-bold text-wa-plum">How are you feeling?</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-wa-muted">Daily check-in</span>
+          {savedEntry && !isEditing && (
+            <button
+              type="button"
+              onClick={() => setIsEditing(true)}
+              className="rounded-full bg-wa-ground px-2.5 py-0.5 text-xs font-semibold text-wa-plum hover:bg-wa-line-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
+            >
+              Edit
+            </button>
+          )}
+        </div>
       </div>
+
       {savedEntry && !isEditing ? (
-        <div className="mt-3 space-y-1">
-          <p className="flex items-center gap-2 font-medium text-foreground"><Check size={18} aria-hidden="true" />{savedEntry.emotion}</p>
-          <p className="text-small text-foreground-secondary">Logged today at {formattedSavedTime}</p>
-          {savedEntry.note && <p className="text-small text-foreground-secondary">{savedEntry.note}</p>}
-          <p role="status" className="text-small text-foreground-secondary">
+        <div className="flex flex-col gap-1.5 rounded-2xl bg-wa-ground p-3.5 text-sm">
+          <div className="flex items-center gap-2 font-bold text-wa-plum">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-wa-success text-white">
+              <Check size={12} strokeWidth={3} />
+            </span>
+            <span>{savedEntry.emotion}</span>
+          </div>
+          {savedEntry.note && <p className="text-wa-muted">{savedEntry.note}</p>}
+          <span className="text-xs text-wa-muted">
             {saveOutcome === 'recorded' && 'Saved to your account.'}
-            {saveOutcome === 'partial' && 'Check-in saved to your account; the history copy is only on this device.'}
             {saveOutcome === 'device-only' && 'Saved on this device only.'}
-            {saveOutcome === null && 'Previously recorded check-in.'}
-          </p>
+            {saveOutcome === null && 'Recorded today.'}
+          </span>
         </div>
       ) : (
-        <div className="mt-3 space-y-3">
-          <p className="text-small text-foreground-secondary">How are you feeling today?</p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {MOOD_OPTIONS.map(option => (
-              <Button key={option.label} variant={selectedOption?.label === option.label ? 'primary' : 'secondary'} size="sm"
-                aria-pressed={selectedOption?.label === option.label} title={option.description}
-                disabled={isSaving} onClick={() => handleSelectMood(option)}>
-                {option.label}
-              </Button>
-            ))}
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            {allVisibleOptions.map((option) => {
+              const isSelected = selectedLabel === option.label ||
+                normalizeLabel(selectedLabel || '') === normalizeLabel(option.label);
+              return (
+                <button
+                  key={option.label}
+                  type="button"
+                  data-ui-control
+                  aria-pressed={isSelected}
+                  disabled={isSaving}
+                  onClick={() => handleSelectMood(option)}
+                  className={`flex h-[46px] items-center justify-center gap-1.5 rounded-full px-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson ${
+                    isSelected
+                      ? 'bg-wa-hero text-white'
+                      : 'border border-wa-line bg-wa-surface text-wa-plum hover:border-wa-muted/40'
+                  }`}
+                >
+                  <span>{option.label}</span>
+                  {isSelected && <Check size={14} strokeWidth={2.5} />}
+                </button>
+              );
+            })}
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setShowNoteInput(!showNoteInput)} aria-expanded={showNoteInput}>
-              {showNoteInput ? 'Hide note' : '+ Add note'}
-            </Button>
-            {isEditing && <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>}
+
+          <div className="flex flex-col gap-2">
+            {!isEditing && (
+              <button
+                type="button"
+                onClick={() => setShowMore(!showMore)}
+                className="self-start text-sm font-semibold text-wa-crimson hover:text-wa-crimson-press focus-visible:outline-none"
+              >
+                {showMore ? 'Fewer feelings' : 'More feelings · add a note'}
+              </button>
+            )}
+
+            {(showMore || isEditing) && (
+              <div className="flex flex-col gap-2 pt-1">
+                <label className="text-xs font-semibold text-wa-muted">
+                  Add a private note (optional)
+                  <textarea
+                    rows={2}
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Resting, drank extra water..."
+                    className="mt-1 w-full rounded-2xl border border-wa-line bg-wa-ground p-3 text-sm text-wa-plum placeholder:text-wa-muted/60 focus:border-wa-crimson focus:outline-none"
+                  />
+                </label>
+                {selectedLabel && (
+                  <div className="flex items-center gap-2 self-end">
+                    {isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditing(false)}
+                        className="rounded-full border border-wa-line px-3 py-1.5 text-xs font-semibold text-wa-muted hover:bg-wa-ground"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      disabled={isSaving}
+                      onClick={() => {
+                        const all = [...PRIMARY_OPTIONS, ...MORE_OPTIONS];
+                        const matched = all.find(m => m.label === selectedLabel) || PRIMARY_OPTIONS[0];
+                        executeSave(matched, note);
+                      }}
+                      className="rounded-full bg-wa-crimson px-4 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-wa-crimson-press"
+                    >
+                      Save ({selectedLabel})
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-          {showNoteInput && <label className="block text-small font-medium">Note
-            <textarea value={note} onChange={e => setNote(e.target.value)} rows={2} data-ui-field data-ui
-              className="mt-2 w-full rounded-control border border-line-strong bg-surface p-3 text-body text-foreground" />
-          </label>}
-          {(showNoteInput || isEditing) && selectedOption && <Button loading={isSaving} onClick={() => executeSave(selectedOption, note)}>Save ({selectedOption.label})</Button>}
-        </div>
+        </>
       )}
-      {saveError && <p role="alert" className="mt-3 text-small text-status-danger">{saveError}</p>}
-    </Card>
+
+      {saveError && <p role="alert" className="text-xs text-wa-crimson">{saveError}</p>}
+    </div>
   );
 };

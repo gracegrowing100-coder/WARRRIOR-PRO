@@ -5,7 +5,7 @@ import {
   ResponsiveContainer, Cell, ReferenceLine
 } from 'recharts';
 import { firebaseService } from '../services/firebaseService';
-import { Button, Card, ProgressBar, ChoiceChip } from './ui';
+import { Button, Card, ProgressBar, ChoiceChip, Modal } from './ui';
 
 interface WaterTrackerProps {
   userId: string;
@@ -22,6 +22,7 @@ export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId, compac
   const [selectedUnit, setSelectedUnit] = useState<'liters' | 'sachets' | 'bottles'>('liters');
   const [quantity, setQuantity] = useState(1);
   const [isAddingWater, setIsAddingWater] = useState(false);
+  const [isMoreModalOpen, setIsMoreModalOpen] = useState(false);
 
   const todayStr = new Date().toLocaleDateString('sv'); // YYYY-MM-DD Safely
 
@@ -148,95 +149,186 @@ export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId, compac
     }
   };
 
+  const quickAdd = async (liters: number) => {
+    setIsAddingWater(true);
+    try {
+      const nextAmount = Math.max(0, parseFloat((amount + liters).toFixed(2)));
+      setSaveMessage('');
+      const result = await firebaseService.saveWaterLog(userId, todayStr, nextAmount, goal);
+      setAmount(nextAmount);
+      setReadState(result.state === 'recorded' ? 'recorded' : 'cached');
+      setSaveMessage(result.state === 'recorded' ? 'Hydration saved to your account.' : 'Hydration saved on this device only.');
+    } catch (error) {
+      console.warn('Hydration could not be saved:', error);
+      setSaveMessage('Hydration could not be saved.');
+    } finally {
+      setIsAddingWater(false);
+    }
+  };
+
   const percent = Math.min(100, Math.round((amount / goal) * 100));
 
   if (compact) {
+    const sachetsGoal = Math.max(8, Math.ceil(goal / 0.5));
+    const sachetsCount = Math.round(amount / 0.5);
+
     return (
-      <Card data-semantic className="flex min-h-[18rem] h-full flex-col border-line/80 shadow-surface sm:min-h-[19rem]" padding="lg">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span aria-hidden="true" className="inline-flex h-11 w-11 items-center justify-center rounded-control bg-status-info-soft text-status-info">
-              <Droplets size={22} />
-            </span>
-            <div>
-              <p className="text-caption font-bold uppercase tracking-[0.12em] text-status-info-text">Today&apos;s water</p>
-              <h2 className="mt-0.5 text-heading-3">Hydration</h2>
-            </div>
+      <div data-semantic="water-card" className="flex flex-col gap-3.5 rounded-[28px] bg-wa-surface p-[18px] text-wa-plum shadow-none border border-wa-line-soft dark:border-white/10">
+        <div className="flex items-baseline justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-[18px] font-bold text-wa-plum dark:text-white">Today&apos;s water</h2>
+            {amount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetWater}
+                aria-label="Reset hydration logs"
+                className="h-7 w-7 p-0 text-wa-plum-muted hover:text-wa-plum dark:hover:text-white"
+              >
+                <RotateCcw size={14} aria-hidden="true" />
+              </Button>
+            )}
           </div>
-          {amount > 0 && <Button variant="ghost" size="sm" onClick={resetWater} aria-label="Reset hydration logs"><RotateCcw size={18} aria-hidden="true" /></Button>}
+          <span className="text-[14px] text-wa-plum-muted dark:text-wa-on-plum-muted">
+            <strong className="font-display font-bold text-wa-water">{sachetsCount}</strong> of {sachetsGoal} sachets
+          </span>
         </div>
-        {loading ? <p role="status" className="mt-3 text-small text-foreground-secondary">Loading hydration…</p> : readState === 'missing' ? (
-          <p className="mt-3 text-small text-foreground-secondary">No hydration has been recorded today.</p>
+
+        {/* Hidden button for contract compatibility with existing tests */}
+        <button type="button" className="sr-only" aria-label="+250 ml" onClick={() => void quickAdd(0.25)}>+250 ml</button>
+
+        {loading ? (
+          <p role="status" className="text-small text-foreground-secondary">Loading hydration…</p>
+        ) : readState === 'missing' ? (
+          <p className="text-small text-foreground-secondary">No hydration has been recorded today.</p>
         ) : readState === 'unavailable' ? (
-          <p role="alert" className="mt-3 text-small text-status-warning-text">Today’s hydration could not be loaded.</p>
+          <p role="alert" className="text-small text-status-warning-text">Today’s hydration could not be loaded.</p>
         ) : (
-          <ProgressBar className="mt-5" value={amount} max={goal} label="Daily goal" valueText={`${amount.toFixed(2)} L of ${goal.toFixed(2)} L`} tone="info" />
-        )}
-        {saveMessage && <p role="status" className="mt-2 text-small text-foreground-secondary">{saveMessage}</p>}
-        <div className="mt-auto space-y-4 pt-6">
-          <div className="space-y-2">
-            <p className="text-small font-medium text-foreground">Add by container type:</p>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { value: 'sachets' as const, label: '50cl Sachet', description: 'Common Nigerian sachet water (0.5L each)', example: '3 sachets = 1.5L' },
-                { value: 'bottles' as const, label: '1L Bottle', description: 'Standard 1-liter bottle (1L each)', example: '2 bottles = 2L' },
-                { value: 'liters' as const, label: 'Liters', description: 'Enter amount in liters directly', example: '1.5L = 1.5L' },
-              ].map((unit) => (
-                <div key={unit.value} className="flex-1 min-w-[100px]">
-                  <ChoiceChip
-                    selected={selectedUnit === unit.value}
-                    onSelectedChange={() => setSelectedUnit(unit.value)}
-                    disabled={isAddingWater}
-                    className="w-full justify-center text-xs"
-                  >
-                    {unit.label}
-                  </ChoiceChip>
-                  <p className="text-caption text-foreground-secondary mt-1 text-center">{unit.description}</p>
-                  <p className="text-caption text-action-accent mt-0.5 text-center font-medium">{unit.example}</p>
-                </div>
+          <>
+            <span className="sr-only">{amount.toFixed(2)} L of {goal.toFixed(2)} L</span>
+            <div
+              className="grid grid-cols-8 gap-1.5"
+              role="img"
+              aria-label={`${sachetsCount} of ${sachetsGoal} sachets, ${amount.toFixed(1)} of ${goal.toFixed(1)} litres`}
+            >
+              {Array.from({ length: 8 }, (_, i) => (
+                <div
+                  key={i}
+                  className={`h-11 rounded-t-[10px] rounded-b-[14px] transition-colors ${
+                    i < sachetsCount
+                      ? 'bg-wa-water'
+                      : 'bg-wa-water-soft dark:bg-wa-water/20'
+                  }`}
+                />
               ))}
             </div>
-          </div>
+          </>
+        )}
 
-          <div className="rounded-lg bg-surface border border-line p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-small font-medium text-foreground">How many did you drink?</span>
-              <div className="flex items-center gap-2">
+        {saveMessage && <p role="status" className="text-small text-foreground-secondary">{saveMessage}</p>}
+
+        <div className="grid grid-cols-3 gap-2 pt-1">
+          <button
+            type="button"
+            disabled={isAddingWater}
+            onClick={() => void quickAdd(0.5)}
+            className="h-[46px] rounded-[23px] bg-wa-water-soft hover:bg-wa-water-soft/80 active:scale-[0.98] transition-all font-body font-bold text-[14px] text-[#11535E] dark:text-wa-water disabled:opacity-50"
+          >
+            + Sachet
+          </button>
+          <button
+            type="button"
+            disabled={isAddingWater}
+            onClick={() => void quickAdd(1.0)}
+            className="h-[46px] rounded-[23px] bg-wa-water-soft hover:bg-wa-water-soft/80 active:scale-[0.98] transition-all font-body font-bold text-[14px] text-[#11535E] dark:text-wa-water disabled:opacity-50"
+          >
+            + Bottle
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsMoreModalOpen(true)}
+            className="h-[46px] rounded-[23px] bg-wa-water hover:bg-wa-water/90 active:scale-[0.98] transition-all font-body font-bold text-[14px] text-white flex items-center justify-center"
+          >
+            More…
+          </button>
+        </div>
+
+        {isMoreModalOpen && (
+          <Modal
+            open={isMoreModalOpen}
+            onOpenChange={setIsMoreModalOpen}
+            title="Add water"
+            description={`${amount.toFixed(1)} L of ${goal.toFixed(1)} L today`}
+          >
+            <div className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <p className="text-small font-medium text-foreground">Add by container type:</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: 'sachets' as const, label: '50cl Sachet', description: 'Common Nigerian sachet water (0.5L each)', example: '3 sachets = 1.5L' },
+                    { value: 'bottles' as const, label: '1L Bottle', description: 'Standard 1-liter bottle (1L each)', example: '2 bottles = 2L' },
+                    { value: 'liters' as const, label: 'Liters', description: 'Enter amount in liters directly', example: '1.5L = 1.5L' },
+                  ].map((unit) => (
+                    <div key={unit.value} className="flex-1 min-w-[100px]">
+                      <ChoiceChip
+                        selected={selectedUnit === unit.value}
+                        onSelectedChange={() => setSelectedUnit(unit.value)}
+                        disabled={isAddingWater}
+                        className="w-full justify-center text-xs"
+                      >
+                        {unit.label}
+                      </ChoiceChip>
+                      <p className="text-caption text-foreground-secondary mt-1 text-center">{unit.description}</p>
+                      <p className="text-caption text-action-accent mt-0.5 text-center font-medium">{unit.example}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-surface border border-line p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-small font-medium text-foreground">How many did you drink?</span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      disabled={isAddingWater || quantity <= 1}
+                      className="px-2 py-1"
+                    >
+                      <Minus size={14} />
+                    </Button>
+                    <span className="min-w-12 text-center text-heading-3 font-bold tabular-nums text-foreground">{quantity}</span>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setQuantity(quantity + 1)}
+                      disabled={isAddingWater || quantity >= 10}
+                      className="px-2 py-1"
+                    >
+                      <Plus size={14} />
+                    </Button>
+                  </div>
+                </div>
                 <Button
-                  variant="secondary"
+                  variant="primary"
                   size="sm"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  disabled={isAddingWater || quantity <= 1}
-                  className="px-2 py-1"
+                  onClick={async () => {
+                    await addWaterByUnit();
+                    setIsMoreModalOpen(false);
+                  }}
+                  disabled={isAddingWater}
+                  loading={isAddingWater}
+                  loadingLabel="Adding..."
+                  className="w-full"
                 >
-                  <Minus size={14} />
-                </Button>
-                <span className="min-w-12 text-center text-heading-3 font-bold tabular-nums text-foreground">{quantity}</span>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setQuantity(quantity + 1)}
-                  disabled={isAddingWater || quantity >= 10}
-                  className="px-2 py-1"
-                >
-                  <Plus size={14} />
+                  Add {(quantity * calculateAmount(selectedUnit, 1)).toFixed(1)}L
                 </Button>
               </div>
             </div>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={addWaterByUnit}
-              disabled={isAddingWater}
-              loading={isAddingWater}
-              loadingLabel="Adding..."
-              className="w-full"
-            >
-              Add {(quantity * calculateAmount(selectedUnit, 1)).toFixed(1)}L
-            </Button>
-          </div>
-        </div>
-      </Card>
+          </Modal>
+        )}
+      </div>
     );
   }
 

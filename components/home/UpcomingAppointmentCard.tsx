@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { CalendarDays, RefreshCw } from 'lucide-react';
+import { CalendarDays, ChevronRight, RefreshCw } from 'lucide-react';
 import { firebaseService } from '../../services/firebaseService';
-import { Alert, Button, Card, Skeleton } from '../ui';
+import { Alert, Button, Skeleton } from '../ui';
 
 interface UpcomingAppointmentCardProps {
   userId: string;
@@ -46,12 +46,11 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
   const loadAppointment = useCallback(async () => {
     setLoading(true);
     setError(false);
-
     try {
-      const appointments = await firebaseService.getAppointments(userId) as Appointment[];
+      const appointments = await firebaseService.getAppointments(userId);
       setAppointment(selectRelevantAppointment(appointments));
     } catch (loadError) {
-      console.warn('Appointment preview could not be loaded:', loadError);
+      console.warn('Upcoming appointment could not be loaded:', loadError);
       setError(true);
       setAppointment(null);
     } finally {
@@ -65,21 +64,20 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
 
   if (loading) {
     return (
-      <Card as="section" aria-labelledby="appointment-title" padding="lg">
-        <h2 id="appointment-title" className="text-heading-2">Appointment request</h2>
-        <Skeleton className="mt-5 min-h-32" />
-      </Card>
+      <div data-semantic="appointment-card" aria-label="Appointment loading" className="rounded-[28px] bg-wa-surface p-[18px]">
+        <Skeleton className="h-16 w-full" />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Card as="section" aria-labelledby="appointment-title" padding="lg">
-        <h2 id="appointment-title" className="text-heading-2">Appointment request</h2>
+      <div data-semantic="appointment-card" aria-label="Appointment error" className="rounded-[28px] bg-wa-surface p-[18px]">
+        <h2 id="appointment-title" className="text-sm font-bold text-wa-plum">Appointment request</h2>
         <Alert
           tone="warning"
           title="Appointments are unavailable"
-          className="mt-4"
+          className="mt-3"
           action={(
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" size="sm" leadingIcon={<RefreshCw size={16} />} onClick={() => void loadAppointment()}>
@@ -91,37 +89,85 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
         >
           Open Care to manage appointments or try loading this preview again.
         </Alert>
-      </Card>
+      </div>
     );
   }
 
-  return (
-    <Card as="section" aria-labelledby="appointment-title" className="border-line/70 shadow-none" padding="lg">
-      <h2 id="appointment-title" className="text-heading-2">Appointment request</h2>
-      <p className="mt-1 text-small text-foreground-secondary">A recorded request. Clinic acceptance and availability are not confirmed here.</p>
+  // Parse appointment date for display
+  let dayOfWeek = 'APT';
+  let dayOfMonth = '·';
+  if (appointment?.bookedDate) {
+    const parsed = new Date(`${appointment.bookedDate}T12:00:00`);
+    if (!Number.isNaN(parsed.getTime())) {
+      dayOfWeek = parsed.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+      dayOfMonth = String(parsed.getDate());
+    } else {
+      dayOfWeek = appointment.bookedDate.slice(0, 3).toUpperCase();
+      dayOfMonth = '✦';
+    }
+  }
 
-      {appointment ? (
-        <div className="mt-6 sm:flex sm:items-end sm:justify-between sm:gap-6">
-          <div className="flex min-w-0 items-start gap-3">
-            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-status-info-soft text-status-info" aria-hidden="true">
-              <CalendarDays size={22} />
-            </span>
-            <div className="min-w-0">
-              <p className="text-body font-semibold text-foreground">Hematology care request</p>
-              <p className="mt-1 inline-flex flex-wrap items-center gap-1.5 text-small text-foreground-secondary">
-                <CalendarDays size={16} aria-hidden="true" />
-                Requested for {appointment.bookedDate || 'date not recorded'}{appointment.bookedTime ? ` at ${appointment.bookedTime}` : ''}
-              </p>
-            </div>
-          </div>
-          <Button className="mt-5 w-full sm:mt-0 sm:w-auto sm:shrink-0" onClick={onOpenCare}>View requests</Button>
-        </div>
-      ) : (
-        <div className="mt-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
-          <p className="flex-1 rounded-card bg-surface-subtle p-4 text-body text-foreground-secondary">No current appointment request is recorded.</p>
-          <Button className="mt-4 w-full sm:mt-0 sm:w-auto sm:shrink-0" onClick={onOpenCare}>Open Care</Button>
-        </div>
-      )}
-    </Card>
+  return (
+    <div
+      data-semantic="appointment-card"
+      onClick={onOpenCare}
+      role="region"
+      aria-labelledby="appointment-title"
+      className="group flex cursor-pointer items-center gap-3.5 rounded-[28px] bg-wa-surface p-4 text-wa-plum transition-all duration-150 hover:bg-wa-ground border border-wa-line-soft shadow-none"
+    >
+      <h2 id="appointment-title" className="sr-only">Appointment request</h2>
+      <div className="flex h-16 w-[60px] shrink-0 flex-col items-center justify-center rounded-[18px] bg-wa-hero text-white">
+        <span className="text-[11px] font-bold text-wa-rose-text">{dayOfWeek}</span>
+        <span className="font-display text-[22px] font-extrabold leading-tight">{dayOfMonth}</span>
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="text-xs font-semibold text-wa-muted">Next appointment</div>
+        {appointment ? (
+          <>
+            <p className="truncate font-bold text-wa-plum">
+              Hematology care request
+            </p>
+            <p className="truncate text-[13px] text-wa-muted">
+              Requested for {appointment.bookedDate || 'date not recorded'}{appointment.bookedTime ? ` at ${appointment.bookedTime}` : ''}
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="font-bold text-wa-plum">No current appointment request is recorded.</p>
+            <p className="text-[13px] text-wa-muted">Tap to request a visit</p>
+          </>
+        )}
+      </div>
+
+      <div className="flex shrink-0 items-center gap-1">
+        {appointment ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenCare();
+            }}
+            className="text-wa-crimson font-bold text-xs"
+          >
+            View requests
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenCare();
+            }}
+            className="text-wa-crimson font-bold text-xs"
+          >
+            Open Care
+          </Button>
+        )}
+        <ChevronRight size={18} strokeWidth={2.5} className="text-wa-crimson transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+      </div>
+    </div>
   );
 };

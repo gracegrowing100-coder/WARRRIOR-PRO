@@ -20,3 +20,4 @@ describe('HistoryErrorBoundary', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });
+

@@ -13,6 +13,8 @@ import { ScheduledRemindersManager } from './ScheduledRemindersManager';
 import { PatternInsightsDoctorReport } from './PatternInsightsDoctorReport';
 import { SymptomPainCheckIn } from './health';
 import { HomeActionHub, RecentHealthSummary, TodaysHealthCard, UpcomingAppointmentCard } from './home';
+import { WeatherCard } from './home/WeatherCard';
+import { Spark } from './brand';
 import { Button, SosPill } from './ui';
 import { firebaseService } from '../services/firebaseService';
 import { auth } from '../firebase-init';
@@ -38,13 +40,17 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
   const [refreshPain, setRefreshPain] = useState<number>(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPainLevel, setCurrentPainLevel] = useState<number>(3);
+  const [streakDays, setStreakDays] = useState<number>(12);
 
   const fetchProfileAndStats = async (active = true) => {
     let pName = "Warrior";
 
     try {
       // Calculate/retrieve up-to-date daily streak first
-      await firebaseService.updateStreak(userId);
+      const s = await firebaseService.updateStreak(userId);
+      if (typeof s === 'number') {
+        setStreakDays(s);
+      }
     } catch (e) {
       console.warn("Failed to update streak count on startup:", e);
     }
@@ -112,19 +118,27 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
 
   return (
     <div data-semantic className="space-y-7 pb-8 sm:space-y-8 lg:space-y-9">
-      <header className="px-1 pb-1 lg:pt-2 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-small font-bold uppercase tracking-[0.08em] text-wa-crimson">
-            {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
-          </p>
-          <h1 className="mt-2 max-w-3xl text-[1.9rem] font-bold leading-tight tracking-[-0.03em] text-foreground sm:text-[2.25rem] lg:text-[2.65rem] font-display">
-            {greeting}, {firstName}
-          </h1>
-          <p className="mt-2 max-w-2xl text-body text-foreground-secondary sm:text-lg">
-            Your health, routines, and next steps for today.
-          </p>
+      <header className="rounded-b-[32px] bg-[var(--wa-hero)] text-white p-5 sm:p-6 lg:p-7 relative overflow-hidden -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 lg:-mx-8 lg:-mt-8 mb-2">
+        <div aria-hidden="true" className="absolute -right-12 -top-6 w-48 h-60 opacity-[0.07] pointer-events-none text-wa-coral">
+          <svg viewBox="14 2 72 96" className="w-full h-full fill-current">
+            <path fillRule="evenodd" d="M50 6C50 6 82 42 82 63A32 32 0 0 1 18 63C18 42 50 6 50 6ZM50 40L44.5 56.5L28 62L44.5 67.5L50 84L55.5 67.5L72 62L55.5 56.5Z" />
+          </svg>
         </div>
-        <SosPill className="md:hidden" onClick={() => document.getElementById('emergency-fab')?.click()} />
+        <div className="relative flex items-start justify-between gap-4">
+          <div>
+            <p className="text-small font-semibold text-wa-on-plum-muted">
+              {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+            </p>
+            <h1 className="mt-1 text-[1.85rem] font-extrabold leading-tight tracking-[-0.02em] text-white sm:text-[2.2rem] lg:text-[2.5rem] font-display">
+              {greeting}, {firstName}
+            </h1>
+            <div className="mt-3 inline-flex items-center gap-1.5 h-[30px] px-3 rounded-full bg-wa-coral/20 text-[#FFC7D0] text-[13px] font-semibold">
+              <Spark className="w-3 h-3 text-wa-coral" />
+              <span>{streakDays > 0 ? `${streakDays}-day logging streak` : 'Start your logging streak today'}</span>
+            </div>
+          </div>
+          <SosPill className="md:hidden" onClick={() => document.getElementById('emergency-fab')?.click()} />
+        </div>
       </header>
 
       <TodaysHealthCard
@@ -188,6 +202,22 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
 
           <div className="order-6 min-w-0 xl:order-none">
             <RecentHealthSummary userId={userId} refreshKey={refreshPain} />
+          </div>
+
+          <div className="order-8 min-w-0 xl:order-none">
+            <WeatherCard />
+          </div>
+
+          <div className="order-9 min-w-0 xl:order-none">
+            <div className="rounded-[28px] bg-wa-rose p-[18px] flex gap-3.5 items-start text-wa-plum border border-wa-line-soft dark:border-white/10">
+              <Spark className="w-7 h-7 text-wa-crimson shrink-0 mt-0.5" />
+              <div>
+                <div className="font-display font-bold text-[15px] text-wa-plum dark:text-white">Warrior tip</div>
+                <div className="text-[14px] leading-relaxed mt-1 text-wa-plum/90 dark:text-white/90">
+                  Keep a small &ldquo;flare bag&rdquo; ready: water, warm socks, your medicines and your clinic card.
+                </div>
+              </div>
+            </div>
           </div>
         </aside>
       </div>
