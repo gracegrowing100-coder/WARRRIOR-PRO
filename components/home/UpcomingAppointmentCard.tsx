@@ -64,16 +64,16 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
 
   if (loading) {
     return (
-      <div data-semantic="appointment-card" aria-label="Appointment loading" className="rounded-[28px] bg-wa-surface p-[18px]">
-        <Skeleton className="h-16 w-full" />
+      <div data-semantic="appointment-card" aria-label="Appointment loading" className="rounded-[28px] bg-wa-surface p-4 border border-wa-line-soft dark:border-white/10">
+        <Skeleton className="h-16 w-full rounded-[20px]" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div data-semantic="appointment-card" aria-label="Appointment error" className="rounded-[28px] bg-wa-surface p-[18px]">
-        <h2 id="appointment-title" className="text-sm font-bold text-wa-plum">Appointment request</h2>
+      <div data-semantic="appointment-card" aria-label="Appointment error" className="rounded-[28px] bg-wa-surface p-4 sm:p-5 border border-wa-line-soft dark:border-white/10">
+        <h2 id="appointment-title" className="text-sm font-bold text-wa-plum dark:text-white">Appointment request</h2>
         <Alert
           tone="warning"
           title="Appointments are unavailable"
@@ -113,60 +113,65 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
       onClick={onOpenCare}
       role="region"
       aria-labelledby="appointment-title"
-      className="group flex cursor-pointer items-center gap-3.5 rounded-[28px] bg-wa-surface p-4 text-wa-plum transition-all duration-150 hover:bg-wa-ground border border-wa-line-soft shadow-none"
+      className="group relative flex cursor-pointer items-center gap-3 sm:gap-4 rounded-[28px] bg-wa-surface p-4 sm:p-5 text-wa-plum dark:text-white transition-all duration-150 hover:bg-wa-ground border border-wa-line-soft dark:border-white/10 shadow-none hover:shadow-subtle"
     >
       <h2 id="appointment-title" className="sr-only">Appointment request</h2>
-      <div className="flex h-16 w-[60px] shrink-0 flex-col items-center justify-center rounded-[18px] bg-wa-hero text-white">
-        <span className="text-[11px] font-bold text-wa-rose-text">{dayOfWeek}</span>
-        <span className="font-display text-[22px] font-extrabold leading-tight">{dayOfMonth}</span>
+
+      {/* Date badge */}
+      <div className="flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 flex-col items-center justify-center rounded-[18px] bg-[var(--wa-hero)] text-white shadow-sm">
+        <span className="text-[10px] sm:text-[11px] font-bold tracking-wider text-wa-rose-text uppercase leading-tight">
+          {dayOfWeek}
+        </span>
+        <span className="font-display text-[20px] sm:text-[22px] font-extrabold leading-tight mt-0.5">
+          {dayOfMonth}
+        </span>
       </div>
 
+      {/* Center content */}
       <div className="min-w-0 flex-1">
-        <div className="text-xs font-semibold text-wa-muted">Next appointment</div>
+        <div className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">
+          Next appointment
+        </div>
         {appointment ? (
           <>
-            <p className="truncate font-bold text-wa-plum">
+            <p className="font-display font-bold text-[15px] sm:text-[16px] text-wa-plum dark:text-white leading-snug truncate mt-0.5">
               Hematology care request
             </p>
-            <p className="truncate text-[13px] text-wa-muted">
+            <p className="text-[12px] sm:text-[13px] text-wa-plum-muted dark:text-wa-on-plum-muted truncate mt-0.5">
               Requested for {appointment.bookedDate || 'date not recorded'}{appointment.bookedTime ? ` at ${appointment.bookedTime}` : ''}
             </p>
           </>
         ) : (
           <>
-            <p className="font-bold text-wa-plum">No current appointment request is recorded.</p>
-            <p className="text-[13px] text-wa-muted">Tap to request a visit</p>
+            <p className="font-display font-bold text-[14px] sm:text-[15px] text-wa-plum dark:text-white leading-snug mt-0.5">
+              No current appointment request is recorded.
+            </p>
+            <p className="text-[12px] sm:text-[13px] text-wa-plum-muted dark:text-wa-on-plum-muted mt-0.5">
+              Tap to request a visit with your clinic
+            </p>
           </>
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-1">
-        {appointment ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenCare();
-            }}
-            className="text-wa-crimson font-bold text-xs"
-          >
-            View requests
-          </Button>
-        ) : (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenCare();
-            }}
-            className="text-wa-crimson font-bold text-xs"
-          >
-            Open Care
-          </Button>
-        )}
-        <ChevronRight size={18} strokeWidth={2.5} className="text-wa-crimson transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+      {/* Right action button */}
+      <div className="flex shrink-0 items-center">
+        <button
+          type="button"
+          aria-label={appointment ? "View requests" : "Open Care"}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenCare();
+          }}
+          className="inline-flex items-center gap-1 text-wa-crimson font-body font-bold text-xs sm:text-sm px-2.5 sm:px-3 py-1.5 rounded-full bg-wa-crimson/10 hover:bg-wa-crimson/20 active:scale-95 transition-all"
+        >
+          <span className="hidden sm:inline">
+            {appointment ? 'View requests' : 'Open Care'}
+          </span>
+          <span className="sm:hidden">
+            {appointment ? 'View' : 'Care'}
+          </span>
+          <ChevronRight size={15} strokeWidth={2.5} className="transition-transform group-hover:translate-x-0.5 shrink-0" aria-hidden="true" />
+        </button>
       </div>
     </div>
   );
