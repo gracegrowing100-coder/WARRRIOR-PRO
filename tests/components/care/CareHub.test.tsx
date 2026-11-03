@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../components/health', () => ({
-  HealthHistory: ({ userId }: { userId: string }) => <div>Health history for {userId}</div>,
+  HealthHistory: ({ userId, onBack }: { userId: string; onBack?: () => void }) => <div>Health history for {userId}<button type="button" onClick={onBack}>Back to Care</button></div>,
 }));
 
 vi.mock('../../../components/CareVault', () => ({

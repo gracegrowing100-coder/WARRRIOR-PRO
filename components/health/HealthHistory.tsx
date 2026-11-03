@@ -1,19 +1,21 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarCheck2, ChevronDown, Droplets, HeartPulse, RefreshCw } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CalendarCheck2, ChevronDown, ChevronLeft, Download, Droplets, HeartPulse, RefreshCw, Share2 } from 'lucide-react';
 import {
   firebaseService,
   type DailyCheckInHistoryData,
   type HealthHistoryRecord,
   type HydrationHistoryData,
-  type SymptomHistoryData,
 } from '../../services/firebaseService';
-import { PageHeader } from '../layout';
+import { computeTrends, formatFullDate, rangeDateKeys, sanitizeEntries, type TrendResult } from '../../utils/trends';
+import { Spark } from '../brand';
 import { Alert, Button, Card, ErrorState, Skeleton, StateMessage } from '../ui';
+import { HistoryErrorBoundary } from './HistoryErrorBoundary';
 import { RecordedHistoryTimeline, type RecordedSymptomEntry } from './RecordedHistoryTimeline';
 import { RecordedPainChart } from './RecordedPainChart';
 
 interface HealthHistoryProps {
   userId: string;
+  onBack?: () => void;
 }
 
 interface HistoryData {
@@ -24,66 +26,28 @@ interface HistoryData {
 }
 
 type HistorySection = 'symptoms' | 'hydration' | 'checkIns';
+type RangeDays = 7 | 30 | 90;
 
-const historyDateKeys = (days = 30) => {
-  const now = new Date();
-  return Array.from({ length: days }, (_, index) => {
-    const date = new Date(now);
-    date.setDate(now.getDate() - index);
-    return date.toLocaleDateString('sv');
-  });
-};
+const RANGES: Array<{ days: RangeDays; label: string }> = [
+  { days: 7, label: '7 days' },
+  { days: 30, label: '30 days' },
+  { days: 90, label: '3 months' },
+];
 
-const formatDate = (dateStr: string) => new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-}).format(new Date(`${dateStr}T12:00:00`));
+const formatDate = (dateStr: string) => formatFullDate(dateStr) || 'Date not recorded';
 
-const analyzeSymptomTrends = (entries: RecordedSymptomEntry[]) => {
-  const symptomCounts = new Map<string, number>();
-  const painLevels: number[] = [];
-  const symptomsByPain = new Map<number, Set<string>>();
-
-  entries.forEach((entry) => {
-    painLevels.push(entry.painLevel);
-    if (entry.symptoms) {
-      entry.symptoms.forEach((symptom) => {
-        symptomCounts.set(symptom, (symptomCounts.get(symptom) || 0) + 1);
-        if (!symptomsByPain.has(entry.painLevel)) {
-          symptomsByPain.set(entry.painLevel, new Set());
-        }
-        symptomsByPain.get(entry.painLevel)!.add(symptom);
-      });
-    }
-  });
-
-  const avgPain = painLevels.length > 0 ? painLevels.reduce((a, b) => a + b, 0) / painLevels.length : 0;
-  const maxPain = painLevels.length > 0 ? Math.max(...painLevels) : 0;
-  const mostCommonSymptoms = Array.from(symptomCounts.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
-
-  return {
-    avgPain: avgPain.toFixed(1),
-    maxPain,
-    totalEntries: entries.length,
-    mostCommonSymptoms,
-    painLevels,
-  };
-};
+const csvCell = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
 
 const downloadSymptomCSV = (entries: RecordedSymptomEntry[]) => {
   const headers = ['Date', 'Pain Level', 'Symptoms', 'Triggers', 'Water Intake (L)'];
   const rows = entries.map((entry) => [
-    formatDate(entry.dateStr),
+    entry.dateStr,
     entry.painLevel,
     entry.symptoms?.join('; ') || 'None',
     entry.triggers?.join('; ') || 'None',
-    entry.waterIntake?.toFixed(2) || '0.00',
+    typeof entry.waterIntake === 'number' ? entry.waterIntake.toFixed(2) : '0.00',
   ]);
-
-  const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+  const csvContent = [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
@@ -93,96 +57,108 @@ const downloadSymptomCSV = (entries: RecordedSymptomEntry[]) => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };
 
-const shareSymptomReport = (entries: RecordedSymptomEntry[]) => {
-  const trends = analyzeSymptomTrends(entries);
+const shareSymptomReport = async (trends: TrendResult) => {
   const report = `Warrior AI Health Report - ${new Date().toLocaleDateString()}
 
-Summary:
-- Total entries: ${trends.totalEntries}
-- Average pain level: ${trends.avgPain}/10
-- Highest pain level: ${trends.maxPain}/10
+Summary (last ${trends.rangeDays} days):
+- Total entries: ${trends.count}
+- Average pain level: ${trends.averagePain === null ? 'n/a' : trends.averagePain.toFixed(1)}/10
+- Highest pain level: ${trends.highest ? trends.highest.level : 'n/a'}/10
 
 Most common symptoms:
-${trends.mostCommonSymptoms.map(([symptom, count]) => `- ${symptom}: ${count} times`).join('\n')}
+${trends.topSymptoms.map(([symptom, count]) => `- ${symptom}: ${count} times`).join('\n') || '- None recorded'}
 
 Generated by Warrior AI`;
-
-  navigator.clipboard.writeText(report).then(() => {
-    alert('Report copied to clipboard! You can now paste it to share with your healthcare provider.');
-  }).catch(() => {
-    alert('Could not copy report. Please try again.');
-  });
-};
-
-const dedupeSymptoms = (entries: SymptomHistoryData[], cached: boolean): RecordedSymptomEntry[] => {
-  const byDate = new Map<string, RecordedSymptomEntry>();
-  entries.forEach((entry) => {
-    if (entry.dateStr && typeof entry.painLevel === 'number') {
-      byDate.set(entry.dateStr, { ...entry, sourceState: cached ? 'cached' : 'recorded' });
-    }
-  });
-  return Array.from(byDate.values()).sort((a, b) => b.dateStr.localeCompare(a.dateStr));
+  try {
+    await navigator.clipboard.writeText(report);
+    return 'Report copied. You can paste it to share with your healthcare provider.';
+  } catch {
+    return 'Could not copy the report. Please try again.';
+  }
 };
 
 const isPresent = <T,>(record: HealthHistoryRecord<T>) =>
-  (record.state === 'recorded' || record.state === 'cached') && record.data !== null;
+  Boolean(record) && (record.state === 'recorded' || record.state === 'cached') && record.data !== null && typeof record.data === 'object';
 
-export const HealthHistory: React.FC<HealthHistoryProps> = ({ userId }) => {
+const byDateDesc = <T,>(a: HealthHistoryRecord<T>, b: HealthHistoryRecord<T>) => String(b.dateStr).localeCompare(String(a.dateStr));
+
+const StatTile: React.FC<{ label: string; value: string; unit?: string; valueClassName?: string }> = ({ label, value, unit, valueClassName }) => (
+  <div className="rounded-[18px] bg-white/10 px-3.5 py-3">
+    <div className="text-xs text-wa-on-plum-muted">{label}</div>
+    <div className={`font-display text-[26px] font-extrabold ${valueClassName ?? ''}`}>
+      {value}
+      {unit && <span className="text-[13px] font-normal text-wa-on-plum-muted">{unit}</span>}
+    </div>
+  </div>
+);
+
+export const HealthHistory: React.FC<HealthHistoryProps> = ({ userId, onBack }) => {
   const [history, setHistory] = useState<HistoryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [activeSection, setActiveSection] = useState<HistorySection>('symptoms');
+  const [range, setRange] = useState<RangeDays>(30);
+  const [shareNotice, setShareNotice] = useState('');
+  const requestId = useRef(0);
 
-  const loadHistory = useCallback(async () => {
-    setLoading(true);
+  const loadHistory = useCallback(async (showSkeleton = true) => {
+    const current = ++requestId.current;
+    if (showSkeleton) setLoading(true);
     setLoadFailed(false);
     try {
-      const dateKeys = historyDateKeys();
+      const dateKeys = rangeDateKeys(range);
       const [symptomResult, hydration, checkIns] = await Promise.all([
         firebaseService.getSymptomHistory(userId),
         firebaseService.getHydrationHistory(userId, dateKeys),
         firebaseService.getDailyCheckInHistory(userId, dateKeys),
       ]);
+      if (current !== requestId.current) return;
+      const cached = symptomResult.state === 'cached';
+      const allowed = new Set(dateKeys);
       setHistory({
-        symptoms: dedupeSymptoms(
-          symptomResult.data.filter((entry) => dateKeys.includes(entry.dateStr)),
-          symptomResult.state === 'cached',
-        ),
+        symptoms: sanitizeEntries(symptomResult.data)
+          .filter((entry) => allowed.has(entry.dateStr))
+          .map((entry) => ({ ...(entry as unknown as RecordedSymptomEntry), sourceState: cached ? 'cached' : 'recorded' })),
         symptomState: symptomResult.state,
-        hydration,
-        checkIns,
+        hydration: Array.isArray(hydration) ? hydration : [],
+        checkIns: Array.isArray(checkIns) ? checkIns : [],
       });
     } catch (error) {
+      if (current !== requestId.current) return;
       console.warn('Health history could not be loaded:', error);
       setHistory(null);
       setLoadFailed(true);
     } finally {
-      setLoading(false);
+      if (current === requestId.current) setLoading(false);
     }
-  }, [userId]);
+  }, [userId, range]);
 
+  const firstLoad = useRef(true);
   useEffect(() => {
-    void loadHistory();
+    void loadHistory(firstLoad.current);
+    firstLoad.current = false;
   }, [loadHistory]);
 
   const hydrationEntries = useMemo(
-    () => history?.hydration.filter(isPresent).sort((a, b) => b.dateStr.localeCompare(a.dateStr)) ?? [],
+    () => (history?.hydration ?? []).filter((entry) => isPresent(entry) && Number.isFinite(entry.data?.amount)).sort(byDateDesc),
     [history],
   );
-  const checkInEntries = useMemo(
-    () => history?.checkIns.filter(isPresent).sort((a, b) => b.dateStr.localeCompare(a.dateStr)) ?? [],
-    [history],
-  );
-  const symptomTrends = useMemo(() => analyzeSymptomTrends(history?.symptoms ?? []), [history]);
+  const checkInEntries = useMemo(() => (history?.checkIns ?? []).filter(isPresent).sort(byDateDesc), [history]);
+  const trends = useMemo(() => computeTrends(history?.symptoms ?? [], range), [history, range]);
+  const hydrationAverage = useMemo(() => {
+    const amounts = hydrationEntries.map((entry) => entry.data?.amount).filter((amount): amount is number => typeof amount === 'number');
+    return amounts.length ? amounts.reduce((sum, amount) => sum + amount, 0) / amounts.length : trends.averageWater;
+  }, [hydrationEntries, trends.averageWater]);
 
   if (loading) {
     return (
       <section aria-labelledby="health-history-loading-title" className="space-y-6">
         <div>
-          <h1 id="health-history-loading-title" className="text-heading-1 text-foreground">Health history</h1>
-          <p className="mt-1 text-body text-foreground-secondary">Loading health information you have recorded over time.</p>
+          <h1 id="health-history-loading-title" className="font-display text-3xl font-extrabold text-wa-plum">Health history</h1>
+          <p className="mt-1 text-body text-wa-muted">Loading health information you have recorded over time.</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-3" role="status" aria-label="Loading health history">
           <Skeleton className="min-h-28" />
@@ -197,7 +173,7 @@ export const HealthHistory: React.FC<HealthHistoryProps> = ({ userId }) => {
   if (loadFailed || !history) {
     return (
       <section aria-labelledby="health-history-error-title" className="space-y-6">
-        <PageHeader title={<span id="health-history-error-title">Health history</span>} description="Health information you have recorded over time." />
+        <h1 id="health-history-error-title" className="font-display text-3xl font-extrabold text-wa-plum">Health history</h1>
         <ErrorState
           title="Health history is unavailable right now"
           description="Your records were not changed. Try loading them again."
@@ -208,14 +184,14 @@ export const HealthHistory: React.FC<HealthHistoryProps> = ({ userId }) => {
   }
 
   const symptomUnavailable = history.symptomState === 'unavailable';
-  const hydrationUnavailable = history.hydration.some((entry) => entry.state === 'unavailable');
-  const checkInsUnavailable = history.checkIns.some((entry) => entry.state === 'unavailable');
+  const hydrationUnavailable = history.hydration.some((entry) => entry?.state === 'unavailable');
+  const checkInsUnavailable = history.checkIns.some((entry) => entry?.state === 'unavailable');
   const hydrationCached = hydrationEntries.some((entry) => entry.state === 'cached');
   const checkInsCached = checkInEntries.some((entry) => entry.state === 'cached');
   const recordedCountLabel = (count: number) => `${count} recorded ${count === 1 ? 'entry' : 'entries'}`;
   const sectionOrder: HistorySection[] = ['symptoms', 'hydration', 'checkIns'];
-  const selectSectionFromKeyboard = (event: React.KeyboardEvent<HTMLButtonElement>, current: HistorySection) => {
-    const currentIndex = sectionOrder.indexOf(current);
+  const selectSectionFromKeyboard = (event: React.KeyboardEvent<HTMLButtonElement>, currentSection: HistorySection) => {
+    const currentIndex = sectionOrder.indexOf(currentSection);
     let nextIndex: number | null = null;
     if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % sectionOrder.length;
     if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + sectionOrder.length) % sectionOrder.length;
@@ -227,6 +203,9 @@ export const HealthHistory: React.FC<HealthHistoryProps> = ({ userId }) => {
     setActiveSection(nextSection);
     document.getElementById(`history-tab-${nextSection}`)?.focus();
   };
+  const share = async () => setShareNotice(await shareSymptomReport(trends));
+  const hasSymptoms = history.symptoms.length > 0;
+  const topMax = trends.topSymptoms[0]?.[1] ?? 1;
   const overviewItems: Array<{
     id: HistorySection;
     label: string;
@@ -242,46 +221,94 @@ export const HealthHistory: React.FC<HealthHistoryProps> = ({ userId }) => {
       value: symptomUnavailable ? 'Unavailable' : recordedCountLabel(history.symptoms.length),
       latest: history.symptoms[0] ? `Latest ${formatDate(history.symptoms[0].dateStr)}` : symptomUnavailable ? 'Could not load' : 'No entries yet',
       icon: <HeartPulse size={20} />,
-      activeClassName: 'bg-medical-50',
-      iconClassName: 'bg-medical-50 text-action-accent',
+      activeClassName: 'bg-wa-rose',
+      iconClassName: 'bg-wa-rose text-wa-crimson',
     },
     {
       id: 'hydration',
       label: 'Hydration',
-      value: hydrationUnavailable && hydrationEntries.length === 0
-        ? 'Unavailable'
-        : recordedCountLabel(hydrationEntries.length),
+      value: hydrationUnavailable && hydrationEntries.length === 0 ? 'Unavailable' : recordedCountLabel(hydrationEntries.length),
       latest: hydrationEntries[0] ? `Latest ${formatDate(hydrationEntries[0].dateStr)}` : hydrationUnavailable ? 'Could not load' : 'No entries yet',
       icon: <Droplets size={20} />,
-      activeClassName: 'bg-status-info-soft/70',
-      iconClassName: 'bg-status-info-soft text-status-info',
+      activeClassName: 'bg-wa-water-soft',
+      iconClassName: 'bg-wa-water-soft text-wa-water',
     },
     {
       id: 'checkIns',
       label: 'Check-ins',
-      value: checkInsUnavailable && checkInEntries.length === 0
-        ? 'Unavailable'
-        : recordedCountLabel(checkInEntries.length),
+      value: checkInsUnavailable && checkInEntries.length === 0 ? 'Unavailable' : recordedCountLabel(checkInEntries.length),
       latest: checkInEntries[0] ? `Latest ${formatDate(checkInEntries[0].dateStr)}` : checkInsUnavailable ? 'Could not load' : 'No entries yet',
       icon: <CalendarCheck2 size={20} />,
-      activeClassName: 'bg-status-success-soft/70',
-      iconClassName: 'bg-status-success-soft text-status-success-text',
+      activeClassName: 'bg-wa-sun-soft',
+      iconClassName: 'bg-wa-sun-soft text-wa-sun-ink',
     },
   ];
 
   return (
-    <div className="space-y-6 sm:space-y-8" data-semantic>
-      <PageHeader title="Health history" description="Review the health information you recorded over the last 30 days." />
-
-      <section aria-labelledby="history-overview-title" className="overflow-hidden rounded-card border border-line bg-surface shadow-subtle">
-        <div className="flex flex-col gap-1 border-b border-line px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-          <div>
-            <h2 id="history-overview-title" className="text-heading-3 text-foreground">Your 30-day snapshot</h2>
-            <p className="mt-0.5 text-small text-foreground-secondary">Choose a category to review its recorded details.</p>
-          </div>
-          <p className="text-caption font-medium text-foreground-secondary">Missing days are not estimated</p>
+    <div className="space-y-5" data-semantic>
+      <header className="flex flex-col gap-4 rounded-[36px] bg-wa-hero px-4 pb-[22px] pt-4 text-white">
+        <div className="flex items-center justify-between">
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="Back to Care"
+              className="flex h-10 items-center gap-1 rounded-full bg-white/10 pl-2 pr-3.5 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <ChevronLeft size={18} aria-hidden="true" />Care
+            </button>
+          ) : <span />}
+          <button
+            type="button"
+            aria-label="Share report"
+            onClick={() => void share()}
+            disabled={!hasSymptoms}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <Share2 size={18} aria-hidden="true" />
+          </button>
         </div>
-        <div className="grid divide-y divide-line sm:grid-cols-3 sm:divide-x sm:divide-y-0" role="tablist" aria-label="Health history categories">
+        <h1 className="px-1 font-display text-[30px] font-extrabold tracking-tight">Health history</h1>
+        <div role="group" aria-label="Date range" className="grid grid-cols-3 gap-1 rounded-[22px] bg-white/10 p-1">
+          {RANGES.map((option) => (
+            <button
+              key={option.days}
+              type="button"
+              aria-pressed={range === option.days}
+              onClick={() => setRange(option.days)}
+              className={`h-10 rounded-[18px] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${range === option.days ? 'bg-white font-bold text-[#3B0F2C]' : 'font-semibold text-wa-on-plum-muted'}`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <StatTile label="Average pain" value={trends.averagePain === null ? '–' : trends.averagePain.toFixed(1)} unit={trends.averagePain === null ? undefined : ' /10'} />
+          <StatTile
+            label="Highest"
+            value={trends.highest ? String(trends.highest.level) : '–'}
+            unit={trends.highest ? ` · ${formatFullDate(trends.highest.dateStr).replace(/ \d{4}$/, '')}` : undefined}
+            valueClassName="text-wa-rose-text"
+          />
+          <StatTile label="Days logged" value={String(trends.daysLogged)} unit={` of ${range}`} />
+          <StatTile
+            label="Water, daily avg"
+            value={hydrationAverage === null ? '–' : hydrationAverage.toFixed(1)}
+            unit={hydrationAverage === null ? undefined : ' L'}
+            valueClassName="text-wa-water-bright"
+          />
+        </div>
+      </header>
+
+      <section aria-labelledby="history-overview-title" className="overflow-hidden rounded-[28px] bg-wa-surface">
+        <div className="flex flex-col gap-1 border-b border-wa-line px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div>
+            <h2 id="history-overview-title" className="font-display text-lg font-extrabold text-wa-plum">Your {RANGES.find((option) => option.days === range)?.label} snapshot</h2>
+            <p className="mt-0.5 text-small text-wa-muted">Choose a category to review its recorded details.</p>
+          </div>
+          <p className="text-caption font-medium text-wa-muted">Missing days are not estimated</p>
+        </div>
+        <div className="grid divide-y divide-wa-line sm:grid-cols-3 sm:divide-x sm:divide-y-0" role="tablist" aria-label="Health history categories">
           {overviewItems.map((item) => (
             <button
               key={item.id}
@@ -294,66 +321,78 @@ export const HealthHistory: React.FC<HealthHistoryProps> = ({ userId }) => {
               tabIndex={activeSection === item.id ? 0 : -1}
               onClick={() => setActiveSection(item.id)}
               onKeyDown={(event) => selectSectionFromKeyboard(event, item.id)}
-              className={`group min-h-28 px-4 py-4 text-left transition-colors duration-150 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus sm:px-5 ${activeSection === item.id ? item.activeClassName : 'bg-surface hover:bg-surface-subtle'}`}
+              className={`group min-h-28 px-4 py-4 text-left transition-colors duration-150 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-wa-crimson sm:px-5 ${activeSection === item.id ? item.activeClassName : 'bg-wa-surface hover:bg-wa-ground'}`}
             >
               <span className="flex items-center gap-3">
-                <span aria-hidden="true" className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-control ${item.iconClassName}`}>{item.icon}</span>
+                <span aria-hidden="true" className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${item.iconClassName}`}>{item.icon}</span>
                 <span className="min-w-0">
-                  <span className="block text-small font-semibold text-foreground">{item.label}</span>
-                  <span className="mt-0.5 block text-heading-3 tabular-nums text-foreground">{item.value}</span>
+                  <span className="block text-small font-semibold text-wa-plum">{item.label}</span>
+                  <span className="mt-0.5 block font-display text-base font-extrabold tabular-nums text-wa-plum">{item.value}</span>
                 </span>
               </span>
-              <span className="mt-2 block pl-[3.25rem] text-caption text-foreground-secondary">{item.latest}</span>
+              <span className="mt-2 block pl-[3.25rem] text-caption text-wa-muted">{item.latest}</span>
             </button>
           ))}
         </div>
       </section>
 
-      <section
-        id="history-panel-symptoms"
-        role="tabpanel"
-        aria-labelledby="history-tab-symptoms"
-        hidden={activeSection !== 'symptoms'}
-        className="space-y-5"
-      >
-        <div className="flex items-start gap-3">
-          <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-medical-50 text-action-accent"><HeartPulse size={21} /></span>
-          <div>
-            <h2 className="text-heading-2 text-foreground">Pain &amp; symptoms</h2>
-            <p className="mt-1 max-w-prose text-small text-foreground-secondary">Saved pain and symptom check-ins. A pain score of zero is a recorded value.</p>
-          </div>
-        </div>
+      <section id="history-panel-symptoms" role="tabpanel" aria-labelledby="history-tab-symptoms" hidden={activeSection !== 'symptoms'} className="space-y-3.5">
         {history.symptomState === 'cached' && <Alert tone="info" title="Showing information saved on this device">Cloud confirmation is unavailable.</Alert>}
         {symptomUnavailable ? (
           <StateMessage state="error" title="Pain and symptom history is unavailable right now" description="Try loading Health history again." />
-        ) : history.symptoms.length === 0 ? (
+        ) : !hasSymptoms ? (
           <StateMessage state="empty" title="No pain or symptom entries recorded yet" description="Entries saved from the pain and symptom check-in will appear here." />
         ) : (
-          <div className="grid items-start gap-5 xl:grid-cols-[minmax(20rem,0.9fr)_minmax(0,1.1fr)]">
-            <RecordedPainChart entries={history.symptoms} />
-            <Card as="section" padding="lg" className="shadow-none">
-              <div className="mb-1 flex items-center justify-between gap-4">
-                <h3 className="text-heading-3 text-foreground">Recent records</h3>
-                <span className="text-caption font-medium tabular-nums text-foreground-secondary">{history.symptoms.length} total</span>
-              </div>
+          <>
+            <HistoryErrorBoundary resetKey={`${range}-${history.symptoms.length}`}>
+              <RecordedPainChart entries={history.symptoms} rangeDays={range} />
+            </HistoryErrorBoundary>
+
+            {trends.topSymptoms.length > 0 && (
+              <section aria-labelledby="top-symptoms-title" className="flex flex-col gap-3 rounded-[28px] bg-wa-surface p-[18px]">
+                <h3 id="top-symptoms-title" className="font-display text-lg font-extrabold text-wa-plum">What showed up most</h3>
+                <ul className="flex flex-col gap-2.5 text-sm text-wa-plum">
+                  {trends.topSymptoms.map(([name, count]) => (
+                    <li key={name} className="grid grid-cols-[112px_1fr_24px] items-center gap-2.5">
+                      <span className="truncate">{name}</span>
+                      <div className="h-3 rounded-md bg-wa-ground" aria-hidden="true">
+                        <div className="h-3 rounded-md bg-wa-plum" style={{ width: `${Math.round((count / topMax) * 100)}%` }} />
+                      </div>
+                      <span className="text-right font-bold">{count}</span>
+                    </li>
+                  ))}
+                </ul>
+                {trends.pattern && (
+                  <p className="flex gap-2.5 rounded-[18px] bg-wa-rose px-3.5 py-3 text-sm leading-relaxed text-wa-plum">
+                    <Spark aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-wa-crimson" />
+                    <span>
+                      On days you noted <strong>{trends.pattern.trigger}</strong>, pain averaged <strong>{trends.pattern.withAverage.toFixed(1)}</strong>; other days <strong>{trends.pattern.withoutAverage.toFixed(1)}</strong>. A pattern in your records, not a diagnosis.
+                    </span>
+                  </p>
+                )}
+              </section>
+            )}
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <Button onClick={() => void share()}>Share with doctor</Button>
+              <Button variant="secondary" leadingIcon={<Download size={16} />} onClick={() => downloadSymptomCSV(history.symptoms)}>Download CSV</Button>
+            </div>
+            {shareNotice && <p role="status" className="px-1 text-small text-wa-muted">{shareNotice}</p>}
+
+            <h3 className="px-1 pt-1 font-display text-lg font-extrabold text-wa-plum">Entries</h3>
+            <HistoryErrorBoundary message="We couldn't show your entries here. Your entries are safe." resetKey={`${range}-${history.symptoms.length}`}>
               <RecordedHistoryTimeline entries={history.symptoms} />
-            </Card>
-          </div>
+            </HistoryErrorBoundary>
+          </>
         )}
       </section>
 
-      <section
-        id="history-panel-hydration"
-        role="tabpanel"
-        aria-labelledby="history-tab-hydration"
-        hidden={activeSection !== 'hydration'}
-        className="space-y-5"
-      >
+      <section id="history-panel-hydration" role="tabpanel" aria-labelledby="history-tab-hydration" hidden={activeSection !== 'hydration'} className="space-y-4">
         <div className="flex items-start gap-3">
-          <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-status-info-soft text-status-info"><Droplets size={21} /></span>
+          <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-wa-water-soft text-wa-water"><Droplets size={21} /></span>
           <div>
-            <h2 className="text-heading-2 text-foreground">Hydration</h2>
-            <p className="mt-1 max-w-prose text-small text-foreground-secondary">Only dates with a saved hydration record are shown.</p>
+            <h2 className="font-display text-lg font-extrabold text-wa-plum">Hydration</h2>
+            <p className="mt-1 max-w-prose text-small text-wa-muted">Only dates with a saved hydration record are shown.</p>
           </div>
         </div>
         {hydrationCached && <Alert tone="info" title="Showing information saved on this device">Cloud confirmation is unavailable for one or more entries.</Alert>}
@@ -363,19 +402,19 @@ export const HealthHistory: React.FC<HealthHistoryProps> = ({ userId }) => {
             ? <StateMessage state="error" title="Hydration history is unavailable right now" description="Try loading Health history again." />
             : <StateMessage state="empty" title="No hydration entries recorded for this period" description="A recorded amount of 0.00 L will appear as an entry; missing dates remain blank." />
         ) : (
-          <Card padding="none" className="overflow-hidden shadow-subtle">
-            <ul className="divide-y divide-line/60" aria-label="Recorded hydration entries">
+          <Card padding="none" className="overflow-hidden shadow-none">
+            <ul className="divide-y divide-wa-line-soft" aria-label="Recorded hydration entries">
               {hydrationEntries.map((entry) => (
                 <li key={entry.dateStr} className="flex min-h-20 items-center gap-3 px-4 py-3 sm:px-5">
-                  <span aria-hidden="true" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-status-info-soft text-status-info"><Droplets size={19} /></span>
+                  <span aria-hidden="true" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-wa-water-soft text-wa-water"><Droplets size={19} /></span>
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-foreground">{formatDate(entry.dateStr)}</p>
-                    <p className="text-small text-foreground-secondary">
+                    <p className="font-semibold text-wa-plum">{formatDate(entry.dateStr)}</p>
+                    <p className="text-small text-wa-muted">
                       {typeof entry.data?.goal === 'number' ? `Goal ${entry.data.goal.toFixed(2)} L` : 'Saved hydration entry'}
                       {entry.state === 'cached' ? ' · Saved on this device' : ''}
                     </p>
                   </div>
-                  <p className="shrink-0 text-body font-semibold tabular-nums text-foreground">{entry.data?.amount.toFixed(2)} L recorded</p>
+                  <p className="shrink-0 text-body font-semibold tabular-nums text-wa-plum">{entry.data?.amount.toFixed(2)} L recorded</p>
                 </li>
               ))}
             </ul>
@@ -383,18 +422,12 @@ export const HealthHistory: React.FC<HealthHistoryProps> = ({ userId }) => {
         )}
       </section>
 
-      <section
-        id="history-panel-checkIns"
-        role="tabpanel"
-        aria-labelledby="history-tab-checkIns"
-        hidden={activeSection !== 'checkIns'}
-        className="space-y-5"
-      >
+      <section id="history-panel-checkIns" role="tabpanel" aria-labelledby="history-tab-checkIns" hidden={activeSection !== 'checkIns'} className="space-y-4">
         <div className="flex items-start gap-3">
-          <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-status-success-soft text-status-success-text"><CalendarCheck2 size={21} /></span>
+          <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-wa-sun-soft text-wa-sun-ink"><CalendarCheck2 size={21} /></span>
           <div>
-            <h2 className="text-heading-2 text-foreground">Daily check-ins</h2>
-            <p className="mt-1 max-w-prose text-small text-foreground-secondary">Your selected check-in label and optional note. System-mapped numeric scores are not shown.</p>
+            <h2 className="font-display text-lg font-extrabold text-wa-plum">Daily check-ins</h2>
+            <p className="mt-1 max-w-prose text-small text-wa-muted">Your selected check-in label and optional note. System-mapped numeric scores are not shown.</p>
           </div>
         </div>
         {checkInsCached && <Alert tone="info" title="Showing information saved on this device">Cloud confirmation is unavailable for one or more check-ins.</Alert>}
@@ -404,18 +437,18 @@ export const HealthHistory: React.FC<HealthHistoryProps> = ({ userId }) => {
             ? <StateMessage state="error" title="Daily check-in history is unavailable right now" description="Try loading Health history again." />
             : <StateMessage state="empty" title="No daily check-ins recorded for this period" description="Saved daily check-ins will appear here." />
         ) : (
-          <Card padding="none" className="overflow-hidden shadow-subtle">
-            <ul className="divide-y divide-line/60" aria-label="Recorded daily check-ins">
+          <Card padding="none" className="overflow-hidden shadow-none">
+            <ul className="divide-y divide-wa-line-soft" aria-label="Recorded daily check-ins">
               {checkInEntries.map((entry) => (
                 <li key={entry.dateStr} className="flex min-h-20 items-start gap-3 px-4 py-4 sm:px-5">
-                  <span aria-hidden="true" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-status-success-soft text-status-success-text"><CalendarCheck2 size={19} /></span>
+                  <span aria-hidden="true" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-wa-sun-soft text-wa-sun-ink"><CalendarCheck2 size={19} /></span>
                   <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-semibold text-foreground">{formatDate(entry.dateStr)}</p>
-                      <p className="mt-1 text-body text-foreground">{entry.data?.emotion || 'Check-in recorded'}</p>
-                      {entry.data?.note && <p className="mt-1 max-w-prose text-small text-foreground-secondary">{entry.data.note}</p>}
+                      <p className="font-semibold text-wa-plum">{formatDate(entry.dateStr)}</p>
+                      <p className="mt-1 text-body text-wa-plum">{entry.data?.emotion || 'Check-in recorded'}</p>
+                      {entry.data?.note && <p className="mt-1 max-w-prose text-small text-wa-muted">{entry.data.note}</p>}
                     </div>
-                    {entry.state === 'cached' && <span className="text-small font-medium text-status-info-text">Saved on this device</span>}
+                    {entry.state === 'cached' && <span className="text-small font-medium text-wa-water">Saved on this device</span>}
                   </div>
                 </li>
               ))}
@@ -424,12 +457,12 @@ export const HealthHistory: React.FC<HealthHistoryProps> = ({ userId }) => {
         )}
       </section>
 
-      <details className="group rounded-card border border-line bg-surface">
-        <summary data-ui-control className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-small font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus sm:px-5">
+      <details className="group rounded-[28px] bg-wa-surface">
+        <summary data-ui-control className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-small font-semibold text-wa-plum focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-wa-crimson sm:px-5">
           About medication history
-          <ChevronDown size={18} aria-hidden="true" className="shrink-0 text-foreground-secondary transition-transform duration-150 group-open:rotate-180" />
+          <ChevronDown size={18} aria-hidden="true" className="shrink-0 text-wa-muted transition-transform duration-150 group-open:rotate-180" />
         </summary>
-        <p className="border-t border-line px-4 py-4 text-small text-foreground-secondary sm:px-5">
+        <p className="border-t border-wa-line px-4 py-4 text-small text-wa-muted sm:px-5">
           Detailed medication adherence history is not available from the current records. No dose timeline or adherence percentage is estimated here.
         </p>
       </details>

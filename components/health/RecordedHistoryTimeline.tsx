@@ -1,6 +1,6 @@
 import React from 'react';
-import { Droplets } from 'lucide-react';
 import type { HealthHistoryReadState, SymptomHistoryData } from '../../services/firebaseService';
+import { formatLongDate } from '../../utils/trends';
 
 export interface RecordedSymptomEntry extends SymptomHistoryData {
   sourceState?: Extract<HealthHistoryReadState, 'recorded' | 'cached'>;
@@ -10,57 +10,29 @@ export interface RecordedHistoryTimelineProps {
   entries: RecordedSymptomEntry[];
 }
 
-const formatDate = (dateStr: string) => new Intl.DateTimeFormat('en-US', {
-  weekday: 'short',
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-}).format(new Date(`${dateStr}T12:00:00`));
-
-const OptionalList: React.FC<{ label: string; values?: string[] }> = ({ label, values }) => {
-  if (!values?.length) return null;
-  return (
-    <div>
-      <dt className="text-small font-medium text-foreground-secondary">{label}</dt>
-      <dd className="mt-2 flex flex-wrap gap-1.5">
-        {values.map((value) => (
-          <span key={value} className="rounded-pill bg-surface-subtle px-2.5 py-1 text-small text-foreground">{value}</span>
-        ))}
-      </dd>
-    </div>
-  );
-};
-
 export const RecordedHistoryTimeline: React.FC<RecordedHistoryTimelineProps> = ({ entries }) => (
-  <ol className="mt-2 divide-y divide-line" aria-label="Recorded pain and symptom entries">
-    {entries.map((entry) => (
-      <li key={entry.dateStr} className="py-4 first:pt-3 last:pb-0">
-        <article aria-labelledby={`history-entry-${entry.dateStr}`}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h4 id={`history-entry-${entry.dateStr}`} className="text-body font-semibold text-foreground">
-                {formatDate(entry.dateStr)}
-              </h4>
-              {entry.sourceState === 'cached' && <span className="mt-1 block text-small font-medium text-status-info-text">Saved on this device</span>}
-            </div>
-            <span className="inline-flex min-h-9 shrink-0 items-center rounded-pill bg-medical-50 px-3 text-small font-semibold tabular-nums text-action-accent">Pain: {entry.painLevel} / 10</span>
+  <ol className="flex flex-col gap-2.5" aria-label="Recorded pain and symptom entries">
+    {entries.map((entry, index) => {
+      const high = entry.painLevel >= 4;
+      const detail = [entry.symptoms?.length ? entry.symptoms.join(', ') : null, entry.triggers?.length ? entry.triggers.join(', ') : null].filter(Boolean).join(' · ');
+      return (
+        <li key={entry.dateStr || entry.id || index} className="flex items-center gap-3.5 rounded-[22px] bg-wa-surface px-4 py-3.5">
+          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl font-display text-xl font-extrabold ${high ? 'bg-wa-rose text-wa-crimson' : 'bg-wa-sun-soft text-wa-sun-ink'}`}>
+            <span aria-hidden="true">{entry.painLevel}</span>
+            <span className="sr-only">Pain: {entry.painLevel} / 10</span>
           </div>
-
-          <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-            <OptionalList label="Symptoms" values={entry.symptoms} />
-            <OptionalList label="Possible triggers" values={entry.triggers} />
-            {typeof entry.waterIntake === 'number' && (
-              <div>
-                <dt className="inline-flex items-center gap-2 text-small font-medium text-foreground-secondary">
-                  <Droplets size={16} aria-hidden="true" /> Hydration recorded with this check-in
-                </dt>
-                <dd className="mt-1 text-body text-foreground">{entry.waterIntake.toFixed(2)} L</dd>
-              </div>
-            )}
-          </dl>
-        </article>
-      </li>
-    ))}
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-wa-plum">{formatLongDate(entry.dateStr) || 'Date not recorded'}</p>
+            <p className="text-[13px] text-wa-muted">
+              {detail}
+              {detail && typeof entry.waterIntake === 'number' ? ' · ' : ''}
+              {typeof entry.waterIntake === 'number' && <><span>{entry.waterIntake.toFixed(2)} L</span> water</>}
+              {!detail && typeof entry.waterIntake !== 'number' && 'No symptoms or triggers noted'}
+            </p>
+            {entry.sourceState === 'cached' && <p className="mt-0.5 text-[13px] font-medium text-wa-water">Saved on this device</p>}
+          </div>
+        </li>
+      );
+    })}
   </ol>
 );
-

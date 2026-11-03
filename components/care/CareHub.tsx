@@ -50,12 +50,7 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
 
   if (view === 'history') {
     return (
-      <div className="space-y-6">
-        <Button variant="ghost" leadingIcon={<ArrowLeft size={18} />} onClick={() => setView('overview')}>
-          Back to Care
-        </Button>
-        <HealthHistory userId={userId} />
-      </div>
+      <HealthHistory userId={userId} onBack={() => setView('overview')} />
     );
   }
 
