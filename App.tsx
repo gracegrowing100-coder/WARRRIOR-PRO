@@ -300,15 +300,14 @@ const App: React.FC = () => {
             isOffline={isOffline}
             onHome={() => navigate('home')}
             actions={(
-              <div className="flex items-center justify-end gap-2 sm:gap-3">
-                <SosPill className="md:hidden" />
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 w-full sm:w-auto">
                 {/* Multilingual Selector */}
                 <div className="flex min-h-11 items-center rounded-control border border-line bg-surface-subtle px-2">
                   <Globe size={18} className="mr-1.5 shrink-0 text-foreground-secondary" />
                   <select
                     value={language}
                     onChange={(e) => handleLanguageChange(e.target.value as SupportedLanguage)}
-                    className="min-h-11 bg-transparent text-body font-medium text-foreground focus-visible:outline-focus"
+                    className="min-h-11 w-full bg-transparent text-body font-medium text-foreground focus-visible:outline-focus"
                     aria-label="Select Language"
                   >
                     <option value="en">English</option>
@@ -318,28 +317,31 @@ const App: React.FC = () => {
                   </select>
                 </div>
                 
-                {/* Real-time High Contrast Mode Toggle */}
-                <button
-                  onClick={toggleHighContrast}
-                  title="Toggle High Contrast Mode"
-                  aria-label="Toggle High Contrast Mode"
-                  data-ui-control
-                  aria-pressed={highContrast}
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-control border border-line ${highContrast ? 'bg-action text-foreground-inverse' : 'bg-surface-subtle text-foreground'}`}
-                >
-                  <Eye size={18} />
-                </button>
+                <div className="flex items-center gap-2">
+                  {/* Real-time High Contrast Mode Toggle */}
+                  <button
+                    onClick={toggleHighContrast}
+                    title="Toggle High Contrast Mode"
+                    aria-label="Toggle High Contrast Mode"
+                    data-ui-control
+                    aria-pressed={highContrast}
+                    className={`flex-1 sm:flex-none flex h-11 sm:w-11 items-center justify-center gap-2 rounded-control border border-line px-3 sm:px-0 ${highContrast ? 'bg-action text-foreground-inverse' : 'bg-surface-subtle text-foreground'}`}
+                  >
+                    <Eye size={18} />
+                    <span className="sm:hidden text-xs font-semibold">High contrast</span>
+                  </button>
 
-                {/* Real-time Theme Toggle */}
-                <button
-                  onClick={toggleTheme}
-                  aria-label="Toggle layout theme"
-                  data-ui-control
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-surface-subtle text-foreground"
-                >
-                  {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-                </button>
-
+                  {/* Real-time Theme Toggle */}
+                  <button
+                    onClick={toggleTheme}
+                    aria-label="Toggle layout theme"
+                    data-ui-control
+                    className="flex-1 sm:flex-none flex h-11 sm:w-11 items-center justify-center gap-2 rounded-control bg-surface-subtle text-foreground border border-line px-3 sm:px-0"
+                  >
+                    {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+                    <span className="sm:hidden text-xs font-semibold">{darkMode ? 'Light' : 'Dark'}</span>
+                  </button>
+                </div>
               </div>
             )}
             accountAction={(

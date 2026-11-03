@@ -92,7 +92,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           aria-label="Display and language settings"
           className={cn(
             'items-center rounded-card border border-line bg-surface p-2 shadow-elevated sm:static sm:flex sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none',
-            settingsOpen ? 'absolute right-12 top-12 z-50 flex' : 'hidden',
+            settingsOpen ? 'absolute right-0 top-14 z-50 flex flex-col sm:flex-row gap-2.5 p-3 rounded-2xl shadow-xl' : 'hidden',
           )}
         >
           {actions}
