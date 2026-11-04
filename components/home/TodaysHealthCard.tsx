@@ -222,18 +222,18 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
           ) : null}
 
           <dl className="mt-auto grid grid-cols-2 gap-3 sm:grid-cols-3 lg:gap-4">
-            <div className="min-h-32 rounded-[20px] bg-white/[0.08] p-4 border border-white/12 sm:min-h-36 sm:p-5 lg:min-h-40 lg:p-6">
+            <div className="min-h-32 min-w-0 overflow-hidden rounded-[20px] bg-white/[0.08] p-3.5 border border-white/12 sm:min-h-36 sm:p-5 lg:min-h-40 lg:p-6">
               <div className="flex items-center gap-2 text-small font-semibold text-white/85">
                 <HeartPulse size={18} className="text-medical-100" aria-hidden="true" />
                 <dt>Recorded pain</dt>
               </div>
-              <dd className="mt-4 text-heading-1 tabular-nums text-white">
+              <dd className={`mt-4 break-words tabular-nums text-white ${snapshot.painLevel === null ? 'text-body font-semibold sm:text-heading-3' : 'text-heading-1'}`}>
                 {snapshot.painLevel === null ? 'Not recorded' : `${snapshot.painLevel} / 10`}
               </dd>
             </div>
-            <div className="min-h-32 rounded-[20px] bg-white/[0.08] p-4 border border-white/12 sm:min-h-36 sm:p-5 lg:min-h-40 lg:p-6">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-small font-semibold text-white/85">
+            <div className="min-h-32 min-w-0 overflow-hidden rounded-[20px] bg-white/[0.08] p-3.5 border border-white/12 sm:min-h-36 sm:p-5 lg:min-h-40 lg:p-6">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2 text-small font-semibold text-white/85">
                   <Droplets size={18} className="text-sky-300" aria-hidden="true" />
                   <dt>Hydration</dt>
                 </div>
@@ -241,7 +241,8 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                   variant="secondary"
                   size="sm"
                   onClick={() => setWaterModalOpen(true)}
-                  className="min-h-8 px-2 border-white/30 bg-white/10 text-white hover:bg-white/20"
+                  aria-label="Add water"
+                  className="-mr-1 -mt-1 h-8 min-h-8 w-8 shrink-0 px-0 border-white/30 bg-white/10 text-white hover:bg-white/20"
                 >
                   <Plus size={14} />
                 </Button>
