@@ -14,6 +14,7 @@ import { PatternInsightsDoctorReport } from './PatternInsightsDoctorReport';
 import { SymptomPainCheckIn } from './health';
 import { HomeActionHub, RecentHealthSummary, TodaysHealthCard, UpcomingAppointmentCard } from './home';
 import { WeatherCard } from './home/WeatherCard';
+import { WelcomeGuide } from './home/WelcomeGuide';
 import { Spark } from './brand';
 import { Button, SosPill } from './ui';
 import { firebaseService } from '../services/firebaseService';
@@ -136,10 +137,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
               <Spark className="w-3 h-3 text-wa-coral" />
               <span>{streakDays > 0 ? `${streakDays}-day logging streak` : 'Start your logging streak today'}</span>
             </div>
+            <p className="mt-3 max-w-sm text-[14px] leading-snug text-wa-on-plum-muted">
+              Your daily health companion. Start with a quick check-in below.
+            </p>
           </div>
           <SosPill className="md:hidden" onClick={() => document.getElementById('emergency-fab')?.click()} />
         </div>
       </header>
+
+      <WelcomeGuide />
 
       <TodaysHealthCard
         userId={userId}

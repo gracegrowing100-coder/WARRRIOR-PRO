@@ -18,7 +18,8 @@ export const HomeActionHub: React.FC<HomeActionHubProps> = ({
 }) => {
   return (
     <section aria-label="Quick actions" className="w-full">
-      <h2 className="sr-only">Quick actions</h2>
+      <h2 className="font-display text-[16px] font-bold text-wa-plum dark:text-white">Quick actions</h2>
+      <p className="mb-3 mt-0.5 text-[13px] text-wa-plum-muted dark:text-wa-on-plum-muted">Tap an icon to get started.</p>
       <div className="grid grid-cols-4 gap-2">
         <button
           type="button"
@@ -81,7 +82,7 @@ export const HomeActionHub: React.FC<HomeActionHubProps> = ({
           >
             <Spark className="h-6 w-6 text-wa-crimson" />
           </span>
-          <span>Ask Mira</span>
+          <span>Ask Mira<span className="block text-[11px] font-medium text-wa-plum-muted">AI helper</span></span>
         </button>
       </div>
     </section>
