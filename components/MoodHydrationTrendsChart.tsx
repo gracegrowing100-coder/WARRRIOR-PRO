@@ -178,7 +178,7 @@ export const MoodHydrationTrendsChart: React.FC<MoodHydrationTrendsProps> = ({ u
       ) : (
         <div className="space-y-3">
           <div className="h-60 w-full rounded-[22px] bg-wa-ground/50 dark:bg-white/5 p-3 sm:p-4 border border-wa-line-soft/60 dark:border-white/5">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={240} minWidth={0} minHeight={240}>
               <ComposedChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="waHydrationFill" x1="0" y1="0" x2="0" y2="1">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, LifeBuoy, ShieldCheck } from 'lucide-react';
+import { ChevronDown, LifeBuoy, ShieldCheck, TrendingUp, FileText, Bell, UserCheck, Heart, Shield } from 'lucide-react';
 import { Page } from '../App';
 import { WaterIntakeTracker } from './WaterIntakeTracker';
 import { MedicationReminder } from './MedicationReminder';
@@ -24,12 +24,18 @@ interface DashboardProps {
   userId: string;
 }
 
-const ExpandableTool: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => {
+const ExpandableTool: React.FC<{ title: string; icon?: React.ReactNode; children: React.ReactNode }> = ({ title, icon, children }) => {
   const [open, setOpen] = useState(false);
 
   return (
-    <details open={open} onToggle={event => setOpen(event.currentTarget.open)}>
-      <summary className="min-h-12 cursor-pointer py-3 text-small font-semibold focus-visible:outline focus-visible:outline-focus">{title}</summary>
+    <details className="group" open={open} onToggle={event => setOpen(event.currentTarget.open)}>
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between py-3 text-small font-bold text-wa-plum dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson">
+        <span className="flex items-center gap-2.5">
+          {icon && <span className="text-wa-crimson">{icon}</span>}
+          <span>{title}</span>
+        </span>
+        <ChevronDown size={18} className="text-wa-plum-muted dark:text-wa-on-plum-muted transition-transform group-open:rotate-180 shrink-0" aria-hidden="true" />
+      </summary>
       {open ? <div className="pb-4">{children}</div> : null}
     </details>
   );
@@ -237,13 +243,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
         </summary>
         <div className="divide-y divide-line/50 border-t border-line/40 px-4 sm:px-5">
           {[
-            { title: 'Mood and hydration trends', content: <MoodHydrationTrendsChart userId={userId} refreshTrigger={refreshPain} /> },
-            { title: 'Generated reports', content: <PatternInsightsDoctorReport userId={userId} /> },
-            { title: 'Scheduled reminders', content: <ScheduledRemindersManager userId={userId} /> },
-            { title: 'Caregiver tools', content: <DesignatedCaregiverWidget userId={userId} currentPainLevel={currentPainLevel} /> },
-            { title: 'Pain trends', content: <section id="pain-trends-chart-card" aria-label="Pain trends"><PainTrendsChart userId={userId} refreshKey={refreshPain} /></section> },
-            { title: 'Care Vault', content: <section id="care-vault-section" aria-label="Care Vault"><CareVault userId={userId} /></section> },
-          ].map(tool => <ExpandableTool key={tool.title} title={tool.title}>{tool.content}</ExpandableTool>)}
+            { title: 'Mood and hydration trends', icon: <TrendingUp size={16} />, content: <MoodHydrationTrendsChart userId={userId} refreshTrigger={refreshPain} /> },
+            { title: 'Generated reports', icon: <FileText size={16} />, content: <PatternInsightsDoctorReport userId={userId} /> },
+            { title: 'Scheduled reminders', icon: <Bell size={16} />, content: <ScheduledRemindersManager userId={userId} /> },
+            { title: 'Caregiver tools', icon: <UserCheck size={16} />, content: <DesignatedCaregiverWidget userId={userId} currentPainLevel={currentPainLevel} /> },
+            { title: 'Pain trends', icon: <Heart size={16} />, content: <section id="pain-trends-chart-card" aria-label="Pain trends"><PainTrendsChart userId={userId} refreshKey={refreshPain} /></section> },
+            { title: 'Care Vault', icon: <Shield size={16} />, content: <section id="care-vault-section" aria-label="Care Vault"><CareVault userId={userId} /></section> },
+          ].map(tool => <ExpandableTool key={tool.title} title={tool.title} icon={tool.icon}>{tool.content}</ExpandableTool>)}
         </div>
       </details>
 

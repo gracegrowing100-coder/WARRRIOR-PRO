@@ -185,7 +185,7 @@ export const PainTrendsChart: React.FC<PainTrendsChartProps> = ({ userId, refres
             </div>
           ) : hasRecords ? (
             <div className="h-56 w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={230} minWidth={0} minHeight={230}>
                 <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                   <defs>
                     <linearGradient id="waPainGrad" x1="0" y1="0" x2="0" y2="1">
