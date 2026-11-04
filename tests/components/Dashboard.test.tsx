@@ -65,7 +65,7 @@ describe('Patient Home critical rendering', () => {
     expect(document.body).not.toHaveTextContent('Pattern report for patient-1');
     expect(screen.getByRole('button', { name: /Log symptoms and pain/i })).toBeInTheDocument();
     expect(screen.getByText('More health tools')).toBeInTheDocument();
-    expect(container.querySelectorAll('details')).toHaveLength(8);
+    expect(container.querySelectorAll('details')).toHaveLength(7);
     container.querySelectorAll('details').forEach(details => expect(details.open).toBe(false));
     expect(container.querySelector('#water-intake-tracker-module')).toBeInTheDocument();
     expect(container.querySelector('#medication-reminder-card')).toBeInTheDocument();

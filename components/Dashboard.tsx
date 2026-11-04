@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, LifeBuoy } from 'lucide-react';
+import { ChevronDown, LifeBuoy, ShieldCheck } from 'lucide-react';
 import { Page } from '../App';
 import { WaterIntakeTracker } from './WaterIntakeTracker';
 import { MedicationReminder } from './MedicationReminder';
 import { PainTrendsChart } from './PainTrendsChart';
 import { CareVault } from './CareVault';
 import { DesignatedCaregiverWidget } from './DesignatedCaregiverWidget';
-import { HealthTipsWisdom } from './HealthTipsWisdom';
 import { DailyMoodCheckIn } from './DailyMoodCheckIn';
 import { MoodHydrationTrendsChart } from './MoodHydrationTrendsChart';
 import { ScheduledRemindersManager } from './ScheduledRemindersManager';
@@ -238,7 +237,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
         </summary>
         <div className="divide-y divide-line/50 border-t border-line/40 px-4 sm:px-5">
           {[
-            { title: 'Health guidance', content: <HealthTipsWisdom userName={profileName} userRole="Warrior" /> },
             { title: 'Mood and hydration trends', content: <MoodHydrationTrendsChart userId={userId} refreshTrigger={refreshPain} /> },
             { title: 'Generated reports', content: <PatternInsightsDoctorReport userId={userId} /> },
             { title: 'Scheduled reminders', content: <ScheduledRemindersManager userId={userId} /> },
@@ -248,6 +246,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
           ].map(tool => <ExpandableTool key={tool.title} title={tool.title}>{tool.content}</ExpandableTool>)}
         </div>
       </details>
+
+      {/* Patient Privacy & Data Ethics Notice */}
+      <section aria-labelledby="privacy-ethics-title" className="rounded-[22px] bg-wa-ground/60 dark:bg-white/5 p-4 border border-wa-line-soft/80 dark:border-white/10 text-wa-plum dark:text-white flex items-start gap-3">
+        <span aria-hidden="true" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+          <ShieldCheck size={20} />
+        </span>
+        <div className="min-w-0">
+          <h2 id="privacy-ethics-title" className="text-[13px] font-bold">Privacy & Clinical Data Ethics</h2>
+          <p className="text-[12px] leading-relaxed text-wa-plum-muted dark:text-wa-on-plum-muted mt-0.5">
+            Your personal health logs, symptom records, and pain trends are stored with patient privacy safeguards. Your data is never sold or shared without your explicit consent.
+          </p>
+        </div>
+      </section>
       <SymptomPainCheckIn
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
