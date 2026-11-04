@@ -109,7 +109,7 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
   // Construct complete, factual clinical doctor discussion summary
   const generateLocalReportMarkdown = useCallback(() => {
     const name = patientProfile?.displayName || 'Patient';
-    const genotype = patientProfile?.genotype || 'HbSS';
+    const genotype = patientProfile?.genotype || 'Genotype not recorded';
     const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
     return `### Clinical Consultation Summary
@@ -152,11 +152,11 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
           },
           {
             avgPain: logsSummary.avgPain,
-            severePainEntries: logsSummary.severeCount,
+            severePainEntries: logsSummary.severeCount || null,
             hydrationCompliance: logsSummary.hydrationRate,
             reportingPeriod: 'Last 30 Days',
           },
-          {}
+          { recentPainLogs: [], recentSymptoms: [] }
         );
         setDoctorReportMarkdown(markdown || generateLocalReportMarkdown());
       } catch {
@@ -238,7 +238,7 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
             className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-wa-crimson px-4 text-xs font-bold text-white hover:bg-wa-crimson-press shadow-sm transition-all"
           >
             <FileText size={14} />
-            <span>View Doctor Report</span>
+            <span>Generate Discussion Summary</span>
           </button>
         </div>
       </div>
@@ -252,9 +252,10 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
         <div className="space-y-3">
           {aiHeadline && (
             <div className="rounded-[20px] bg-wa-hero text-white p-4">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-white/70 block">
-                Health Observation
-              </span>
+              <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-white/70">
+                <span>Generated observation</span>
+                <span>Experimental AI output</span>
+              </div>
               <p className="font-display text-sm font-bold mt-1 text-white leading-snug">
                 &ldquo;{aiHeadline}&rdquo;
               </p>
@@ -301,7 +302,7 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
             <div className="flex items-center justify-between pb-3 border-b border-wa-line-soft dark:border-white/10">
               <div className="flex items-center gap-2">
                 <FileText className="text-wa-crimson" size={20} />
-                <h3 className="font-display text-lg font-bold">Doctor Discussion Summary</h3>
+                <h3 className="font-display text-lg font-bold">AI-Generated Patient Discussion Summary</h3>
               </div>
               <button
                 type="button"
@@ -310,6 +311,12 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
               >
                 <X size={20} />
               </button>
+            </div>
+
+            <div className="bg-wa-ground/60 dark:bg-white/5 rounded-xl p-3 border border-wa-line-soft text-xs text-wa-plum-muted dark:text-wa-on-plum-muted mt-3">
+              <p className="font-semibold text-wa-crimson">Not a clinical record or clinician-verified report.</p>
+              <p className="mt-0.5">This summary was generated from patient-recorded entries for consultation support.</p>
+              <p className="mt-1 font-medium">{patientProfile?.genotype ? `Genotype: ${patientProfile.genotype}` : 'Genotype not recorded'}</p>
             </div>
 
             <div id="doctor-report-content" className="flex-1 overflow-y-auto py-4 space-y-3 prose dark:prose-invert max-w-none text-sm">

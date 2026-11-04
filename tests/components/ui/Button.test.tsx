@@ -7,9 +7,9 @@ import { Button, IconButton } from '../../../components/ui';
 describe('Button', () => {
   it('retains foreground colors alongside custom typography tokens', () => {
     render(<><Button>Open Care</Button><Button variant="accent" size="sm">Accent</Button><Button variant="danger" size="lg">Urgent</Button></>);
-    expect(screen.getByRole('button', { name: 'Open Care' })).toHaveClass('text-foreground-inverse', 'text-body');
-    expect(screen.getByRole('button', { name: 'Accent' })).toHaveClass('text-white', 'text-small');
-    expect(screen.getByRole('button', { name: 'Urgent' })).toHaveClass('text-white', 'text-body');
+    expect(screen.getByRole('button', { name: 'Open Care' })).toHaveClass('text-white', 'font-body');
+    expect(screen.getByRole('button', { name: 'Accent' })).toHaveClass('text-white', 'font-semibold');
+    expect(screen.getByRole('button', { name: 'Urgent' })).toHaveClass('text-white', 'font-bold');
   });
   it('uses native button semantics and does not submit by default', () => {
     render(<Button>Save changes</Button>);

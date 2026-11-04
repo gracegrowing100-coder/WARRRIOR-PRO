@@ -117,7 +117,7 @@ describe('Mira assistant experience', () => {
     renderMira();
 
     expect(await screen.findByRole('heading', { name: 'Mira' })).toBeInTheDocument();
-    expect(screen.getByText(/by WARRIOR AI/)).toBeInTheDocument();
+    expect(screen.getByText(/by WARRIOR AI/i)).toBeInTheDocument();
     expect(screen.getByText(/AI sickle-cell assistant/i)).toBeInTheDocument();
     expect(screen.getByText(/Mira is an AI assistant, not a doctor/i)).toBeInTheDocument();
     expect(screen.queryByText(/Dr\.|hematologist on call|I am your doctor|clinician-verified/i)).not.toBeInTheDocument();

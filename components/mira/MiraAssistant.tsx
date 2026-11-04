@@ -515,7 +515,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
             <div className="min-w-0">
               <h2 id="mira-heading" className="text-heading-3 text-foreground">Mira</h2>
               <p className="truncate text-caption text-foreground-secondary">{isOffline ? 'Offline mode · Local advice' : 'AI sickle-cell assistant'}</p>
-              <span className="sr-only">by Warrior AI</span>
+              <span className="sr-only">by WARRIOR AI</span>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">

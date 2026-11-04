@@ -17,12 +17,14 @@ vi.mock('../../../firebase-init', () => ({
 const appointmentService = vi.hoisted(() => ({
   addAppointment: vi.fn(),
   getAppointmentRequests: vi.fn(),
+  getUserProfileState: vi.fn(),
 }));
 
 vi.mock('../../../services/firebaseService', () => ({
   firebaseService: {
     addAppointment: appointmentService.addAppointment,
     getAppointmentRequests: appointmentService.getAppointmentRequests,
+    getUserProfileState: appointmentService.getUserProfileState,
   },
 }));
 
@@ -73,6 +75,7 @@ describe('Mira appointment handoff', () => {
     });
     appointmentService.addAppointment.mockReset();
     appointmentService.getAppointmentRequests.mockReset().mockResolvedValue({ state: 'empty', data: [] });
+    appointmentService.getUserProfileState.mockReset().mockResolvedValue({ state: 'recorded', data: { displayName: 'Tayo' } });
   });
 
   it('opens the existing appointment request with the approved summary prefilled and submits nothing', async () => {

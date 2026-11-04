@@ -100,7 +100,7 @@ export const PatientNavigation: React.FC<PatientNavigationProps> = ({
                 aria-label={label}
                 onClick={() => onNavigate(id)}
                 className={cn(
-                  'h-[56px] rounded-[28px] flex flex-col items-center justify-center gap-0.5 transition-colors font-body',
+                  'h-[56px] rounded-[28px] flex flex-col items-center justify-center gap-0.5 transition-colors font-body touch-manipulation',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--wa-hero)]',
                   isCurrent
                     ? 'bg-wa-crimson text-white font-semibold'
@@ -108,7 +108,7 @@ export const PatientNavigation: React.FC<PatientNavigationProps> = ({
                 )}
               >
                 <Icon size={22} aria-hidden="true" strokeWidth={isCurrent ? 2.5 : 2} />
-                <span className="text-[11px] font-semibold leading-none">{label}</span>
+                <span className="text-[11px] font-semibold leading-none whitespace-nowrap">{label}</span>
               </button>
             );
           })}
@@ -175,7 +175,7 @@ export const PatientNavigation: React.FC<PatientNavigationProps> = ({
             <button
               type="button"
               onClick={onOpenProfile}
-              aria-label="Open profile"
+              aria-label={`View profile: ${profileLabel}`}
               className="flex w-full items-center gap-3 rounded-full bg-white/5 p-2 hover:bg-white/10 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               {profilePhotoUrl ? (

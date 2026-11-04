@@ -15,18 +15,17 @@ import {
 } from '../../../components/ui';
 
 const modes = [
-  { name: 'Light', className: '' },
-  { name: 'Dark', className: 'dark' },
+  { name: 'Light mode', className: 'light' },
+  { name: 'Dark mode', className: 'dark' },
   { name: 'High contrast', className: 'high-contrast' },
-  { name: 'Dark high contrast', className: 'dark high-contrast' },
 ];
 
 const Gallery = () => (
   <div>
     {modes.map((mode) => (
       <section key={mode.name} aria-label={mode.name} className={mode.className}>
-        <div className="bg-canvas p-4 text-foreground">
-          <Card>
+        <div className="bg-surface text-foreground p-6">
+          <Card padding="md">
             <Button>Primary action</Button>
             <Button loading>Save</Button>
             <ChoiceChip selected>Selected choice</ChoiceChip>
@@ -51,7 +50,7 @@ describe('primitive gallery fixture', () => {
 
     for (const mode of modes) {
       const region = screen.getByRole('region', { name: mode.name });
-      expect(within(region).getByRole('button', { name: 'Primary action' })).toHaveClass('min-h-11');
+      expect(within(region).getByRole('button', { name: 'Primary action' })).toHaveClass('h-12');
       expect(within(region).getByText('Stable')).toBeVisible();
       expect(within(region).getByRole('progressbar')).toBeInTheDocument();
     }

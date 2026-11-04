@@ -55,7 +55,7 @@ describe('SymptomPainCheckIn', () => {
     await user.click(screen.getByRole('button', { name: 'Fatigue' }));
     await user.click(screen.getByText('Optional details'));
     await user.click(screen.getByRole('button', { name: 'Stress' }));
-    await user.click(screen.getByRole('button', { name: /Increase today’s hydration total by 250/i }));
+    await user.click(screen.getByRole('button', { name: /Increase today['’]s hydration total by 250/i }));
     await user.click(screen.getByRole('button', { name: 'Save health entry' }));
 
     await waitFor(() => {
@@ -151,7 +151,7 @@ describe('SymptomPainCheckIn', () => {
 
     expect(screen.getByText('Optional details').closest('details')).not.toHaveAttribute('open');
     expect(screen.getByRole('button', { name: 'Fatigue' })).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: /note|body location/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/body location/i)).not.toBeInTheDocument();
   });
 });

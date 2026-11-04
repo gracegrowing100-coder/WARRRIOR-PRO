@@ -108,11 +108,12 @@ describe('App patient navigation integration', () => {
     const user = userEvent.setup();
     await renderAuthenticatedApp();
 
-    await user.click(screen.getByRole('button', { name: 'Care' }));
+    const navigation = screen.getByRole('navigation', { name: 'Patient navigation' });
+    await user.click(within(navigation).getByRole('button', { name: 'Care' }));
 
     expect(await screen.findByText('Care hub for patient-1')).toBeInTheDocument();
     expect(window.location.hash).toBe('#/care');
-    expect(screen.getByRole('button', { name: 'Care' })).toHaveAttribute('aria-current', 'page');
+    expect(within(navigation).getByRole('button', { name: 'Care' })).toHaveAttribute('aria-current', 'page');
 
     await user.click(screen.getByRole('button', { name: 'Open appointments' }));
     expect(await screen.findByText('Appointments screen for patient-1')).toBeInTheDocument();
@@ -127,14 +128,15 @@ describe('App patient navigation integration', () => {
     const user = userEvent.setup();
     await renderAuthenticatedApp();
 
-    await user.click(screen.getByRole('button', { name: 'More' }));
+    const navigation = screen.getByRole('navigation', { name: 'Patient navigation' });
+    await user.click(within(navigation).getByRole('button', { name: 'More' }));
     expect(await screen.findByRole('navigation', { name: 'More destinations' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Games & Education/i }));
     expect(await screen.findByText('Games screen')).toBeInTheDocument();
     expect(window.location.hash).toBe('#/games');
 
-    await user.click(screen.getByRole('button', { name: 'More' }));
+    await user.click(within(navigation).getByRole('button', { name: 'More' }));
     await user.click(screen.getByRole('button', { name: /Advocacy & Research/i }));
     expect(await screen.findByText('Advocacy screen')).toBeInTheDocument();
     expect(window.location.hash).toBe('#/advocacy');
@@ -142,7 +144,7 @@ describe('App patient navigation integration', () => {
 
   it.each([
     ['#/games', 'Games screen', 'More'],
-    ['#/chat', 'Chat screen', 'Chat'],
+    ['#/chat', 'Chat screen', 'Mira'],
     ['#/telemedicine', 'Appointments screen for patient-1', 'Care'],
     ['#/community', 'Community screen', 'Community'],
     ['#/advocacy', 'Advocacy screen', 'More'],
@@ -152,7 +154,8 @@ describe('App patient navigation integration', () => {
     await changeHash(hash);
 
     expect(await screen.findByText(expectedScreen)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: activeDestination })).toHaveAttribute(
+    const navigation = screen.getByRole('navigation', { name: 'Patient navigation' });
+    expect(within(navigation).getByRole('button', { name: activeDestination })).toHaveAttribute(
       'aria-current',
       'page',
     );

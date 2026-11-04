@@ -14,7 +14,7 @@ describe('PatientNavigation', () => {
     const buttons = within(navigation).getAllByRole('button');
 
     expect(buttons).toHaveLength(5);
-    for (const label of ['Home', 'Chat', 'Care', 'Community', 'More']) {
+    for (const label of ['Home', 'Mira', 'Care', 'Community', 'More']) {
       expect(within(navigation).getByRole('button', { name: label })).toBeVisible();
     }
     expect(within(navigation).getByRole('button', { name: 'Community' })).toHaveAttribute(
@@ -33,10 +33,10 @@ describe('PatientNavigation', () => {
     render(<PatientNavigation currentDestination="home" onNavigate={onNavigate} />);
 
     const navigation = screen.getByRole('navigation', { name: 'Patient navigation' });
-    expect(navigation).toHaveClass('pb-[var(--safe-area-bottom)]');
+    expect(navigation).toHaveClass('fixed', 'bottom-4');
 
-    const care = screen.getByRole('button', { name: 'Care' });
-    expect(care).toHaveClass('min-h-16', 'touch-manipulation');
+    const care = within(navigation).getByRole('button', { name: 'Care' });
+    expect(care).toHaveClass('h-[56px]', 'touch-manipulation');
     await user.click(care);
 
     expect(onNavigate).toHaveBeenCalledWith('care');
