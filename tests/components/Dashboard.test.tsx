@@ -43,7 +43,7 @@ import Dashboard from '../../components/Dashboard';
 
 describe('Patient Home critical rendering', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.clearAllMocks(); vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network disabled in tests')));
     service.addSymptomLog.mockResolvedValue(undefined);
     service.getWaterLog.mockResolvedValue({ state: 'recorded', data: { amount: 1, goal: 3 } });
     service.updateStreak.mockResolvedValue(4);
