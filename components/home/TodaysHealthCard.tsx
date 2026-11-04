@@ -237,15 +237,6 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                   <Droplets size={18} className="text-sky-300" aria-hidden="true" />
                   <dt>Hydration</dt>
                 </div>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setWaterModalOpen(true)}
-                  aria-label="Add water"
-                  className="-mr-1 -mt-1 h-8 min-h-8 w-8 shrink-0 px-0 border-white/30 bg-white/10 text-white hover:bg-white/20"
-                >
-                  <Plus size={14} />
-                </Button>
               </div>
               {snapshot.waterAmount !== null && snapshot.waterGoal !== null ? (
                 <dd className="mt-4">
@@ -267,6 +258,15 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                   {snapshot.hydrationState === 'unavailable' ? 'Unavailable' : 'Not recorded'}
                 </dd>
               )}
+              <button
+                type="button"
+                data-ui-control
+                onClick={() => setWaterModalOpen(true)}
+                className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-pill border border-white/40 bg-white/15 px-3 text-small font-semibold text-white hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <Plus size={16} aria-hidden="true" />
+                Add water
+              </button>
             </div>
             <div className="col-span-2 min-h-28 rounded-card bg-white/[0.11] p-4 ring-1 ring-inset ring-white/20 sm:col-span-1 sm:min-h-36 sm:p-5 lg:min-h-40 lg:p-6">
               <div className="flex items-center gap-2 text-small font-semibold text-white/85">
