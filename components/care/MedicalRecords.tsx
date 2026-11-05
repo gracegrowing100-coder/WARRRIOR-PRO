@@ -496,23 +496,22 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-wa-rose/70 text-wa-crimson">
                           {section.itemLabel} #{index + 1}
                         </span>
-                        
+
                       </div>
 
                       {itemRec && itemRec.isActive !== undefined && (
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                            itemRec.isActive
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${itemRec.isActive
                               ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
                               : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-                          }`}
+                            }`}
                         >
                           {itemRec.isActive ? 'Active Prescription' : 'Discontinued / Past'}
                         </span>
                       )}
                     </div>
 
-                    
+
 
                     {/* Content Rendering */}
                     {section.stringList ? (
@@ -819,11 +818,10 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
               <button
                 type="button"
                 onClick={() => setSelectedCategory('all')}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${
-                  selectedCategory === 'all'
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${selectedCategory === 'all'
                     ? 'bg-wa-plum text-white shadow-xs'
                     : 'bg-wa-surface text-wa-muted border border-wa-line-soft hover:bg-wa-ground'
-                }`}
+                  }`}
               >
                 <Layers size={13} />
                 All Sections
@@ -833,11 +831,10 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
                   key={g.category}
                   type="button"
                   onClick={() => setSelectedCategory(g.category)}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${
-                    selectedCategory === g.category
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${selectedCategory === g.category
                       ? 'bg-wa-plum text-white shadow-xs'
                       : 'bg-wa-surface text-wa-muted border border-wa-line-soft hover:bg-wa-ground'
-                  }`}
+                    }`}
                 >
                   <g.icon size={13} />
                   {g.title}
@@ -855,9 +852,8 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
                 <details
                   key={group.title}
                   open={selectedCategory === group.category || index === 0 ? true : undefined}
-                  className={`group rounded-3xl border border-wa-line-soft bg-surface shadow-xs transition-shadow hover:shadow-sm overflow-hidden ${
-                    isFiltered ? 'hidden' : ''
-                  }`}
+                  className={`group rounded-3xl border border-wa-line-soft bg-surface shadow-xs transition-shadow hover:shadow-sm overflow-hidden ${isFiltered ? 'hidden' : ''
+                    }`}
                 >
                   <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 sm:px-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus hover:bg-wa-ground/40 transition-colors">
                     <div className="flex items-center gap-3.5 min-w-0">
