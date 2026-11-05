@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { Users } from 'lucide-react';
 import ChatSystem from './ChatSystem';
 import { MiraAssistant } from './mira';
+import { Spark } from './brand';
 import { cn } from './ui';
 
 export interface ChatWorkspaceProps {
@@ -19,14 +21,24 @@ type ChatWorkspaceTab = 'mira' | 'community';
 export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ userId, onContinueToAppointment }) => {
   const [tab, setTab] = useState<ChatWorkspaceTab>('mira');
 
-  const tabs: Array<{ id: ChatWorkspaceTab; label: string; description: string }> = [
-    { id: 'mira', label: 'Mira', description: 'AI assistant for sickle cell support' },
-    { id: 'community', label: 'Community', description: 'Peer support and group chats' },
+  const tabs: Array<{ id: ChatWorkspaceTab; label: string; description: string; icon: React.ReactNode }> = [
+    { 
+      id: 'mira', 
+      label: 'Mira AI', 
+      description: 'AI assistant for sickle cell support',
+      icon: <Spark className="w-4 h-4 text-white" />
+    },
+    { 
+      id: 'community', 
+      label: 'Community & Peer Groups', 
+      description: 'Peer support and group chats',
+      icon: <Users size={16} />
+    },
   ];
 
   return (
-    <div className="space-y-6" data-semantic>
-      <div role="tablist" aria-label="Chat areas" className="flex flex-wrap gap-2">
+    <div className="space-y-4" data-semantic>
+      <div role="tablist" aria-label="Chat areas" className="flex items-center gap-1.5 p-1 rounded-full bg-white border border-[#E6D8E0] shadow-2xs max-w-fit">
         {tabs.map((entry) => (
           <button
             key={entry.id}
@@ -38,13 +50,18 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ userId, onContinue
             data-ui-control
             onClick={() => setTab(entry.id)}
             className={cn(
-              'min-h-11 rounded-pill border px-4 text-small font-semibold',
+              'min-h-10 rounded-full px-4 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer',
               tab === entry.id
-                ? 'border-action bg-action text-foreground-inverse'
-                : 'border-line-strong bg-surface text-foreground hover:bg-surface-subtle',
+                ? 'bg-[#3B0F2C] text-white shadow-sm'
+                : 'text-[#6E4A63] hover:text-[#3B0F2C] hover:bg-[#F7F2F5]',
             )}
           >
-            {entry.label}
+            {entry.id === 'mira' && tab !== 'mira' ? (
+              <Spark className="w-4 h-4 text-[#C4122F]" />
+            ) : (
+              entry.icon
+            )}
+            <span>{entry.label}</span>
           </button>
         ))}
       </div>

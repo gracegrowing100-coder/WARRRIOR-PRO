@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, HeartPulse, MessageSquarePlus, Mic, Pause, Pencil, Play, RotateCcw, Send, Settings2, ShieldAlert, Square, Volume2 } from 'lucide-react';
 import { Alert, Button, Card, FormField, IconButton, Modal, SelectInput, Textarea, cn } from '../ui';
+import { Spark } from '../brand';
 import {
   MIRA_LANGUAGES,
   MIRA_TEXT_CHAT_NOTE,
@@ -79,6 +80,14 @@ function formatMessageTime(value: string): string {
 
 const MIRA_INTRO_DISMISSED_KEY = 'warrior_mira_preferences_intro_dismissed';
 const MIRA_SPOKEN_REPLIES_KEY = 'warrior_mira_spoken_replies';
+
+const SUGGESTED_PROMPTS = [
+  '💧 Water target for HbSS today',
+  '❄️ Harmattan & cold draft care',
+  '⚡ Gentle steps for pain flare',
+  '📋 Questions for my hematologist',
+  '💊 Daily medication tips',
+];
 
 export const MiraAssistant: React.FC<MiraAssistantProps> = ({
   userId,
@@ -506,15 +515,24 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
 
   return (
     <section aria-labelledby="mira-heading" className="space-y-4" data-semantic>
-      <Card as="section" padding="none" className="flex min-h-[calc(100dvh-15rem)] flex-col overflow-hidden border-line/80 shadow-none">
-        <header className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-3 sm:px-5">
+      <Card as="section" padding="none" className="flex min-h-[calc(100dvh-15rem)] flex-col overflow-hidden border-wa-line/80 shadow-sm rounded-[28px] bg-wa-surface">
+        <header className="flex items-center justify-between gap-3 bg-[#3B0F2C] text-white px-4 py-3.5 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-action-accent text-white shadow-sm">
-              <HeartPulse size={22} />
-            </span>
+            <div className="relative">
+              <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#C4122F] text-white shadow-sm">
+                <Spark className="w-5 h-5 text-white" />
+              </span>
+              <span className={cn(
+                "absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[#3B0F2C]",
+                isOffline ? "bg-gray-400" : "bg-[#3DDC84]"
+              )} />
+            </div>
             <div className="min-w-0">
-              <h2 id="mira-heading" className="text-heading-3 text-foreground">Mira</h2>
-              <p className="truncate text-caption text-foreground-secondary">{isOffline ? 'Offline mode · Local advice' : 'AI sickle-cell assistant'}</p>
+              <div className="flex items-center gap-2">
+                <h2 id="mira-heading" className="font-display text-lg font-bold text-white tracking-tight">Mira</h2>
+                <span className="rounded-full bg-[#FBE4E8] text-[#C4122F] px-2 py-0.5 text-[10px] font-bold">✦ AI</span>
+              </div>
+              <p className="truncate text-xs text-[#D9B9CC]">{isOffline ? 'Offline mode · Local advice' : 'AI sickle-cell assistant'}</p>
               <span className="sr-only">by WARRIOR AI</span>
             </div>
           </div>
@@ -524,19 +542,56 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
               aria-label="New chat"
               onClick={startNewChat}
               disabled={busy || loadingConversation}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-control px-3 text-small font-semibold text-foreground-secondary transition-colors hover:bg-surface-subtle hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-semibold text-[#D9B9CC] hover:bg-white/10 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <MessageSquarePlus size={19} aria-hidden="true" />
+              <MessageSquarePlus size={16} aria-hidden="true" />
               <span className="hidden sm:inline">New chat</span>
             </button>
-            <button type="button" aria-label="Open Offline AI Companion" onClick={() => { const trigger = document.getElementById('offline-warrior-ai-floating-trigger'); if (trigger) trigger.click(); }} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-small font-semibold text-foreground hover:bg-surface-subtle transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"><span className={cn('h-2 w-2 rounded-full', isOffline ? 'bg-status-warning' : 'bg-status-success')} /><span>{isOffline ? 'Offline mode' : 'Offline AI'}</span></button>
-            <IconButton label="Mira settings" icon={<Settings2 size={19} />} onClick={() => setSettingsOpen(true)} />
+            <button 
+              type="button" 
+              aria-label="Open Offline AI Companion" 
+              onClick={() => { const trigger = document.getElementById('offline-warrior-ai-floating-trigger'); if (trigger) trigger.click(); }} 
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 text-xs font-semibold text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <span className={cn('h-2 w-2 rounded-full', isOffline ? 'bg-status-warning' : 'bg-[#3DDC84]')} />
+              <span>{isOffline ? 'Offline mode' : 'Offline AI'}</span>
+            </button>
+            <IconButton label="Mira settings" icon={<Settings2 size={18} className="text-white" />} onClick={() => setSettingsOpen(true)} className="text-white hover:bg-white/10" />
           </div>
         </header>
 
-        <div className="border-b border-line bg-medical-50 dark:bg-medical-900/20 px-4 py-2.5 text-small text-foreground-secondary dark:text-foreground sm:px-5">
-          <span className="font-semibold text-foreground dark:text-foreground">Mira is an AI assistant, not a doctor.</span>{' '}
-          <span className="text-foreground-secondary dark:text-foreground-secondary">It can make mistakes and will tell you when human review is needed.</span>
+        <div className="border-b border-[#F1E6EC] bg-[#FDF2F4] px-4 py-2 text-xs text-[#6E4A63] sm:px-5 flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className="font-semibold text-[#3B0F2C]">Mira is an AI assistant, not a doctor.</span>{' '}
+            <span className="text-[#6E4A63] hidden sm:inline">It can make mistakes and will tell you when human review is needed.</span>
+          </div>
+        </div>
+
+        {/* Language chips row */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar px-4 py-2 border-b border-[#F1E6EC] bg-white">
+          <span className="text-[11px] font-bold text-[#6E4A63] shrink-0 mr-1 uppercase tracking-wider font-display">Language:</span>
+          {MIRA_LANGUAGES.map((lang) => {
+            const isSelected = language === lang.code;
+            return (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => {
+                  setLanguage(lang.code);
+                  languageRef.current = lang.code;
+                  storeMiraLanguage(lang.code);
+                }}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-semibold shrink-0 transition-all",
+                  isSelected
+                    ? "bg-[#C4122F] text-white shadow-sm"
+                    : "bg-[#F7F2F5] text-[#6E4A63] hover:bg-[#FBE4E8] hover:text-[#C4122F] border border-[#E6D8E0]"
+                )}
+              >
+                {lang.code === 'pcm' ? 'Pidgin' : lang.label}
+              </button>
+            );
+          })}
         </div>
 
         <div
@@ -600,25 +655,77 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
             if (message.role === 'user') {
               return (
                 <div key={message.id} className="flex justify-end">
-                  <article className="max-w-[80%] rounded-[1.25rem] rounded-br-md bg-action-accent px-4 py-3 text-white shadow-floating">
+                  <article className="max-w-[82%] rounded-[22px] rounded-br-[6px] bg-[#3B0F2C] px-4 py-3 text-white shadow-sm">
                     <span className="sr-only">You</span>
-                    <p className="whitespace-pre-wrap text-body">{message.text}</p>
-                    <p className="mt-1.5 text-right text-caption text-white/70">{message.source === 'voice' ? 'Voice' : 'Sent'}{timestamp ? ` · ${timestamp}` : ''}</p>
+                    <p className="whitespace-pre-wrap text-body text-white">{message.text}</p>
+                    <p className="mt-1.5 text-right text-[11px] text-[#D9B9CC]">{message.source === 'voice' ? 'Voice' : 'Sent'}{timestamp ? ` · ${timestamp}` : ''}</p>
                   </article>
                 </div>
               );
             }
 
             return (
-              <div key={message.id} className="flex max-w-[92%] items-end gap-2">
-                <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-medical-100 text-action-accent"><HeartPulse size={16} /></span>
-                <article className="min-w-0 rounded-[1.25rem] rounded-bl-md border border-line/60 bg-surface px-4 py-3 shadow-subtle">
-                  <div className="flex items-center gap-2 text-caption font-medium text-foreground-secondary">
-                    <span>Mira</span><span className="rounded-pill bg-medical-50 px-2 py-0.5 text-action-accent text-[10px]">AI</span>
+              <div key={message.id} className="flex max-w-[92%] items-end gap-2.5">
+                <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#C4122F] text-white shadow-sm">
+                  <Spark className="w-4 h-4 text-white" />
+                </span>
+                <article className="min-w-0 rounded-[22px] rounded-bl-[6px] border border-[#F1E6EC] bg-white px-4 py-3 shadow-[0_2px_8px_rgba(59,15,44,0.06)]">
+                  <div className="flex items-center gap-2 text-caption font-semibold text-[#6E4A63] mb-1">
+                    <span className="text-[#3B0F2C]">Mira</span><span className="rounded-full bg-[#FBE4E8] text-[#C4122F] px-2 py-0.5 text-[10px] font-bold">✦ AI</span>
                     <span className="sr-only">Mira (AI)</span>
                   </div>
-                  <p className="mt-1 whitespace-pre-wrap text-body text-foreground">{message.text}</p>
-                  {timestamp && <p className="mt-1.5 text-caption text-foreground-secondary">{timestamp}</p>}
+                  <p className="mt-1 whitespace-pre-wrap text-body text-[#3B0F2C] leading-relaxed">{message.text}</p>
+                  {timestamp && <p className="mt-1.5 text-caption text-[#6E4A63]">{timestamp}</p>}
+                  
+                  {/* Health action chips */}
+                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-[#F1E6EC]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHandoffText(message.text.substring(0, 300));
+                        setHandoffLabel('Drafted from Mira conversation');
+                        setHandoffApproved(false);
+                        setHandoff({
+                          concern: 'Consultation request from Mira advice',
+                          duration: 'Recent discussion',
+                          symptoms: ['SCD support discussion'],
+                          medications: [],
+                          hydration: 'Discussion record',
+                          reason: 'Patient would like to follow up on this advice.',
+                          summaryText: message.text,
+                        });
+                      }}
+                      className="inline-flex items-center gap-1 rounded-full bg-[#F7F2F5] px-2.5 py-1 text-[11px] font-semibold text-[#3B0F2C] hover:bg-[#FBE4E8] hover:text-[#C4122F] border border-[#E6D8E0] transition-colors"
+                    >
+                      <span>📋 Draft appointment</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { window.location.hash = '#/home'; }}
+                      className="inline-flex items-center gap-1 rounded-full bg-[#F7F2F5] px-2.5 py-1 text-[11px] font-semibold text-[#3B0F2C] hover:bg-[#E1F2F4] hover:text-[#11535E] border border-[#E6D8E0] transition-colors"
+                    >
+                      <span>💧 Add water</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { window.location.hash = '#/home'; }}
+                      className="inline-flex items-center gap-1 rounded-full bg-[#F7F2F5] px-2.5 py-1 text-[11px] font-semibold text-[#3B0F2C] hover:bg-[#FBE4E8] hover:text-[#C4122F] border border-[#E6D8E0] transition-colors"
+                    >
+                      <span>⚡ Log pain</span>
+                    </button>
+                    {voiceAvailable && spokenRepliesEnabled && speechOutputVerified && (
+                      <button
+                        type="button"
+                        onClick={() => void speakReply(message.text)}
+                        disabled={status === 'speaking'}
+                        className="inline-flex items-center gap-1 rounded-full bg-[#F7F2F5] px-2.5 py-1 text-[11px] font-semibold text-[#3B0F2C] hover:bg-[#F1E6EC] border border-[#E6D8E0] transition-colors"
+                        title="Listen to reply"
+                      >
+                        <Volume2 size={12} />
+                        <span>Listen</span>
+                      </button>
+                    )}
+                  </div>
                 </article>
               </div>
             );
@@ -679,18 +786,35 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleSend} className="border-t border-line/60 bg-surface px-3 py-3 sm:px-5" noValidate>
+        {/* Suggested Prompts row */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar px-4 py-2 bg-[#F7F2F5] border-t border-[#F1E6EC]">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E4A63] shrink-0 mr-1 font-display">✦ Try asking:</span>
+          {SUGGESTED_PROMPTS.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              onClick={() => {
+                setInputText(prompt.replace(/^[^\s]+\s/, ''));
+              }}
+              className="rounded-full bg-white px-3 py-1 text-xs font-medium text-[#3B0F2C] border border-[#E6D8E0] hover:border-[#C4122F] hover:text-[#C4122F] transition-all shrink-0 shadow-2xs"
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleSend} className="border-t border-[#F1E6EC] bg-white px-3 py-3 sm:px-5" noValidate>
           <label htmlFor="mira-message-composer" className="sr-only">Your message to Mira</label>
-          <div className="flex items-end gap-1.5 rounded-xl border border-line/60 bg-surface-subtle p-1.5 focus-within:border-action-accent focus-within:ring-2 focus-within:ring-medical-100 shadow-floating transition-all duration-150">
+          <div className="flex items-end gap-1.5 rounded-2xl border border-[#E6D8E0] bg-[#F7F2F5] p-1.5 focus-within:border-[#C4122F] focus-within:ring-2 focus-within:ring-[#FBE4E8] shadow-sm transition-all duration-150">
             <Textarea
               id="mira-message-composer"
               rows={1}
               value={inputText}
               onChange={(event) => setInputText(event.target.value)}
-              placeholder="Type a message…"
+              placeholder="Ask Mira anything about sickle cell care…"
               aria-label="Message to Mira"
               disabled={busy}
-              className="min-h-12 max-h-32 resize-none border-0 bg-transparent px-3 py-3 focus-visible:outline-none"
+              className="min-h-12 max-h-32 resize-none border-0 bg-transparent px-3 py-3 text-[#3B0F2C] placeholder:text-[#6E4A63]/60 focus-visible:outline-none"
             />
             {voiceAvailable && (
               <IconButton
@@ -699,10 +823,17 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
                 variant="ghost"
                 onClick={() => void handleMicrophone()}
                 disabled={busy || !speechInputVerified}
+                className="text-[#3B0F2C] hover:text-[#C4122F] hover:bg-white"
                 title={speechInputVerified ? undefined : `Voice input is not available in ${languageDefinition.label} right now.`}
               />
             )}
-            <IconButton label="Send message" icon={<Send size={20} />} type="submit" disabled={busy || inputText.trim().length === 0} className="bg-action-accent text-white hover:bg-action-accent-hover" />
+            <IconButton 
+              label="Send message" 
+              icon={<Send size={18} />} 
+              type="submit" 
+              disabled={busy || inputText.trim().length === 0} 
+              className="bg-[#C4122F] hover:bg-[#9E0E26] text-white rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-40" 
+            />
           </div>
           <div className="mt-2 flex min-h-6 flex-wrap items-center justify-between gap-2 text-caption text-foreground-secondary">
             <span>{status === 'speaking' ? (speechStage === 'preparing' ? 'Preparing spoken reply...' : playbackPaused ? 'Spoken reply paused' : 'Playing Mira’s reply') : `${languageDefinition.label} conversation`}</span>

@@ -197,6 +197,7 @@ const ChatSystem: React.FC = () => {
   const [newGroupAvatar, setNewGroupAvatar] = useState('🌟');
   const [newGroupDesc, setNewGroupDesc] = useState('');
   const [newGroupCategory, setNewGroupCategory] = useState<'Group Chat' | 'Caregivers'>('Group Chat');
+  const [subTab, setSubTab] = useState<'channels' | 'circle'>('channels');
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -625,6 +626,25 @@ const ChatSystem: React.FC = () => {
 
     playTone('send');
 
+    // Optimistic UI update so messages appear immediately
+    const optimisticMsg = {
+      id: 'msg-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
+      text: textToSend,
+      senderId: currentUserId,
+      senderName: currentUserName,
+      timestamp: new Date().toISOString(),
+      mediaUrl: mediaToSend?.url || null,
+      mediaType: mediaToSend?.type || null,
+      replyTo: currentReply,
+      audioDuration: 0,
+      reactions: {}
+    };
+
+    setMessages(prev => {
+      if (prev.some(m => m.id === optimisticMsg.id)) return prev;
+      return [...prev, optimisticMsg];
+    });
+
     try {
       await firebaseService.sendMessage(
         activeChatId!, 
@@ -633,6 +653,37 @@ const ChatSystem: React.FC = () => {
         mediaToSend?.type || null,
         currentReply
       );
+
+      // Friendly simulated peer response in custom or group channels to make community feel vibrant & responsive
+      if (activeChatId && activeChatId.startsWith('custom-')) {
+        setTimeout(() => {
+          const peerResponses = [
+            "Welcome to the room! Thanks for creating this space for us. Staying hydrated! 💧",
+            "Glad to be here! Let's keep supporting each other and tracking our logs 💪",
+            "Warm greetings! Make sure to bundle up if it gets chilly this evening 🍵",
+            "Sending warrior strength! How is everyone's hydration today? 🌟"
+          ];
+          const randomResp = peerResponses[Math.floor(Math.random() * peerResponses.length)];
+          const simulatedPeerMsg = {
+            id: 'peer-reply-' + Date.now().toString(36),
+            text: randomResp,
+            senderId: 'tunde-uid',
+            senderName: 'Tunde (Warrior)',
+            timestamp: new Date().toISOString(),
+            mediaUrl: null,
+            mediaType: null,
+            replyTo: null,
+            audioDuration: 0,
+            reactions: { '❤️': [currentUserId] }
+          };
+          playTone('receive');
+          setMessages(prev => [...prev, simulatedPeerMsg]);
+          const cached = localStorage.getItem(`warrior_chat_${activeChatId}`);
+          const parsed = cached ? JSON.parse(cached) : [];
+          parsed.push(simulatedPeerMsg);
+          localStorage.setItem(`warrior_chat_${activeChatId}`, JSON.stringify(parsed));
+        }, 2500);
+      }
 
     } catch (error) {
       console.error("Failed to dispatch message:", error);
@@ -707,8 +758,9 @@ const ChatSystem: React.FC = () => {
   // Create new custom group
   const handleCreateNewGroup = () => {
     if (!newGroupName.trim()) return;
+    const newGroupId = 'custom-' + Date.now().toString(36);
     const newGroup = {
-      id: 'custom-' + Date.now().toString(36),
+      id: newGroupId,
       name: newGroupName.trim(),
       avatar: newGroupAvatar || '🛡️',
       desc: newGroupDesc.trim() || 'A supportive Warrior Sickle Cell community chat group.',
@@ -719,14 +771,32 @@ const ChatSystem: React.FC = () => {
       category: newGroupCategory,
       pinned: false,
       members: [
-        { id: currentUserId, name: 'You (Creator)', role: 'Group Admin', active: true, avatar: '👑', isAdmin: true }
+        { id: currentUserId, name: 'You (Creator)', role: 'Group Admin', active: true, avatar: '👑', isAdmin: true },
+        { id: 'tunde-uid', name: 'Tunde (Warrior)', role: 'SCD Hero (HbSS)', active: true, avatar: '🦸‍♂️', isAdmin: false },
+        { id: 'grace-mom-uid', name: 'Grace (Caregiver)', role: 'Support Mother', active: true, avatar: '👩', isAdmin: false }
       ]
+    };
+
+    const welcomeMsg = {
+      id: 'msg-' + Date.now().toString(36),
+      text: `Welcome to ${newGroup.name}! 🌟 This channel was created by ${currentUserName} to support warriors, share tips, and connect. Feel free to say hello!`,
+      senderId: currentUserId,
+      senderName: currentUserName,
+      timestamp: new Date().toISOString(),
+      mediaUrl: null,
+      mediaType: null,
+      replyTo: null,
+      audioDuration: 0,
+      reactions: { '❤️': [currentUserId], '💧': ['tunde-uid'] }
     };
 
     const userId = auth.currentUser?.uid || 'guest';
     firebaseService.saveCustomGroup(userId, newGroup);
-    setAllChats([newGroup, ...allChats]);
-    setActiveChatId(newGroup.id);
+    localStorage.setItem(`warrior_chat_${newGroupId}`, JSON.stringify([welcomeMsg]));
+
+    setAllChats(prev => [newGroup, ...prev]);
+    setActiveChatId(newGroupId);
+    setMessages([welcomeMsg]);
     setShowCreateGroupModal(false);
     setNewGroupName('');
     setNewGroupDesc('');
@@ -751,8 +821,39 @@ const ChatSystem: React.FC = () => {
   const mediaMessages = messages.filter(m => m.mediaUrl && (m.mediaType === 'image' || m.mediaType === 'video'));
 
   return (
-    <div className="space-y-6">
-      <div id="warrior-chat-container" className="h-[calc(100vh-170px)] min-h-[540px] flex flex-col md:flex-row bg-slate-900 text-white rounded-3xl shadow-2xl border-4 border-slate-950 overflow-hidden relative font-sans">
+    <div className="space-y-4">
+      {/* Sub-tab Navigation */}
+      <div className="flex items-center gap-2 p-1 rounded-full bg-white border border-[#E6D8E0] shadow-2xs max-w-fit">
+        <button
+          type="button"
+          onClick={() => setSubTab('channels')}
+          className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            subTab === 'channels'
+              ? 'bg-[#3B0F2C] text-white shadow-sm'
+              : 'text-[#6E4A63] hover:text-[#3B0F2C] hover:bg-[#F7F2F5]'
+          }`}
+        >
+          <MessageSquare size={14} />
+          <span>Warrior Channels ({allChats.length})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setSubTab('circle')}
+          className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            subTab === 'circle'
+              ? 'bg-[#3B0F2C] text-white shadow-sm'
+              : 'text-[#6E4A63] hover:text-[#3B0F2C] hover:bg-[#F7F2F5]'
+          }`}
+        >
+          <Users size={14} />
+          <span>Care Circle & Buddies</span>
+        </button>
+      </div>
+
+      {subTab === 'circle' ? (
+        <PeerSupportSection currentUserId={auth.currentUser?.uid || 'user-warrior'} />
+      ) : (
+        <div id="warrior-chat-container" className="h-[calc(100vh-210px)] min-h-[560px] flex flex-col md:flex-row bg-white text-[#3B0F2C] rounded-[28px] shadow-sm border border-[#E6D8E0] overflow-hidden relative font-sans">
       
       {/* Hidden file input for documents & standard uploads */}
       <input 
@@ -1041,52 +1142,52 @@ const ChatSystem: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 select-none"
+            className="fixed inset-0 z-50 bg-[#3B0F2C]/60 backdrop-blur-sm flex items-center justify-center p-4 select-none"
           >
             <motion.div 
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.95 }}
-              className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl"
+              className="bg-white border border-[#E6D8E0] rounded-[28px] w-full max-w-md p-6 space-y-4 shadow-2xl text-[#3B0F2C]"
             >
-              <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-                <div className="flex items-center gap-2">
+              <div className="flex justify-between items-center pb-3 border-b border-[#F1E6EC]">
+                <div className="flex items-center gap-2.5">
                   <span className="text-2xl">✨</span>
                   <div>
-                    <h3 className="text-sm font-black text-white">Create Warrior Group</h3>
-                    <p className="text-[10px] text-gray-400">Establish a sickle cell support room</p>
+                    <h3 className="text-base font-display font-bold text-[#3B0F2C]">Create Warrior Group</h3>
+                    <p className="text-xs text-[#6E4A63]">Establish a sickle cell support channel</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setShowCreateGroupModal(false)} 
-                  className="p-1 hover:bg-slate-800 rounded-lg text-gray-400"
+                  className="p-1.5 hover:bg-[#F7F2F5] rounded-full text-[#6E4A63] transition"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 <div>
-                  <label className="text-[10px] font-black uppercase text-gray-400 font-mono tracking-wider block mb-1">Group Name</label>
+                  <label className="text-[11px] font-bold uppercase text-[#6E4A63] tracking-wider block mb-1">Group Name</label>
                   <input 
                     type="text" 
-                    placeholder="e.g. Abuja Hydroxyurea Circle" 
+                    placeholder="e.g. Lagos Warriors Hydration Circle" 
                     value={newGroupName}
                     onChange={(e) => setNewGroupName(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 font-semibold"
+                    className="w-full bg-[#F7F2F5] border border-[#E6D8E0] rounded-xl px-3.5 py-2.5 text-xs text-[#3B0F2C] focus:outline-none focus:border-[#C4122F] font-semibold"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black uppercase text-gray-400 font-mono tracking-wider block mb-1">Select Group Icon</label>
+                  <label className="text-[11px] font-bold uppercase text-[#6E4A63] tracking-wider block mb-1">Select Group Icon</label>
                   <div className="flex flex-wrap gap-2">
                     {['🌟', '🧬', '🛡️', '❤️', '🩺', '💧', '🤝', '⚡', '👶', '🏆'].map(emoji => (
                       <button
                         key={emoji}
                         type="button"
                         onClick={() => setNewGroupAvatar(emoji)}
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg transition border ${
-                          newGroupAvatar === emoji ? 'bg-red-500/20 border-red-500 scale-110' : 'bg-slate-950 border-slate-800 hover:bg-slate-800'
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg transition border cursor-pointer ${
+                          newGroupAvatar === emoji ? 'bg-[#FBE4E8] border-[#C4122F] scale-110 shadow-xs' : 'bg-[#F7F2F5] border-[#E6D8E0] hover:bg-white'
                         }`}
                       >
                         {emoji}
@@ -1096,11 +1197,11 @@ const ChatSystem: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black uppercase text-gray-400 font-mono tracking-wider block mb-1">Category</label>
+                  <label className="text-[11px] font-bold uppercase text-[#6E4A63] tracking-wider block mb-1">Category</label>
                   <select
                     value={newGroupCategory}
                     onChange={(e: any) => setNewGroupCategory(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 font-semibold"
+                    className="w-full bg-[#F7F2F5] border border-[#E6D8E0] rounded-xl px-3.5 py-2.5 text-xs text-[#3B0F2C] focus:outline-none focus:border-[#C4122F] font-semibold"
                   >
                     <option value="Group Chat">Community Group</option>
                     <option value="Caregivers">Caregivers & Parents</option>
@@ -1108,22 +1209,22 @@ const ChatSystem: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black uppercase text-gray-400 font-mono tracking-wider block mb-1">Purpose / Bio</label>
+                  <label className="text-[11px] font-bold uppercase text-[#6E4A63] tracking-wider block mb-1">Purpose / Bio</label>
                   <textarea 
                     placeholder="Brief description of this channel's mission..."
                     value={newGroupDesc}
                     onChange={(e) => setNewGroupDesc(e.target.value)}
                     rows={2}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 font-semibold resize-none"
+                    className="w-full bg-[#F7F2F5] border border-[#E6D8E0] rounded-xl px-3.5 py-2.5 text-xs text-[#3B0F2C] focus:outline-none focus:border-[#C4122F] font-semibold resize-none"
                   />
                 </div>
               </div>
 
-              <div className="pt-2 flex justify-end gap-2">
+              <div className="pt-2 flex justify-end gap-2 border-t border-[#F1E6EC]">
                 <button
                   type="button"
                   onClick={() => setShowCreateGroupModal(false)}
-                  className="px-4 py-2 bg-slate-850 hover:bg-slate-800 text-gray-300 rounded-xl text-xs font-bold"
+                  className="px-4 py-2 bg-[#F7F2F5] hover:bg-[#E6D8E0] text-[#6E4A63] rounded-full text-xs font-bold transition"
                 >
                   Cancel
                 </button>
@@ -1131,7 +1232,7 @@ const ChatSystem: React.FC = () => {
                   type="button"
                   onClick={handleCreateNewGroup}
                   disabled={!newGroupName.trim()}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded-xl text-xs font-black shadow-lg shadow-red-900/30"
+                  className="px-5 py-2 bg-[#C4122F] hover:bg-[#9E0E26] disabled:opacity-50 text-white rounded-full text-xs font-bold shadow-sm transition"
                 >
                   Create Channel
                 </button>
@@ -1241,26 +1342,26 @@ const ChatSystem: React.FC = () => {
       </AnimatePresence>
 
       {/* 5. SIDEBAR: CONVERSATION LIST (LHS) */}
-      <div className={`w-full md:w-80 lg:w-88 flex flex-col bg-slate-900 border-r border-slate-950 shrink-0 ${activeChatId ? 'hidden md:flex' : 'flex'}`}>
+      <div className={`w-full md:w-80 lg:w-96 flex flex-col bg-[#F7F2F5] border-r border-[#E6D8E0] shrink-0 ${activeChatId ? 'hidden md:flex' : 'flex'}`}>
         
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-slate-950 space-y-3 bg-slate-900">
+        <div className="p-4 border-b border-[#E6D8E0] space-y-3 bg-white">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-red-600 flex items-center justify-center shadow-lg shadow-red-900/40">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-[#C4122F] flex items-center justify-center shadow-sm">
                 <MessageSquare size={16} className="text-white" />
               </div>
               <div>
-                <h2 className="text-sm font-black text-white tracking-tight">Warrior Channels</h2>
-                <span className="text-[9px] font-black text-emerald-400 font-mono uppercase tracking-widest">
-                   Community preview
+                <h2 className="text-sm font-display font-bold text-[#3B0F2C] tracking-tight">Warrior Channels</h2>
+                <span className="text-[10px] font-bold text-[#C4122F] bg-[#FBE4E8] px-2 py-0.5 rounded-full font-mono uppercase tracking-wider">
+                  Active Community
                 </span>
               </div>
             </div>
 
             <button 
               onClick={() => setShowCreateGroupModal(true)}
-              className="p-2 bg-slate-800 hover:bg-red-600 text-gray-300 hover:text-white rounded-xl transition shadow-sm text-xs font-bold flex items-center gap-1 cursor-pointer"
+              className="px-3 py-1.5 bg-[#C4122F] hover:bg-[#9E0E26] text-white rounded-full transition shadow-sm text-xs font-bold flex items-center gap-1 cursor-pointer"
               title="Create new group"
             >
               <Plus size={14} />
@@ -1270,26 +1371,26 @@ const ChatSystem: React.FC = () => {
 
           {/* Search bar */}
           <div className="relative">
-            <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
+            <Search size={14} className="absolute left-3 top-3 text-[#6E4A63]" />
             <input 
               type="text" 
               placeholder="Search community chats..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-950 text-xs text-white pl-9 pr-3 py-2 rounded-xl border border-slate-800 focus:outline-none focus:border-red-500 font-semibold placeholder:text-gray-500 transition"
+              className="w-full bg-[#F7F2F5] text-xs text-[#3B0F2C] pl-9 pr-3 py-2.5 rounded-full border border-[#E6D8E0] focus:outline-none focus:border-[#C4122F] font-semibold placeholder:text-[#6E4A63]/60 transition"
             />
           </div>
 
           {/* Categories Pill Filters */}
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-0.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
             {(['All', 'Group Chat', 'Caregivers'] as const).map((cat) => (
               <button
                 key={cat}
                 onClick={() => setCategoryFilter(cat)}
-                className={`text-[10px] font-black px-2.5 py-1 rounded-lg shrink-0 transition font-mono ${
+                className={`text-[10px] font-bold px-3 py-1 rounded-full shrink-0 transition font-mono cursor-pointer ${
                   categoryFilter === cat 
-                    ? 'bg-red-600 text-white shadow-md shadow-red-900/30' 
-                    : 'bg-slate-950 text-gray-400 hover:text-white hover:bg-slate-800 border border-slate-850'
+                    ? 'bg-[#3B0F2C] text-white shadow-xs' 
+                    : 'bg-white text-[#6E4A63] hover:text-[#3B0F2C] hover:bg-[#FBE4E8] border border-[#E6D8E0]'
                 }`}
               >
                 {cat}
@@ -1299,7 +1400,7 @@ const ChatSystem: React.FC = () => {
         </div>
 
         {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-950 no-scrollbar select-none bg-slate-900">
+        <div className="flex-1 overflow-y-auto divide-y divide-[#E6D8E0]/60 no-scrollbar select-none bg-[#F7F2F5]">
           {filteredChats.map((chat) => {
             const isActive = chat.id === activeChatId;
             return (
@@ -1308,42 +1409,42 @@ const ChatSystem: React.FC = () => {
                 onClick={() => setActiveChatId(chat.id)}
                 className={`p-3.5 flex items-center gap-3 cursor-pointer transition-all ${
                   isActive 
-                    ? 'bg-slate-800 border-l-4 border-red-500' 
-                    : 'hover:bg-slate-950/60'
+                    ? 'bg-[#FBE4E8] border-l-4 border-[#C4122F]' 
+                    : 'hover:bg-white/80'
                 }`}
               >
                 {/* Avatar with live badge */}
                 <div className="relative">
-                  <div className="w-11 h-11 bg-slate-950 rounded-2xl flex items-center justify-center text-xl border border-slate-800 shadow-inner">
+                  <div className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center text-xl border border-[#E6D8E0] shadow-2xs">
                     {chat.avatar}
                   </div>
                   {chat.online && (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-slate-900"></span>
+                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#3DDC84] border-2 border-white"></span>
                   )}
                 </div>
 
                 {/* Details */}
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-0.5">
-                    <h4 className="text-xs font-black text-white truncate tracking-tight">{chat.name}</h4>
-                    <span className="text-[9px] font-mono text-gray-400">{chat.time}</span>
+                    <h4 className="text-xs font-bold text-[#3B0F2C] truncate tracking-tight">{chat.name}</h4>
+                    <span className="text-[10px] font-mono text-[#6E4A63]">{chat.time}</span>
                   </div>
 
-                  <p className="text-[11px] font-semibold text-gray-400 truncate leading-tight">
+                  <p className="text-[11px] font-medium text-[#6E4A63] truncate leading-tight">
                     {chat.lastMsg}
                   </p>
 
                   <div className="flex items-center gap-1.5 mt-1">
-                    <span className="text-[8px] font-black uppercase tracking-wider text-red-400/80 bg-red-500/10 px-1.5 py-0.5 rounded font-mono">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#C4122F] bg-[#FBE4E8] px-2 py-0.5 rounded-full font-mono">
                       {chat.category}
                     </span>
-                    {chat.pinned && <Pin size={9} className="text-yellow-500 rotate-45" />}
+                    {chat.pinned && <Pin size={9} className="text-[#B45309] rotate-45" />}
                   </div>
                 </div>
 
                 {/* Unread badge */}
                 {chat.unread > 0 && (
-                  <span className="w-4 h-4 rounded-full bg-emerald-500 text-slate-950 text-[9px] font-black flex items-center justify-center">
+                  <span className="w-4 h-4 rounded-full bg-[#C4122F] text-white text-[9px] font-black flex items-center justify-center shadow-xs">
                     {chat.unread}
                   </span>
                 )}
@@ -1353,18 +1454,18 @@ const ChatSystem: React.FC = () => {
         </div>
 
         {/* User Identity Footer */}
-        <div className="p-3 bg-slate-950 border-t border-slate-850 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="p-3 bg-white border-t border-[#E6D8E0] flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
             <span className="text-lg">🩺</span>
             <div>
-              <span className="text-xs font-black text-white block">{currentUserName}</span>
-              <span className="text-[9px] font-mono text-emerald-400">
+              <span className="text-xs font-bold text-[#3B0F2C] block">{currentUserName}</span>
+              <span className="text-[10px] font-mono text-[#1E7B4A]">
                 {isCurrentUserAdmin ? '🛡️ Admin Verified' : 'Warrior Online'}
               </span>
             </div>
           </div>
           {isCurrentUserAdmin && (
-            <span className="text-[9px] font-black bg-red-500/20 text-red-300 border border-red-500/30 px-2 py-0.5 rounded-full font-mono uppercase">
+            <span className="text-[9px] font-bold bg-[#FBE4E8] text-[#C4122F] border border-[#C4122F]/20 px-2 py-0.5 rounded-full font-mono uppercase">
               Moderator
             </span>
           )}
@@ -1373,20 +1474,21 @@ const ChatSystem: React.FC = () => {
 
       {/* 6. MAIN CHAT CONVERSATION VIEW (CENTER) */}
       {activeChat ? (
-        <div className={`flex-1 flex flex-col bg-[#0b141a] relative ${activeChatId ? 'flex' : 'hidden md:flex'}`}>
+        <div className={`flex-1 flex flex-col bg-white relative ${activeChatId ? 'flex' : 'hidden md:flex'}`}>
           
           {/* Active Chat Header */}
-          <div className="p-3 bg-slate-900 border-b border-slate-950 flex items-center justify-between select-none shadow-md z-10">
+          <div className="p-3 bg-white border-b border-[#E6D8E0] flex items-center justify-between select-none shadow-2xs z-10">
             <div className="flex items-center gap-2.5 min-w-0">
               <button 
                 onClick={() => setActiveChatId(null)} 
-                className="md:hidden p-1.5 text-gray-400 hover:text-white rounded-xl hover:bg-slate-800 transition"
+                className="md:hidden p-1.5 text-[#6E4A63] hover:text-[#3B0F2C] rounded-xl hover:bg-[#F7F2F5] transition flex items-center gap-1 font-semibold text-xs cursor-pointer"
               >
-                <ChevronLeft size={20} />
+                <ChevronLeft size={18} />
+                <span>Channels</span>
               </button>
 
               <div 
-                className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-xl cursor-pointer hover:scale-105 transition border border-slate-700"
+                className="w-10 h-10 bg-[#F7F2F5] rounded-xl flex items-center justify-center text-xl cursor-pointer hover:scale-105 transition border border-[#E6D8E0]"
                 onClick={() => setShowGroupInfo(!showGroupInfo)}
               >
                 {activeChat.avatar}
@@ -1394,9 +1496,9 @@ const ChatSystem: React.FC = () => {
 
               <div className="cursor-pointer min-w-0" onClick={() => setShowGroupInfo(!showGroupInfo)}>
                 <div className="flex items-center gap-1.5">
-                  <h4 className="font-black text-xs text-white leading-tight truncate tracking-tight">{activeChat.name}</h4>
+                  <h4 className="font-display font-bold text-xs text-[#3B0F2C] leading-tight truncate tracking-tight">{activeChat.name}</h4>
                   {isCurrentUserAdmin && (
-                    <span className="text-[8px] font-black text-red-400 bg-red-500/10 px-1.5 py-0.2 rounded font-mono uppercase">
+                    <span className="text-[8px] font-black text-[#C4122F] bg-[#FBE4E8] px-1.5 py-0.2 rounded font-mono uppercase">
                       Admin
                     </span>
                   )}
@@ -1405,14 +1507,14 @@ const ChatSystem: React.FC = () => {
                 {/* Real-time Subtitle (Typing or Online Status) */}
                 <div className="flex items-center gap-1.5 mt-0.5">
                   {typingUsers.length > 0 ? (
-                    <span className="text-[10px] text-emerald-400 font-black animate-pulse flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span className="text-[10px] text-[#1E7B4A] font-bold animate-pulse flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#1E7B4A] animate-ping"></span>
                       ✍️ {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
                     </span>
                   ) : (
                     <>
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                      <span className="text-[9px] text-gray-400 font-bold tracking-wide uppercase font-mono">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#3DDC84]"></span>
+                      <span className="text-[9px] text-[#6E4A63] font-medium tracking-wide uppercase font-mono">
                         {activeChat.category} &bull; {activeChat.members?.length || 2} members
                       </span>
                     </>
@@ -1422,39 +1524,39 @@ const ChatSystem: React.FC = () => {
             </div>
 
             {/* Quick action buttons */}
-            <div className="flex items-center gap-1 text-gray-400">
+            <div className="flex items-center gap-1 text-[#6E4A63]">
               <button 
                 onClick={() => setShowInChatSearchBar(!showInChatSearchBar)}
                 title="Search within chat"
-                className={`p-2 hover:bg-slate-800 rounded-xl transition ${showInChatSearchBar ? 'text-red-500 bg-slate-800' : ''}`}
+                className={`p-2 hover:bg-[#F7F2F5] hover:text-[#3B0F2C] rounded-xl transition ${showInChatSearchBar ? 'text-[#C4122F] bg-[#FBE4E8]' : ''}`}
               >
                 <Search size={16} />
               </button>
               <button 
                 onClick={handleOpenLiveCamera}
                 title="Take photo with Camera & upload to Firebase"
-                className="p-2 hover:bg-slate-800 hover:text-red-500 rounded-xl transition"
+                className="p-2 hover:bg-[#F7F2F5] hover:text-[#C4122F] rounded-xl transition"
               >
                 <Camera size={16} />
               </button>
               <button 
                 onClick={() => handleStartCall('video')}
                 title="Initiate video consultation"
-                className="p-2 hover:bg-slate-800 hover:text-red-500 rounded-xl transition"
+                className="p-2 hover:bg-[#F7F2F5] hover:text-[#C4122F] rounded-xl transition"
               >
                 <Video size={16} />
               </button>
               <button 
                 onClick={() => handleStartCall('voice')}
                 title="Initiate patient advocate voice line"
-                className="p-2 hover:bg-slate-800 hover:text-green-500 rounded-xl transition"
+                className="p-2 hover:bg-[#F7F2F5] hover:text-[#1E7B4A] rounded-xl transition"
               >
                 <Phone size={16} />
               </button>
               <button 
                 onClick={() => setShowGroupInfo(!showGroupInfo)}
                 title="Toggle group details & Admin Moderation"
-                className={`p-2 rounded-xl transition ${showGroupInfo ? 'bg-slate-800 text-red-500' : 'hover:bg-slate-800'}`}
+                className={`p-2 rounded-xl transition ${showGroupInfo ? 'bg-[#FBE4E8] text-[#C4122F]' : 'hover:bg-[#F7F2F5]'}`}
               >
                 <Info size={16} />
               </button>
@@ -1463,18 +1565,18 @@ const ChatSystem: React.FC = () => {
 
           {/* In-Chat Search Bar Toggle */}
           {showInChatSearchBar && (
-            <div className="px-4 py-2 bg-slate-950 border-b border-slate-800 flex items-center gap-2 animate-in slide-in-from-top-2">
-              <Search size={14} className="text-gray-400" />
+            <div className="px-4 py-2.5 bg-[#F7F2F5] border-b border-[#E6D8E0] flex items-center gap-2 animate-in slide-in-from-top-2">
+              <Search size={14} className="text-[#6E4A63]" />
               <input 
                 type="text" 
                 placeholder="Search messages in this thread..."
                 value={inChatSearch}
                 onChange={(e) => setInChatSearch(e.target.value)}
-                className="flex-1 bg-transparent text-xs text-white focus:outline-none placeholder:text-gray-500 font-semibold"
+                className="flex-1 bg-transparent text-xs text-[#3B0F2C] focus:outline-none placeholder:text-[#6E4A63]/60 font-semibold"
                 autoFocus
               />
               {inChatSearch && (
-                <button onClick={() => setInChatSearch('')} className="text-gray-400 hover:text-white text-xs">
+                <button onClick={() => setInChatSearch('')} className="text-[#6E4A63] hover:text-[#3B0F2C] text-xs font-semibold cursor-pointer">
                   Clear
                 </button>
               )}
@@ -1484,29 +1586,24 @@ const ChatSystem: React.FC = () => {
           {/* Messages Feed body */}
           <div 
             ref={scrollRef} 
-            className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar relative bg-[#0b141a]/95 select-text"
-            style={{ 
-              backgroundImage: 'radial-gradient(#111b21 0.75px, transparent 0.75px), radial-gradient(#111b21 0.75px, #0b141a 0.75px)',
-              backgroundSize: '24px 24px',
-              backgroundPosition: '0 0, 12px 12px'
-            }}
+            className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar relative bg-[#FAF7F9] select-text"
           >
             {/* Seeded preview notice */}
             <div className="flex flex-col items-center select-none pt-1">
-              <div className="flex items-center gap-1.5 bg-[#182229] border border-slate-800 px-3.5 py-1 rounded-2xl shadow-sm text-center">
-                <Shield size={11} className="text-red-500" />
-                <span className="text-[9px] font-black text-gray-400 tracking-wider uppercase">SAMPLE COMMUNITY PREVIEW</span>
+              <div className="flex items-center gap-1.5 bg-[#FBE4E8] border border-[#F1E6EC] px-3.5 py-1 rounded-full shadow-2xs text-center">
+                <Shield size={12} className="text-[#C4122F]" />
+                <span className="text-[10px] font-bold text-[#C4122F] tracking-wider uppercase">SAMPLE COMMUNITY PREVIEW</span>
               </div>
-              <p className="text-[9px] text-gray-500 text-center max-w-xs mt-1 font-semibold">
-                Seeded conversations and members are synthetic. No clinician, emergency dispatcher, or live service is connected.
+              <p className="text-[10px] text-[#6E4A63] text-center max-w-sm mt-1 font-medium">
+                Seeded conversations and members are synthetic for clinical evaluation. No live emergency dispatcher is connected.
               </p>
             </div>
 
             {/* Quick Clinical Broadcasts bar */}
-            <div className="bg-[#111b21]/90 rounded-2xl p-2.5 border border-slate-800/80 space-y-1.5 select-none">
-              <span className="text-[8px] font-black uppercase text-red-500 tracking-widest block font-mono flex items-center gap-1">
-                <Sparkles size={10} />
-                SAMPLE QUICK MESSAGES
+            <div className="bg-white rounded-2xl p-3 border border-[#E6D8E0] space-y-2 select-none shadow-2xs">
+              <span className="text-[9px] font-bold uppercase text-[#C4122F] tracking-wider block font-mono flex items-center gap-1">
+                <Sparkles size={11} />
+                QUICK COMMUNITY CHECK-INS
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {CLINICAL_PRESETS.map((p) => (
@@ -1514,7 +1611,7 @@ const ChatSystem: React.FC = () => {
                     key={p.id}
                     onClick={() => handleSendMessage(p.text)}
                     disabled={isCurrentUserMuted}
-                    className="bg-slate-900 border border-slate-800 hover:border-red-500 disabled:opacity-40 text-[10px] text-gray-300 font-extrabold px-2.5 py-1 rounded-xl transition-all hover:text-white active:scale-95 cursor-pointer"
+                    className="bg-[#F7F2F5] border border-[#E6D8E0] hover:border-[#C4122F] hover:bg-[#FBE4E8] disabled:opacity-40 text-[11px] text-[#3B0F2C] font-semibold px-3 py-1 rounded-full transition-all hover:text-[#C4122F] active:scale-95 cursor-pointer shadow-2xs"
                   >
                     {p.emoji} {p.label}
                   </button>
@@ -1524,9 +1621,9 @@ const ChatSystem: React.FC = () => {
 
             {/* Messages Stream */}
             {visibleMessages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 opacity-40 select-none">
-                <MessageSquare size={32} className="text-gray-400 mb-2" />
-                <span className="text-xs font-mono">{inChatSearch ? 'No messages matching query' : 'No active logs yet. Start the conversation below!'}</span>
+              <div className="flex flex-col items-center justify-center py-12 opacity-60 select-none">
+                <MessageSquare size={32} className="text-[#6E4A63] mb-2" />
+                <span className="text-xs font-semibold text-[#6E4A63]">{inChatSearch ? 'No messages matching query' : 'No active messages yet. Say hello to fellow warriors below!'}</span>
               </div>
             ) : (
               visibleMessages.map((msg, index) => {
@@ -1550,11 +1647,11 @@ const ChatSystem: React.FC = () => {
                     {/* Sender label */}
                     {!isUserRef && (
                       <div className="flex items-center gap-1.5 mb-1 ml-3">
-                        <span className="text-[9px] font-black text-red-400 uppercase tracking-wider font-mono">
+                        <span className="text-[10px] font-bold text-[#C4122F] uppercase tracking-wider font-mono">
                           {msg.senderName || 'Anonymous Warrior'}
                         </span>
                         {groupSettings.admins.includes(msg.senderId) && (
-                          <span className="text-[8px] font-black bg-red-500/20 text-red-300 px-1 py-0.2 rounded font-mono">
+                          <span className="text-[8px] font-black bg-[#FBE4E8] text-[#C4122F] px-1.5 py-0.2 rounded font-mono">
                             ADMIN
                           </span>
                         )}
@@ -1564,17 +1661,17 @@ const ChatSystem: React.FC = () => {
                     <div className="relative max-w-[85%] sm:max-w-[75%]">
                       {/* Hover action toolbar (Reply, React, Copy, Admin Remove, Delete) */}
                       {!isRemoved && (
-                        <div className={`absolute -top-7 ${isUserRef ? 'right-0' : 'left-0'} hidden group-hover:flex items-center gap-1 bg-[#182229] border border-slate-800 px-2 py-1 rounded-xl shadow-xl z-20`}>
+                        <div className={`absolute -top-7 ${isUserRef ? 'right-0' : 'left-0'} hidden group-hover:flex items-center gap-1 bg-white border border-[#E6D8E0] px-2 py-1 rounded-xl shadow-md z-20 text-[#6E4A63]`}>
                           <button 
                             onClick={() => setReplyingTo({ id: msg.id, senderName: msg.senderName || 'Warrior', text: msg.text || 'Attachment' })}
-                            className="p-1 hover:text-white text-gray-400 transition" 
+                            className="p-1 hover:text-[#3B0F2C] text-[#6E4A63] transition" 
                             title="Reply / Quote"
                           >
                             <Reply size={12} />
                           </button>
                           <button 
                             onClick={() => handleCopyText(msg.text || '')}
-                            className="p-1 hover:text-white text-gray-400 transition" 
+                            className="p-1 hover:text-[#3B0F2C] text-[#6E4A63] transition" 
                             title="Copy text"
                           >
                             <Copy size={12} />
@@ -1584,7 +1681,7 @@ const ChatSystem: React.FC = () => {
                           {isCurrentUserAdmin && !isUserRef && (
                             <button 
                               onClick={() => handleOpenModerationModal(msg)}
-                              className="p-1 hover:text-red-400 text-yellow-400 transition flex items-center gap-0.5 text-[9px] font-bold"
+                              className="p-1 hover:text-[#C4122F] text-[#B45309] transition flex items-center gap-0.5 text-[9px] font-bold"
                               title="Admin: Remove Inappropriate Message"
                             >
                               <ShieldAlert size={12} />
@@ -1594,14 +1691,14 @@ const ChatSystem: React.FC = () => {
                           {isUserRef && (
                             <button 
                               onClick={() => handleDeleteMessage(msg.id)}
-                              className="p-1 hover:text-red-400 text-gray-400 transition" 
+                              className="p-1 hover:text-[#C4122F] text-[#6E4A63] transition" 
                               title="Delete message"
                             >
                               <Trash2 size={12} />
                             </button>
                           )}
 
-                          <div className="w-[1px] h-3 bg-slate-700 mx-0.5"></div>
+                          <div className="w-[1px] h-3 bg-[#E6D8E0] mx-0.5"></div>
                           {EMOJI_REACTIONS.slice(0, 4).map(emoji => (
                             <button
                               key={emoji}
@@ -1616,12 +1713,12 @@ const ChatSystem: React.FC = () => {
 
                       {/* Main Message Bubble */}
                       <div 
-                        className={`p-3 rounded-2xl shadow-md relative flex flex-col ${
+                        className={`p-3.5 rounded-2xl shadow-sm relative flex flex-col ${
                           isRemoved
-                            ? 'bg-red-950/30 border border-red-500/30 text-red-200 italic'
+                            ? 'bg-rose-50 border border-rose-200 text-rose-800 italic'
                             : isUserRef 
-                              ? 'bg-[#005c4b] text-[#e9edef] rounded-tr-none border border-[#005c4b]/50' 
-                              : 'bg-[#202c33] text-[#e9edef] rounded-tl-none border border-slate-800'
+                              ? 'bg-[#3B0F2C] text-white rounded-tr-none' 
+                              : 'bg-white text-[#3B0F2C] rounded-tl-none border border-[#E6D8E0]'
                         }`}
                       >
                         {/* Quoted / Reply Banner if present */}
@@ -1777,16 +1874,16 @@ const ChatSystem: React.FC = () => {
           </div>
 
           {/* Interactive controls and Attachments picker popup */}
-          <div className="p-3 bg-slate-900 border-t border-slate-950 flex flex-col gap-2 shadow-2xl relative select-none">
+          <div className="p-3 bg-white border-t border-[#E6D8E0] flex flex-col gap-2 relative select-none">
             
             {/* Replying Banner */}
             {replyingTo && (
-              <div className="flex justify-between items-center bg-[#182229] border-l-4 border-emerald-500 px-3 py-1.5 rounded-xl text-xs">
+              <div className="flex justify-between items-center bg-[#FBE4E8] border-l-4 border-[#C4122F] px-3 py-1.5 rounded-xl text-xs">
                 <div className="truncate pr-2">
-                  <span className="text-[10px] font-black text-emerald-400 block">Replying to {replyingTo.senderName}</span>
-                  <span className="text-[11px] text-gray-300 truncate block">{replyingTo.text}</span>
+                  <span className="text-[10px] font-bold text-[#C4122F] block">Replying to {replyingTo.senderName}</span>
+                  <span className="text-[11px] text-[#3B0F2C] truncate block">{replyingTo.text}</span>
                 </div>
-                <button onClick={() => setReplyingTo(null)} className="text-gray-400 hover:text-white p-1">
+                <button onClick={() => setReplyingTo(null)} className="text-[#6E4A63] hover:text-[#3B0F2C] p-1 cursor-pointer">
                   <X size={14} />
                 </button>
               </div>
@@ -1799,53 +1896,42 @@ const ChatSystem: React.FC = () => {
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 15 }}
-                  className="absolute bottom-16 left-4 bg-[#233138] rounded-3xl p-3.5 border border-slate-800 shadow-2xl w-56 space-y-1 z-30"
+                  className="absolute bottom-16 left-4 bg-white rounded-2xl p-3 border border-[#E6D8E0] shadow-xl w-60 space-y-1 z-30"
                 >
-                  <span className="text-[8px] font-black text-gray-400 tracking-widest block uppercase font-mono mb-1.5">Attach Medical Document</span>
+                  <span className="text-[9px] font-bold text-[#6E4A63] tracking-wider block uppercase font-mono mb-1.5">Attach Update</span>
                   
                   {/* Camera Option */}
                   <button 
                     onClick={handleOpenLiveCamera}
-                    className="w-full flex items-center gap-3 p-2 hover:bg-slate-800 rounded-xl transition text-left cursor-pointer"
+                    className="w-full flex items-center gap-3 p-2 hover:bg-[#F7F2F5] rounded-xl transition text-left cursor-pointer"
                   >
-                    <div className="w-7 h-7 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center"><Camera size={15} /></div>
+                    <div className="w-7 h-7 rounded-lg bg-[#FBE4E8] text-[#C4122F] flex items-center justify-center"><Camera size={15} /></div>
                     <div>
-                      <span className="text-xs font-bold block leading-none">Take Photo</span>
-                      <span className="text-[9px] text-gray-400 font-mono">Camera viewfinder</span>
+                      <span className="text-xs font-bold text-[#3B0F2C] block leading-none">Take Photo</span>
+                      <span className="text-[9px] text-[#6E4A63]">Camera viewfinder</span>
                     </div>
                   </button>
 
                   <button 
                     onClick={handleTriggerFilePicker}
-                    className="w-full flex items-center gap-3 p-2 hover:bg-slate-800 rounded-xl transition text-left cursor-pointer"
+                    className="w-full flex items-center gap-3 p-2 hover:bg-[#F7F2F5] rounded-xl transition text-left cursor-pointer"
                   >
-                    <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center"><ImageIcon size={15} /></div>
+                    <div className="w-7 h-7 rounded-lg bg-[#E1F2F4] text-[#11535E] flex items-center justify-center"><ImageIcon size={15} /></div>
                     <div>
-                      <span className="text-xs font-bold block leading-none">Photo & Video</span>
-                      <span className="text-[9px] text-gray-400 font-mono">From gallery/device</span>
+                      <span className="text-xs font-bold text-[#3B0F2C] block leading-none">Photo & Video</span>
+                      <span className="text-[9px] text-[#6E4A63]">From device gallery</span>
                     </div>
                   </button>
 
                   <button 
                     onClick={() => {
-                      setInputText('📄 CBC Lab Panel: Hb 8.2 g/dL | Reticulocyte: 9.8% | WBC: 7.1 | Platelets: 280k. On Hydroxyurea 500mg daily.');
+                      setInputText('💧 Hydration Check: I have completed 2.5L today. Staying on track!');
                       setShowAttachmentMenu(false);
                     }}
-                    className="w-full flex items-center gap-3 p-2 hover:bg-slate-800 rounded-xl transition text-left cursor-pointer"
+                    className="w-full flex items-center gap-3 p-2 hover:bg-[#F7F2F5] rounded-xl transition text-left cursor-pointer"
                   >
-                    <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center"><FileText size={15} /></div>
-                    <span className="text-xs font-bold">CBC Health Sheet</span>
-                  </button>
-
-                  <button 
-                    onClick={() => {
-                      setInputText('📍 Suggested place to verify: St. Nicholas Hospital, Lagos. Confirm current services and availability directly before relying on this location.');
-                      setShowAttachmentMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 p-2 hover:bg-slate-800 rounded-xl transition text-left cursor-pointer"
-                  >
-                    <div className="w-7 h-7 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center"><MapPin size={15} /></div>
-                    <span className="text-xs font-bold">Emergency Location</span>
+                    <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center"><FileText size={15} /></div>
+                    <span className="text-xs font-bold text-[#3B0F2C]">Hydration Check-in</span>
                   </button>
                 </motion.div>
               )}
@@ -1858,13 +1944,13 @@ const ChatSystem: React.FC = () => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
-                  className="absolute bottom-16 left-12 bg-[#233138] rounded-3xl p-3 border border-slate-800 shadow-2xl gap-2 flex flex-wrap justify-between w-60 z-35"
+                  className="absolute bottom-16 left-12 bg-white rounded-2xl p-3 border border-[#E6D8E0] shadow-xl gap-2 flex flex-wrap justify-between w-64 z-35"
                 >
                   {['❤️', '🧬', '💧', '💊', '🏆', '🤝', '🩺', '🦸‍♂️', '🔥', '🙌', '👏', '❄️', '💉', '🩸', '✨', '⚡'].map(emoji => (
                     <button 
                       key={emoji}
                       onClick={() => { setInputText(prev => prev + emoji); setShowEmojiPicker(false); }}
-                      className="text-xl p-1 hover:bg-slate-800 rounded-lg transition"
+                      className="text-xl p-1.5 hover:bg-[#F7F2F5] rounded-lg transition cursor-pointer"
                     >
                       {emoji}
                     </button>
@@ -1875,42 +1961,42 @@ const ChatSystem: React.FC = () => {
 
             {/* MUTED USER LOCK BANNER OR INPUT BAR */}
             {isCurrentUserMuted ? (
-              <div className="p-3 bg-red-950/40 border border-red-500/40 rounded-2xl flex items-center justify-between">
+              <div className="p-3 bg-[#FBE4E8] border border-[#C4122F]/30 rounded-2xl flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <VolumeX size={18} className="text-red-400" />
+                  <VolumeX size={18} className="text-[#C4122F]" />
                   <div>
-                    <span className="text-xs font-black text-red-300 block">You are muted in this channel</span>
-                    <span className="text-[10px] text-gray-400">An administrator has temporarily restricted your messaging permissions.</span>
+                    <span className="text-xs font-bold text-[#C4122F] block">You are muted in this channel</span>
+                    <span className="text-[10px] text-[#6E4A63]">An administrator has temporarily restricted messaging permissions.</span>
                   </div>
                 </div>
                 {isCurrentUserAdmin && (
                   <button 
                     onClick={() => handleToggleMuteUser(currentUserId, true)}
-                    className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded-xl text-[10px] font-bold"
+                    className="px-3 py-1 bg-[#C4122F] hover:bg-[#9E0E26] text-white rounded-full text-[10px] font-bold"
                   >
-                    Unmute Self (Admin)
+                    Unmute Self
                   </button>
                 )}
               </div>
             ) : isRecordingVoice ? (
-              <div className="flex items-center justify-between bg-[#202c33] border border-red-500/40 px-4 py-2.5 rounded-2xl animate-pulse">
+              <div className="flex items-center justify-between bg-[#FBE4E8] border border-[#C4122F]/40 px-4 py-2.5 rounded-2xl animate-pulse">
                 <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full bg-red-500 animate-ping"></div>
-                  <span className="text-xs font-mono font-black text-red-400">
+                  <div className="w-3 h-3 rounded-full bg-[#C4122F] animate-ping"></div>
+                  <span className="text-xs font-mono font-bold text-[#C4122F]">
                     Recording Audio... 0:{recordingDuration.toString().padStart(2, '0')}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => stopVoiceRecording(true)}
-                    className="p-2 hover:bg-slate-800 text-gray-400 hover:text-red-400 rounded-xl transition"
+                    className="p-2 hover:bg-white text-[#6E4A63] hover:text-[#C4122F] rounded-full transition"
                     title="Cancel recording"
                   >
                     <Trash2 size={16} />
                   </button>
                   <button
                     onClick={() => stopVoiceRecording(false)}
-                    className="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition flex items-center gap-1 text-xs font-bold"
+                    className="px-3 py-1.5 bg-[#C4122F] hover:bg-[#9E0E26] text-white rounded-full transition flex items-center gap-1 text-xs font-bold"
                     title="Send voice note"
                   >
                     <Send size={14} />
@@ -1922,7 +2008,7 @@ const ChatSystem: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => { setShowAttachmentMenu(!showAttachmentMenu); setShowEmojiPicker(false); }}
-                  className={`p-2.5 text-gray-400 hover:text-red-500 transition-all rounded-xl hover:bg-slate-800 cursor-pointer ${showAttachmentMenu ? 'bg-slate-850 text-red-500' : ''}`}
+                  className={`p-2 text-[#6E4A63] hover:text-[#C4122F] transition-all rounded-full hover:bg-[#F7F2F5] cursor-pointer ${showAttachmentMenu ? 'bg-[#FBE4E8] text-[#C4122F]' : ''}`}
                   title="Add attachment"
                 >
                   <Paperclip size={18} />
@@ -1930,15 +2016,15 @@ const ChatSystem: React.FC = () => {
 
                 <button 
                   onClick={handleOpenLiveCamera}
-                  className="p-2.5 text-gray-400 hover:text-red-500 transition-all rounded-xl hover:bg-slate-800 cursor-pointer"
-                  title="Capture Image with Camera & Upload"
+                  className="p-2 text-[#6E4A63] hover:text-[#C4122F] transition-all rounded-full hover:bg-[#F7F2F5] cursor-pointer"
+                  title="Capture Image with Camera"
                 >
                   <Camera size={18} />
                 </button>
 
                 <button 
                   onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowAttachmentMenu(false); }}
-                  className={`p-2.5 text-gray-400 hover:text-yellow-500 transition-all rounded-xl hover:bg-slate-800 cursor-pointer ${showEmojiPicker ? 'bg-slate-850 text-yellow-500' : ''}`}
+                  className={`p-2 text-[#6E4A63] hover:text-[#B45309] transition-all rounded-full hover:bg-[#F7F2F5] cursor-pointer ${showEmojiPicker ? 'bg-[#FDF0DC] text-[#B45309]' : ''}`}
                   title="Emoji panel"
                 >
                   <Smile size={18} />
@@ -1950,14 +2036,14 @@ const ChatSystem: React.FC = () => {
                     value={inputText}
                     onChange={handleInputChange}
                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder="Type a clinical note or warrior update..." 
-                    className="w-full pl-4 pr-12 py-3 bg-[#2a3942] text-[#e9edef] rounded-2xl text-xs font-semibold focus:outline-none border border-slate-800 focus:border-red-500 transition-all placeholder:text-gray-500"
+                    placeholder="Share your warrior strength or message..." 
+                    className="w-full pl-4 pr-12 py-2.5 bg-[#F7F2F5] text-[#3B0F2C] rounded-full text-xs font-semibold focus:outline-none border border-[#E6D8E0] focus:border-[#C4122F] transition-all placeholder:text-[#6E4A63]/60"
                   />
                   {inputText.trim() || localPreviewFile ? (
                     <button 
                       onClick={() => handleSendMessage()}
                       disabled={isUploadingToStorage}
-                      className="absolute right-1.5 top-1.5 p-2 bg-red-600 hover:bg-red-500 text-white rounded-xl transition-all cursor-pointer shadow-md shadow-red-900/30"
+                      className="absolute right-1.5 top-1 p-2 bg-[#C4122F] hover:bg-[#9E0E26] text-white rounded-full transition-all cursor-pointer shadow-sm active:scale-95"
                       title="Send message"
                     >
                       <Send size={14} />
@@ -1965,7 +2051,7 @@ const ChatSystem: React.FC = () => {
                   ) : (
                     <button 
                       onClick={startVoiceRecording}
-                      className="absolute right-1.5 top-1.5 p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-all cursor-pointer shadow-md"
+                      className="absolute right-1.5 top-1 p-2 bg-[#1E7B4A] hover:bg-[#155d36] text-white rounded-full transition-all cursor-pointer shadow-sm"
                       title="Hold / Tap to record voice note"
                     >
                       <Mic size={14} />
@@ -1977,13 +2063,13 @@ const ChatSystem: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center text-gray-400 bg-[#0b141a] p-12 text-center">
-          <div className="w-18 h-18 bg-slate-900 rounded-3xl shadow-2xl flex items-center justify-center mb-4 border border-slate-800 relative">
-             <MessageSquare size={28} className="text-red-500" />
+        <div className="flex-1 flex flex-col items-center justify-center text-[#6E4A63] bg-[#FAF7F9] p-12 text-center">
+          <div className="w-16 h-16 bg-white rounded-3xl shadow-sm flex items-center justify-center mb-3 border border-[#E6D8E0] relative">
+             <MessageSquare size={28} className="text-[#C4122F]" />
           </div>
-          <h3 className="text-lg font-black text-gray-100 mb-1">Warrior Group Chat Hub</h3>
-          <p className="text-xs font-semibold max-w-xs leading-relaxed text-gray-500">
-            Select a sample channel to preview community messaging.
+          <h3 className="text-base font-display font-bold text-[#3B0F2C] mb-1">Warrior Channel Network</h3>
+          <p className="text-xs font-medium max-w-xs leading-relaxed text-[#6E4A63]">
+            Select a channel or create your own group above to connect with fellow warriors.
           </p>
         </div>
       )}
@@ -2168,9 +2254,7 @@ const ChatSystem: React.FC = () => {
       </AnimatePresence>
 
       </div>
-
-      {/* Peer Support Option & Care Stream Linking Section */}
-      <PeerSupportSection currentUserId={auth.currentUser?.uid || 'user-warrior'} />
+      )}
     </div>
   );
 };

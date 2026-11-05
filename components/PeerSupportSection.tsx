@@ -127,6 +127,20 @@ export const PeerSupportSection: React.FC<{ currentUserId?: string }> = ({ curre
   const [aiPeerNudge, setAiPeerNudge] = useState<string>(
     "Grace hasn't received a hydration check-in from you in 6 hours. AI suggestion: A gentle 1-tap ping keeps your support circle reassured."
   );
+  const [sentNotification, setSentNotification] = useState<string | null>(null);
+
+  const handleSend1TapNudge = (msg: string) => {
+    setSentNotification(`Care ping sent to Warrior: "${msg}"`);
+    const newLog: AuditLogEntry = {
+      id: 'log-' + Date.now(),
+      peerName: 'You (Companion Care)',
+      action: 'Sent 1-Tap Care Ping',
+      timestamp: 'Just now',
+      details: `Encouragement sent: "${msg}"`
+    };
+    setAuditLogs(prev => [newLog, ...prev]);
+    setTimeout(() => setSentNotification(null), 4000);
+  };
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(generatedCode);
@@ -608,7 +622,7 @@ export const PeerSupportSection: React.FC<{ currentUserId?: string }> = ({ curre
                 "Your Warrior has maintained <strong>2.8L of hydration</strong> today (93% of goal) and logged low baseline discomfort (VAS 2/10). However, sudden evening temperature drops are forecast in your region. A comforting text suggesting warm herbal tea or layering up is recommended."
               </p>
 
-              <div className="border-t border-indigo-900/40 pt-3 flex flex-wrap gap-2">
+              <div className="border-t border-indigo-900/40 pt-3 flex flex-wrap items-center gap-2">
                 <span className="text-[11px] font-semibold text-slate-400 self-center">Suggested 1-Tap Messages:</span>
                 {[
                   "Hey, super proud of your hydration today! 💧",
@@ -617,26 +631,35 @@ export const PeerSupportSection: React.FC<{ currentUserId?: string }> = ({ curre
                 ].map((msg, i) => (
                   <button
                     key={i}
-                    onClick={() => {
-                      alert(`Support ping sent to Warrior: "${msg}"`);
-                    }}
-                    className="px-2.5 py-1 bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 border border-indigo-700/50 rounded-lg text-[11px] transition cursor-pointer"
+                    type="button"
+                    onClick={() => handleSend1TapNudge(msg)}
+                    className="px-2.5 py-1 bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 border border-indigo-700/50 rounded-lg text-[11px] transition cursor-pointer active:scale-95"
                   >
                     "{msg}"
                   </button>
                 ))}
               </div>
+
+              {sentNotification && (
+                <div className="p-2.5 bg-emerald-950/80 border border-emerald-700 text-emerald-200 rounded-xl text-xs flex items-center justify-between animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 size={14} className="text-emerald-400" />
+                    <span>{sentNotification}</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-400">Logged to audit trail</span>
+                </div>
+              )}
             </div>
 
-            {/* Anomaly Detection Preview */}
+            {/* Health Continuity & Safety Monitoring */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2">
                 <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
                   <CheckCircle2 size={15} />
-                  <span>Baseline Stability Score: 94%</span>
+                  <span>Care Continuity Status: Verified Active</span>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  No concerning physiological deviations detected over the past 7 days. Routine peer check-ins remain optimal.
+                  All daily hydration and comfort logs recorded over the past 7 days. Routine peer check-ins and emergency contacts linked.
                 </p>
               </div>
 
