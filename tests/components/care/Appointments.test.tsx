@@ -206,4 +206,40 @@ describe('Appointments patient experience', () => {
     expect(screen.getByLabelText('Reason for appointment')).toHaveValue('Patient-approved handoff note');
     expect(appointmentService.addAppointment).not.toHaveBeenCalled();
   });
+  it('submits a virtual consultation request when virtual mode is selected', async () => {
+    const user = userEvent.setup();
+    renderAppointments();
+    await openRequest(user);
+    await user.click(screen.getByRole('radio', { name: /Virtual consult/i }));
+    expect(screen.getByText(/Virtual consultation setup/i)).toBeInTheDocument();
+    await completePreferences(user);
+    expect(screen.getByText('Virtual consultation (telemedicine)')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Submit request' }));
+    expect(appointmentService.addAppointment).toHaveBeenCalledWith('patient-1', expect.objectContaining({
+      appointmentType: 'virtual',
+      bookedDate: '2026-10-12',
+      bookedTime: '14:30',
+    }));
+  });
+
+  it('validates address and submits a home visit request when home visit is selected', async () => {
+    const user = userEvent.setup();
+    renderAppointments();
+    await openRequest(user);
+    await user.click(screen.getByRole('radio', { name: /Home visit/i }));
+    expect(screen.getByText(/Home visits are for supportive non-emergency care/i)).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/Preferred date/), '2026-10-12');
+    await user.type(screen.getByLabelText(/Preferred time/), '14:30');
+    await user.click(screen.getByRole('button', { name: 'Review request' }));
+    expect(screen.getByText(/Enter your home address for the visiting doctor/i)).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/Home visit address/i), '14 Admiralty Way, Lekki, Lagos');
+    await user.click(screen.getByRole('button', { name: 'Review request' }));
+    expect(screen.getByText('Home visit (doctor to your house)')).toBeInTheDocument();
+    expect(screen.getByText('14 Admiralty Way, Lekki, Lagos')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Submit request' }));
+    expect(appointmentService.addAppointment).toHaveBeenCalledWith('patient-1', expect.objectContaining({
+      appointmentType: 'home',
+      homeAddress: '14 Admiralty Way, Lekki, Lagos',
+    }));
+  });
 });

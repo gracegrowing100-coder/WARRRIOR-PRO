@@ -159,6 +159,8 @@ export type AppointmentReadState = 'recorded' | 'cached' | 'empty' | 'unavailabl
 
 export interface AppointmentRecord {
   id: string;
+  appointmentType?: 'clinic' | 'virtual' | 'home' | string;
+  homeAddress?: string;
   bookedDate?: string;
   bookedTime?: string;
   patientNote?: string;

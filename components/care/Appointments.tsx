@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, CalendarDays, ChevronRight, Plus } from 'lucide-react';
+import { ArrowLeft, Building2, CalendarDays, ChevronRight, Home, Plus, Video } from 'lucide-react';
 import {
   firebaseService,
   type AppointmentReadState,
@@ -52,11 +52,22 @@ const RequestList: React.FC<{
                   aria-label={`Open appointment request for ${appointment.bookedDate || 'recorded date'}`}
                 >
                   <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-surface-subtle text-action" aria-hidden="true">
-                    <CalendarDays size={21} />
+                    {appointment.appointmentType === 'home' ? (
+                      <Home size={21} className="text-wa-crimson" />
+                    ) : appointment.appointmentType === 'virtual' ? (
+                      <Video size={21} className="text-sky-600" />
+                    ) : (
+                      <CalendarDays size={21} />
+                    )}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-body font-semibold text-foreground">
                       Requested for {displayDate(appointment.bookedDate)}{appointment.bookedTime ? ` at ${appointment.bookedTime}` : ''}
+                      {appointment.appointmentType && (
+                        <span className="ml-2 text-xs font-medium text-foreground-secondary">
+                          · {appointment.appointmentType === 'home' ? 'Home visit' : appointment.appointmentType === 'virtual' ? 'Virtual' : 'Clinic visit'}
+                        </span>
+                      )}
                     </span>
                     {appointment.patientNote && (
                       <span className="mt-1 block truncate text-small text-foreground-secondary">{appointment.patientNote}</span>

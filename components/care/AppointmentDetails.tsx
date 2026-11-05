@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, CalendarDays, Clock3, FileText } from 'lucide-react';
+import { ArrowLeft, Building2, CalendarDays, Clock3, FileText, Home, MapPin, Video } from 'lucide-react';
 import type { AppointmentRecord } from '../../services/firebaseService';
 import { Alert, Button, Card, HealthStatusBadge, Modal } from '../ui';
 
@@ -22,6 +22,12 @@ function displayDate(value?: string) {
   }).format(new Date(`${value}T00:00:00`));
 }
 
+function displayModeLabel(mode?: string) {
+  if (mode === 'home') return 'Home visit (doctor to your house)';
+  if (mode === 'virtual') return 'Virtual consultation (telemedicine)';
+  return 'Clinic visit (in-person)';
+}
+
 export const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
   appointment,
   cancelling,
@@ -40,15 +46,55 @@ export const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
       </Button>
       <header className="space-y-3">
         <h1 className="text-heading-1 text-foreground">Appointment request</h1>
-        <HealthStatusBadge tone={isCancelled ? 'neutral' : 'info'}>
-          {isCancelled ? 'Cancelled' : 'Request recorded'}
-        </HealthStatusBadge>
+        <div className="flex flex-wrap items-center gap-2">
+          <HealthStatusBadge tone={isCancelled ? 'neutral' : 'info'}>
+            {isCancelled ? 'Cancelled' : 'Request recorded'}
+          </HealthStatusBadge>
+          {appointment.appointmentType && (
+            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+              appointment.appointmentType === 'home'
+                ? 'bg-wa-rose text-wa-crimson'
+                : appointment.appointmentType === 'virtual'
+                ? 'bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300'
+                : 'bg-wa-ground text-wa-plum-muted'
+            }`}>
+              {appointment.appointmentType === 'home' ? <Home size={12} /> : appointment.appointmentType === 'virtual' ? <Video size={12} /> : <Building2 size={12} />}
+              {appointment.appointmentType === 'home' ? 'Home visit' : appointment.appointmentType === 'virtual' ? 'Virtual' : 'Clinic visit'}
+            </span>
+          )}
+        </div>
       </header>
 
       <Card as="section" aria-labelledby="appointment-details-title" className="max-w-2xl shadow-none">
         <h2 id="appointment-details-title" className="text-heading-2 text-foreground">Request details</h2>
         <dl className="mt-5 divide-y divide-line">
+          {/* Consultation Type */}
           <div className="flex gap-4 py-4 first:pt-0">
+            {appointment.appointmentType === 'home' ? (
+              <Home size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-action" />
+            ) : appointment.appointmentType === 'virtual' ? (
+              <Video size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-action" />
+            ) : (
+              <Building2 size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-action" />
+            )}
+            <div>
+              <dt className="text-small font-semibold text-foreground-secondary">Consultation type</dt>
+              <dd className="mt-1 text-body font-semibold text-foreground">{displayModeLabel(appointment.appointmentType as any)}</dd>
+            </div>
+          </div>
+
+          {/* Home visit location if applicable */}
+          {appointment.homeAddress && (
+            <div className="flex gap-4 py-4">
+              <MapPin size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-action" />
+              <div>
+                <dt className="text-small font-semibold text-foreground-secondary">Home visit location</dt>
+                <dd className="mt-1 whitespace-pre-wrap text-body text-foreground">{appointment.homeAddress}</dd>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-4 py-4">
             <CalendarDays size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-action" />
             <div>
               <dt className="text-small font-semibold text-foreground-secondary">Preferred date</dt>
