@@ -299,6 +299,7 @@ const App: React.FC = () => {
             connectivityLabel={isOffline ? 'Offline Mode (Local Knowledge)' : 'Live & Offline Protected'}
             isOffline={isOffline}
             onHome={() => navigate('home')}
+            emergencyAction={<SosPill />}
             actions={(
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 w-full sm:w-auto">
                 {/* Multilingual Selector */}
@@ -350,11 +351,11 @@ const App: React.FC = () => {
                 aria-label="Open profile"
                 aria-expanded={showProfile}
                 data-ui-control
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-control ${showProfile ? 'bg-action text-foreground-inverse' : 'bg-surface-subtle text-foreground'}`}
+                className={`flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full border border-[#EADDE2] ${showProfile ? 'bg-wa-plum text-white' : 'bg-white text-wa-plum hover:bg-[#FBE4E8]'} shadow-xs transition-colors`}
                 onClick={() => setShowProfile(true)}
               >
                 {user?.photoURL ? (
-                  <img src={user.photoURL} alt="User" className="h-6 w-6 rounded-lg object-cover" />
+                  <img src={user.photoURL} alt="User" className="h-7 w-7 rounded-full object-cover" />
                 ) : (
                   <User size={18} />
                 )}

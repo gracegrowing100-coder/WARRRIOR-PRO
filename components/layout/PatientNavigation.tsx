@@ -59,6 +59,7 @@ export const PatientNavigation: React.FC<PatientNavigationProps> = ({
   currentDestination,
   onNavigate,
   labels = defaultLabels,
+  appName = 'Warrior AI',
   profileLabel = 'Profile',
   profilePhotoUrl,
   onOpenProfile,
@@ -124,13 +125,18 @@ export const PatientNavigation: React.FC<PatientNavigationProps> = ({
         )}
       >
         {/* Top Logo Lockup (Reverse) */}
-        <div className="px-2 pt-2 pb-6">
+        <button
+          type="button"
+          onClick={() => onNavigate('home')}
+          aria-label={`${appName || 'Warrior AI'} Home`}
+          className="px-2 pt-2 pb-6 text-left w-full transition-opacity hover:opacity-90 active:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-xl"
+        >
           <img
             src="/brand/svg/lockup/warrior-ai-horizontal-reverse.svg"
-            alt="Warrior AI"
+            alt={appName || 'Warrior AI'}
             className="h-8 w-auto"
           />
-        </div>
+        </button>
 
         {/* 5 Nav Items */}
         <nav aria-label="Main menu" className="flex flex-col gap-2 flex-1">
