@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   User,
   Activity,
   Sun,
@@ -57,7 +57,7 @@ const App: React.FC = () => {
   // Mira handoff: the patient-approved summary used to prefill an appointment
   // request. It is form state only — no request is created or sent from here.
   const [miraAppointmentDraft, setMiraAppointmentDraft] = useState('');
-  
+
   // Multilingual state (English, Yoruba, Hausa, Igbo)
   const [language, setLanguage] = useState<SupportedLanguage>(() => {
     return (localStorage.getItem('warrior_language') as SupportedLanguage) || 'en';
@@ -199,8 +199,8 @@ const App: React.FC = () => {
       setTimeout(() => {
         const el = document.getElementById(
           lower.includes('water') ? 'water-intake-tracker-module' :
-          lower.includes('pain') ? 'pain-trends-chart-card' :
-          lower.includes('medication') ? 'medication-reminder-card' : 'home-header-stats'
+            lower.includes('pain') ? 'pain-trends-chart-card' :
+              lower.includes('medication') ? 'medication-reminder-card' : 'home-header-stats'
         );
         if (el) el.scrollIntoView({ behavior: 'smooth' });
       }, 200);
@@ -299,7 +299,6 @@ const App: React.FC = () => {
             connectivityLabel={isOffline ? 'Offline Mode (Local Knowledge)' : 'Live & Offline Protected'}
             isOffline={isOffline}
             onHome={() => navigate('home')}
-            emergencyAction={<SosPill />}
             actions={(
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 w-full sm:w-auto">
                 {/* Multilingual Selector */}
@@ -317,7 +316,7 @@ const App: React.FC = () => {
                     <option value="ig">Igbo</option>
                   </select>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   {/* Real-time High Contrast Mode Toggle */}
                   <button

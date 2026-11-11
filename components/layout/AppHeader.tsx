@@ -48,41 +48,40 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   }, [settingsOpen]);
 
   return (
-    <header data-semantic className="sticky top-0 z-40 flex min-h-[4.5rem] items-center justify-between gap-2.5 sm:gap-3 border-b border-[#EADDE2] bg-[#FAF6F8]/95 px-4 py-2.5 sm:py-3 text-wa-plum backdrop-blur-md sm:px-5 lg:min-h-20 lg:px-8">
-      {/* Mobile Brand Identity Control (< 768px) */}
+    <header data-semantic className="sticky top-0 z-40 flex min-h-[4.25rem] items-center justify-between gap-3 border-b border-[#EADDE2] bg-[#FAF6F8]/95 px-4 py-2.5 text-wa-plum backdrop-blur-md sm:px-5 lg:min-h-20 lg:px-8">
+      {/* Mobile Brand Identity Control (< 768px): Sleek Logo Badge Only */}
       <button 
         type="button" 
         data-ui-control 
-        className="flex min-h-11 min-w-0 items-center gap-2.5 rounded-2xl text-left md:hidden p-1 -ml-1 transition-opacity active:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson" 
+        className="flex min-h-11 items-center gap-2.5 rounded-2xl text-left md:hidden p-1 -ml-1 transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson shrink-0" 
         onClick={onHome} 
         aria-label={`${appName} Home`}
       >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white shadow-xs border border-[#EADDE2] overflow-hidden p-1.5 ring-1 ring-black/5">
+        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white shadow-xs border border-[#EADDE2] overflow-hidden p-1.5 ring-1 ring-black/5 hover:border-wa-crimson transition-colors">
           <img
             src="/brand/svg/mark/warrior-ai-mark-crimson.svg"
             alt=""
             className="h-full w-full object-contain"
             aria-hidden="true"
           />
+          {/* Subtle status indicator dot pinned to the corner of the logo badge */}
+          <span
+            className={cn(
+              'absolute bottom-0.5 right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-white',
+              isOffline ? 'bg-status-warning' : 'bg-status-success animate-pulse',
+            )}
+            aria-hidden="true"
+          />
         </div>
-        <div className="min-w-0 flex flex-col justify-center">
-          <div className="flex items-center gap-1.5">
-            <span className="block truncate text-base sm:text-lg font-bold tracking-tight text-wa-plum font-display">
-              {appName}
-            </span>
-          </div>
-          <div className="flex min-w-0 items-center gap-1.5">
-            <span
-              className={cn(
-                'h-2 w-2 shrink-0 rounded-full',
-                isOffline ? 'bg-status-warning' : 'bg-status-success animate-pulse',
-              )}
-              aria-hidden="true"
-            />
-            <span className="truncate text-caption text-foreground-secondary font-medium">
-              {connectivityLabel}
-            </span>
-          </div>
+
+        {/* Visually hidden on mobile (< 640px) so the mobile view is strictly clean logo-only, but available in DOM and expands on sm: */}
+        <div className="sr-only sm:not-sr-only sm:flex sm:flex-col sm:justify-center sm:min-w-0">
+          <span className="truncate text-base font-bold tracking-tight text-wa-plum font-display">
+            {appName}
+          </span>
+          <span className="truncate text-caption text-foreground-secondary font-medium">
+            {connectivityLabel}
+          </span>
         </div>
       </button>
 
@@ -94,8 +93,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
       {/* Right-aligned Header Controls */}
       <div className="relative ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
-        {/* Emergency SOS Button (Mobile & Desktop) */}
-        {emergencyAction}
+        {/* Optional emergency action (hidden on mobile if passed, to avoid covering hero button) */}
+        {emergencyAction ? <div className="hidden md:inline-flex">{emergencyAction}</div> : null}
 
         {/* Display & Language Settings Toggle Button (Mobile) */}
         <button
