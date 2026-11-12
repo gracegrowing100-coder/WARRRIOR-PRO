@@ -74,12 +74,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           />
         </div>
 
-        {/* Visually hidden on mobile (< 640px) so the mobile view is strictly clean logo-only, but available in DOM and expands on sm: */}
-        <div className="sr-only sm:not-sr-only sm:flex sm:flex-col sm:justify-center sm:min-w-0">
-          <span className="truncate text-base font-bold tracking-tight text-wa-plum font-display">
+        {/* Brand identity lockup for mobile and desktop */}
+        <div className="flex flex-col justify-center min-w-0">
+          <span className="truncate text-sm sm:text-base font-bold tracking-tight text-wa-plum font-display leading-tight">
             {appName}
           </span>
-          <span className="truncate text-caption text-foreground-secondary font-medium">
+          <span className="truncate text-[10px] sm:text-caption text-foreground-secondary font-medium">
             {connectivityLabel}
           </span>
         </div>
