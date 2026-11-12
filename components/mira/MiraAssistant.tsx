@@ -516,47 +516,36 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
   return (
     <section aria-labelledby="mira-heading" className="space-y-4" data-semantic>
       <Card as="section" padding="none" className="flex min-h-[calc(100dvh-15rem)] flex-col overflow-hidden border-wa-line/80 shadow-sm rounded-[28px] bg-wa-surface">
-        <header className="flex items-center justify-between gap-3 bg-[#3B0F2C] text-white px-4 py-3.5 sm:px-6">
+        <header className="flex items-center justify-between gap-3 bg-[#3B0F2C] text-white px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <div className="relative">
-              <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#C4122F] text-white shadow-sm">
+              <span aria-hidden="true" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#C4122F] text-white shadow-xs ring-1 ring-white/10">
                 <Spark className="w-5 h-5 text-white" />
               </span>
               <span className={cn(
-                "absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[#3B0F2C]",
+                "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#3B0F2C]",
                 isOffline ? "bg-gray-400" : "bg-[#3DDC84]"
               )} />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 id="mira-heading" className="font-display text-lg font-bold text-white tracking-tight">Mira</h2>
-                <span className="rounded-full bg-[#FBE4E8] text-[#C4122F] px-2 py-0.5 text-[10px] font-bold">✦ AI</span>
-              </div>
-              <p className="truncate text-xs text-[#D9B9CC]">{isOffline ? 'Offline mode · Local advice' : 'AI sickle-cell assistant'}</p>
+              <h2 id="mira-heading" className="font-display text-base sm:text-lg font-bold text-white tracking-tight leading-tight">Mira</h2>
+              <p className="truncate text-xs text-[#D9B9CC] font-medium mt-0.5">{isOffline ? 'Offline mode · Local advice' : 'AI sickle-cell assistant'}</p>
               <span className="sr-only">by WARRIOR AI</span>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <button
               type="button"
               aria-label="New chat"
               onClick={startNewChat}
               disabled={busy || loadingConversation}
-              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-semibold text-[#D9B9CC] hover:bg-white/10 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-50"
+              title="Start new chat"
+              className="inline-flex h-9 sm:h-10 items-center justify-center gap-1.5 rounded-full px-2.5 sm:px-3 text-xs font-semibold text-[#D9B9CC] hover:bg-white/10 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               <MessageSquarePlus size={16} aria-hidden="true" />
               <span className="hidden sm:inline">New chat</span>
             </button>
-            <button 
-              type="button" 
-              aria-label="Open Offline AI Companion" 
-              onClick={() => { const trigger = document.getElementById('offline-warrior-ai-floating-trigger'); if (trigger) trigger.click(); }} 
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 text-xs font-semibold text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-            >
-              <span className={cn('h-2 w-2 rounded-full', isOffline ? 'bg-status-warning' : 'bg-[#3DDC84]')} />
-              <span>{isOffline ? 'Offline mode' : 'Offline AI'}</span>
-            </button>
-            <IconButton label="Mira settings" icon={<Settings2 size={18} className="text-white" />} onClick={() => setSettingsOpen(true)} className="text-white hover:bg-white/10" />
+            <IconButton label="Mira settings" icon={<Settings2 size={17} className="text-[#D9B9CC] hover:text-white" />} onClick={() => setSettingsOpen(true)} className="h-9 w-9 sm:h-10 sm:w-10 hover:bg-white/10" />
           </div>
         </header>
 
@@ -602,21 +591,21 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
           className="min-h-[22rem] flex-1 space-y-4 overflow-y-auto overflow-x-hidden bg-canvas/70 px-3 py-5 sm:px-5 scroll-smooth"
         >
           {!introDismissed && (
-            <Card surface="subtle" className="mx-auto max-w-xl border-medical-100 shadow-none">
-              <div className="flex items-start gap-3">
-                <span aria-hidden="true" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-medical-50 text-action-accent">
-                  <Settings2 size={19} />
+            <div className="mx-auto max-w-xl rounded-2xl bg-white border border-[#E6D8E0] p-3 sm:p-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#FDF2F4] text-[#C4122F]">
+                  <Settings2 size={16} />
                 </span>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-body font-semibold text-foreground">Make Mira yours</h3>
-                  <p className="mt-1 text-small text-foreground-secondary">Choose your language and whether you want spoken replies.</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button size="sm" onClick={() => { dismissPreferencesIntro(); setSettingsOpen(true); }}>Set preferences</Button>
-                    <Button size="sm" variant="ghost" onClick={dismissPreferencesIntro}>Not now</Button>
-                  </div>
+                <div className="min-w-0">
+                  <h3 className="text-xs font-bold text-[#3B0F2C]">Make Mira yours</h3>
+                  <p className="text-[11px] text-[#6E4A63] truncate">Choose your language and whether you want spoken replies.</p>
                 </div>
               </div>
-            </Card>
+              <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                <Button size="sm" onClick={() => { dismissPreferencesIntro(); setSettingsOpen(true); }} className="text-xs h-7 px-2.5">Set preferences</Button>
+                <Button size="sm" variant="ghost" onClick={dismissPreferencesIntro} className="text-xs h-7 px-2 text-[#6E4A63]">Not now</Button>
+              </div>
+            </div>
           )}
 
           {loadingConversation && (
@@ -627,12 +616,12 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
           )}
 
           {!loadingConversation && messages.length === 0 && (
-            <div className="mx-auto max-w-md py-8 text-center">
-              <span aria-hidden="true" className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-surface text-action-accent shadow-surface">
-                <HeartPulse size={25} />
+            <div className="mx-auto max-w-md py-4 sm:py-6 text-center">
+              <span aria-hidden="true" className="mx-auto inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#C4122F] shadow-xs border border-[#E6D8E0]">
+                <HeartPulse size={20} />
               </span>
-              <h3 className="mt-4 text-heading-3 text-foreground">How can I support you?</h3>
-              <p className="mt-2 text-small text-foreground-secondary">Ask about daily sickle-cell support, hydration, pain, medication routines, or preparing for an appointment.</p>
+              <h3 className="mt-2.5 text-sm sm:text-base font-bold text-[#3B0F2C] font-display">How can I support you?</h3>
+              <p className="mt-1 text-xs text-[#6E4A63] max-w-xs mx-auto">Ask about daily sickle-cell support, hydration, pain, medication routines, or preparing for an appointment.</p>
             </div>
           )}
 

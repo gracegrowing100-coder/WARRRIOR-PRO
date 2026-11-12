@@ -61,7 +61,13 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ userId, onContinue
             ) : (
               entry.icon
             )}
-            <span>{entry.label}</span>
+            <span>
+              {entry.id === 'community' ? (
+                <>Community<span className="hidden sm:inline"> & Peer Groups</span></>
+              ) : (
+                entry.label
+              )}
+            </span>
           </button>
         ))}
       </div>

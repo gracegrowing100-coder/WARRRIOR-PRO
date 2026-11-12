@@ -823,30 +823,30 @@ const ChatSystem: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Sub-tab Navigation */}
-      <div className="flex items-center gap-2 p-1 rounded-full bg-white border border-[#E6D8E0] shadow-2xs max-w-fit">
+      <div className="flex items-center gap-1.5 p-1 rounded-full bg-white border border-[#E6D8E0] shadow-2xs max-w-fit">
         <button
           type="button"
           onClick={() => setSubTab('channels')}
-          className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
             subTab === 'channels'
               ? 'bg-[#3B0F2C] text-white shadow-sm'
               : 'text-[#6E4A63] hover:text-[#3B0F2C] hover:bg-[#F7F2F5]'
           }`}
         >
           <MessageSquare size={14} />
-          <span>Warrior Channels ({allChats.length})</span>
+          <span><span className="hidden sm:inline">Warrior </span>Channels ({allChats.length})</span>
         </button>
         <button
           type="button"
           onClick={() => setSubTab('circle')}
-          className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
             subTab === 'circle'
               ? 'bg-[#3B0F2C] text-white shadow-sm'
               : 'text-[#6E4A63] hover:text-[#3B0F2C] hover:bg-[#F7F2F5]'
           }`}
         >
           <Users size={14} />
-          <span>Care Circle & Buddies</span>
+          <span>Care Circle<span className="hidden sm:inline"> & Buddies</span></span>
         </button>
       </div>
 
@@ -1362,10 +1362,10 @@ const ChatSystem: React.FC = () => {
             <button 
               onClick={() => setShowCreateGroupModal(true)}
               className="px-3 py-1.5 bg-[#C4122F] hover:bg-[#9E0E26] text-white rounded-full transition shadow-sm text-xs font-bold flex items-center gap-1 cursor-pointer"
-              title="Create new group"
+              title="Create a new Warrior support group"
             >
               <Plus size={14} />
-              <span>New</span>
+              <span><span className="hidden sm:inline">Create </span>Group</span>
             </button>
           </div>
 
@@ -1535,21 +1535,21 @@ const ChatSystem: React.FC = () => {
               <button 
                 onClick={handleOpenLiveCamera}
                 title="Take photo with Camera & upload to Firebase"
-                className="p-2 hover:bg-[#F7F2F5] hover:text-[#C4122F] rounded-xl transition"
+                className="hidden sm:inline-flex p-2 hover:bg-[#F7F2F5] hover:text-[#C4122F] rounded-xl transition"
               >
                 <Camera size={16} />
               </button>
               <button 
                 onClick={() => handleStartCall('video')}
                 title="Initiate video consultation"
-                className="p-2 hover:bg-[#F7F2F5] hover:text-[#C4122F] rounded-xl transition"
+                className="hidden sm:inline-flex p-2 hover:bg-[#F7F2F5] hover:text-[#C4122F] rounded-xl transition"
               >
                 <Video size={16} />
               </button>
               <button 
                 onClick={() => handleStartCall('voice')}
                 title="Initiate patient advocate voice line"
-                className="p-2 hover:bg-[#F7F2F5] hover:text-[#1E7B4A] rounded-xl transition"
+                className="hidden sm:inline-flex p-2 hover:bg-[#F7F2F5] hover:text-[#1E7B4A] rounded-xl transition"
               >
                 <Phone size={16} />
               </button>
