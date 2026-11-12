@@ -20,7 +20,7 @@ interface SupportCenter {
     latitude: number;
     longitude: number;
   };
-  city: 'Lagos' | 'Abuja' | 'London' | 'Houston';
+  city: 'Lagos' | 'Abuja' | 'Ogun';
 }
 
 const SUPPORT_CENTERS: SupportCenter[] = [
@@ -69,37 +69,48 @@ const SUPPORT_CENTERS: SupportCenter[] = [
     city: 'Abuja'
   },
   {
-    id: 'scs-london',
-    center_name: 'Sickle Cell Society London',
-    category: 'NGOs',
-    description: 'The premier national charity in the UK supporting individuals living with sickle cell disorder through advocacy, hospital liaison, and welfare grants.',
-    phone: '+442077377711',
-    email: 'info@sicklecellsociety.org',
-    address: '54 Station Road, Harlesden, London, NW10 4UA, UK',
-    geocoordinates: { latitude: 51.5312, longitude: -0.2513 },
-    city: 'London'
-  },
-  {
-    id: 'texas-childrens-houston',
-    center_name: "Texas Children's Hematology Center",
+    id: 'fmc-abeokuta',
+    center_name: 'FMC Abeokuta Sickle Cell Specialized Center',
     category: 'Specialized Clinics',
-    description: 'World-renowned sickle cell disease clinical research and comprehensive care center offering advanced gene therapy trials and TCD stroke surveillance.',
-    phone: '+18328224263',
-    email: 'hem@texaschildrens.org',
-    address: '6701 Fannin St, Houston, TX 77030, USA',
-    geocoordinates: { latitude: 29.7042, longitude: -95.4025 },
-    city: 'Houston'
+    description: 'Regional tertiary referral center providing dedicated hematology clinics, pediatric crisis stabilization, hydroxyurea monitoring, and comprehensive care for Ogun State.',
+    phone: '+2348037213456',
+    email: 'clinical@fmcabeokuta.org.ng',
+    address: 'Bisi Onabanjo Way, Idi-Aba, Abeokuta, Ogun State, Nigeria',
+    geocoordinates: { latitude: 7.1557, longitude: 3.3458 },
+    city: 'Ogun'
   },
   {
-    id: 'sca-houston',
-    center_name: 'Sickle Cell Association of Houston',
+    id: 'oouth-sagamu',
+    center_name: 'OOUTH Sagamu Hematology & Day-Care Clinic',
+    category: 'Specialized Clinics',
+    description: 'University teaching hospital delivering comprehensive sickle cell clinical management, newborn screening, day-care hydration, and emergency VOC pain protocol management.',
+    phone: '+2348033451290',
+    email: 'hematology@oouth.org.ng',
+    address: 'Hospital Complex, Sagamu - Ikenne Rd, Sagamu, Ogun State, Nigeria',
+    geocoordinates: { latitude: 6.8402, longitude: 3.6521 },
+    city: 'Ogun'
+  },
+  {
+    id: 'ogun-warriors-support',
+    center_name: 'Ogun State Sickle Cell Warriors Support Network',
+    category: 'Support Groups',
+    description: 'Grassroots patient and caregiver mutual support community offering monthly support circles, peer hydration buddies, caregiver relief, and crisis transport aid across Ogun State.',
+    phone: '+2348028887766',
+    email: 'ogunwarriors@gmail.com',
+    address: 'Community Health Wing, Sacred Heart Hospital, Lantoro, Abeokuta, Ogun State, Nigeria',
+    geocoordinates: { latitude: 7.1475, longitude: 3.3520 },
+    city: 'Ogun'
+  },
+  {
+    id: 'scaf-ogun',
+    center_name: 'Sickle Cell Aid Foundation (SCAF) - Ogun',
     category: 'NGOs',
-    description: 'Empowering Gulf Coast families with emergency fuel/transport assistance, educational IEP advocacy, transition-to-adult care, and peer support.',
-    phone: '+18323013569',
-    email: 'reachout@scahouston.org',
-    address: '8303 Southwest Fwy, Houston, TX 77074, USA',
-    geocoordinates: { latitude: 29.6917, longitude: -95.5305 },
-    city: 'Houston'
+    description: 'Advocacy and compassionate care NGO coordinating free genotype testing, educational awareness campaigns, and subsidized routine medications for vulnerable warriors.',
+    phone: '+2348123456780',
+    email: 'contact@scaf.org.ng',
+    address: 'Kuto Area Civic Center, Abeokuta, Ogun State, Nigeria',
+    geocoordinates: { latitude: 7.1412, longitude: 3.3475 },
+    city: 'Ogun'
   }
 ];
 
@@ -107,8 +118,7 @@ const SUPPORT_CENTERS: SupportCenter[] = [
 const CITY_EPICENTERS = {
   Lagos: { latitude: 6.4550, longitude: 3.3840 },
   Abuja: { latitude: 9.0765, longitude: 7.3986 },
-  London: { latitude: 51.5074, longitude: -0.1278 },
-  Houston: { latitude: 29.7604, longitude: -95.3698 }
+  Ogun: { latitude: 7.1557, longitude: 3.3458 }
 };
 
 interface ForumPost {
@@ -155,7 +165,7 @@ export const Community: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'support' | 'warrior_match' | 'forum'>('support');
   
   // --- Support Directory States ---
-  const [selectedCity, setSelectedCity] = useState<'Lagos' | 'Abuja' | 'London' | 'Houston'>('Lagos');
+  const [selectedCity, setSelectedCity] = useState<'Lagos' | 'Abuja' | 'Ogun'>('Lagos');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('All');
   const [sortBy, setSortBy] = useState<'distance' | 'name'>('distance');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -438,8 +448,8 @@ export const Community: React.FC = () => {
               
               {/* City selector */}
               <div className="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
-                <span className="text-[10px] font-mono font-bold text-[#6E4A63] uppercase tracking-wider shrink-0 mr-1">City:</span>
-                {(['Lagos', 'Abuja', 'London', 'Houston'] as const).map(city => (
+                <span className="text-[10px] font-mono font-bold text-[#6E4A63] uppercase tracking-wider shrink-0 mr-1">Location:</span>
+                {(['Lagos', 'Abuja', 'Ogun'] as const).map(city => (
                   <button
                     key={city}
                     type="button"
