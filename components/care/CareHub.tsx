@@ -187,34 +187,33 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
             aria-label="Manage appointments: Appointments"
             className="group mt-4 flex w-full items-center gap-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson rounded-2xl"
           >
-            <div className="flex h-15 w-14 shrink-0 flex-col items-center justify-center rounded-[18px] bg-wa-rose text-center">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-wa-crimson">TUE</span>
-              <span className="font-display text-xl font-black text-wa-plum dark:text-wa-plum leading-none">4</span>
+            <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-[18px] bg-wa-rose text-wa-crimson">
+              <CalendarDays size={22} />
             </div>
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm sm:text-base font-bold text-wa-plum dark:text-white group-hover:text-wa-crimson transition-colors">
-                Haematology check-up
+                Request &amp; manage appointments
               </div>
               <div className="truncate text-xs text-wa-plum-muted dark:text-wa-on-plum-muted mt-0.5">
-                10:30 am · Clinic visit &amp; routine review
+                Doctor, Clinical Hematologist, or Mental Health Therapist
               </div>
             </div>
             <ChevronRight size={18} className="text-wa-plum-muted group-hover:text-wa-crimson transition-colors shrink-0" />
           </button>
 
-          {/* 3-Step Progress Indicator */}
+          {/* 3-Step Workflow Guide */}
           <div className="mt-4 grid grid-cols-3 gap-2 text-[11px] font-semibold">
             <div className="space-y-1.5">
-              <div className="h-1.5 rounded-full bg-emerald-600" />
-              <span className="text-emerald-600 dark:text-emerald-400">Requested ✓</span>
-            </div>
-            <div className="space-y-1.5">
-              <div className="h-1.5 rounded-full bg-emerald-600" />
-              <span className="text-emerald-600 dark:text-emerald-400">Clinic confirmed ✓</span>
+              <div className="h-1.5 rounded-full bg-wa-crimson/80" />
+              <span className="text-wa-plum dark:text-white">1. Request</span>
             </div>
             <div className="space-y-1.5">
               <div className="h-1.5 rounded-full bg-wa-line-soft dark:bg-white/10" />
-              <span className="text-wa-plum-muted dark:text-wa-on-plum-muted">Visit</span>
+              <span className="text-wa-plum-muted dark:text-wa-on-plum-muted">2. Clinic review</span>
+            </div>
+            <div className="space-y-1.5">
+              <div className="h-1.5 rounded-full bg-wa-line-soft dark:bg-white/10" />
+              <span className="text-wa-plum-muted dark:text-wa-on-plum-muted">3. Visit / Call</span>
             </div>
           </div>
         </div>
@@ -235,6 +234,28 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
           </span>
           <ChevronRight size={20} className="text-wa-crimson group-hover:translate-x-0.5 transition-transform shrink-0" />
         </button>
+
+        {/* 3.5 Order Medications (Coming Soon) */}
+        <div className="rounded-[28px] border border-wa-line-soft bg-wa-surface p-5 text-wa-plum shadow-none dark:border-white/10 dark:bg-white/5 dark:text-white">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3.5">
+              <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-wa-rose text-wa-crimson">
+                <Pill size={22} />
+              </span>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="font-display text-base sm:text-lg font-bold">Order medications &amp; refills</h2>
+                  <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                    Coming Soon
+                  </span>
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-wa-plum-muted dark:text-wa-on-plum-muted">
+                  Direct prescription refills for Hydroxyurea, Folic Acid, Proguanil, and Vitamin B Complex with partner pharmacies in Lagos, Abuja, and Ogun.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* 4. Report for Your Doctor Card */}
         <div className="rounded-[28px] border border-wa-line-soft bg-wa-rose p-5 text-wa-plum shadow-none dark:border-white/10 dark:bg-white/5 dark:text-white">

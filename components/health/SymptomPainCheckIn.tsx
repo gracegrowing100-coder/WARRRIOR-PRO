@@ -19,6 +19,17 @@ const TRIGGER_OPTIONS = [
   'Low fluid intake',
 ];
 
+const BODY_REGIONS = [
+  'Head',
+  'Chest',
+  'Back',
+  'Abdomen',
+  'Arms / Shoulders',
+  'Hips / Pelvis',
+  'Legs / Knees',
+  'Hands / Feet',
+];
+
 type SaveState = 'idle' | 'saving' | 'success' | 'error';
 type HydrationState = 'loading' | 'ready' | 'missing' | 'unavailable';
 
@@ -337,6 +348,26 @@ export const SymptomPainCheckIn: React.FC<SymptomPainCheckInProps> = ({
                 </Button>
               </div>
             </FormField>
+          </fieldset>
+
+          <fieldset className="space-y-3">
+            <legend className="text-heading-2 font-bold text-foreground">Pain location (Body map)</legend>
+            <p className="text-body text-foreground-secondary">Optional: tap the areas where you feel pain</p>
+            <div className="flex flex-wrap gap-2">
+              {BODY_REGIONS.map((region) => {
+                const tag = `Pain site: ${region}`;
+                return (
+                  <ChoiceChip
+                    key={region}
+                    selected={symptoms.includes(tag)}
+                    disabled={isSaving}
+                    onClick={() => toggleSelection(tag, symptoms, setSymptoms)}
+                  >
+                    {region}
+                  </ChoiceChip>
+                );
+              })}
+            </div>
           </fieldset>
 
           <details className="group rounded-card border border-line bg-surface">

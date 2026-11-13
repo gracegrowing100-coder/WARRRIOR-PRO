@@ -100,7 +100,7 @@ describe('App startup, auth state, navigation, and settings', () => {
     expect(screen.getByRole('button', { name: 'Emergency HUD' })).toBeInTheDocument();
   });
 
-  it('handles hash changes after mount and keeps community chat one tab away', async () => {
+  it('handles hash changes after mount and separates Mira AI from Community', async () => {
     const user = userEvent.setup();
     render(<App />);
     await act(async () => authHarness.callback?.({ uid: 'patient-1' }));
@@ -112,10 +112,10 @@ describe('App startup, auth state, navigation, and settings', () => {
     });
 
     expect(await screen.findByText('Mira assistant')).toBeInTheDocument();
-    expect(screen.queryByText('Chat screen')).not.toBeInTheDocument();
+    expect(screen.queryByText('Community screen')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('tab', { name: 'Community' }));
-    expect(await screen.findByText('Chat screen')).toBeInTheDocument();
+    await user.click(screen.getAllByRole('button', { name: 'Community' })[0]);
+    expect(await screen.findByText('Community screen')).toBeInTheDocument();
   });
 
   it('persists language, dark mode, and high contrast selections', async () => {

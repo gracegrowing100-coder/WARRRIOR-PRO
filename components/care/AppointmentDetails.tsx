@@ -141,6 +141,31 @@ export const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
         </dl>
       </Card>
 
+      {appointment.appointmentType === 'virtual' && !isCancelled && (
+        <Card as="section" aria-labelledby="virtual-room-title" className="max-w-2xl border-sky-200/80 bg-sky-50/50 shadow-none dark:border-sky-900/50 dark:bg-sky-950/20">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300">
+                <Video size={20} />
+              </span>
+              <div>
+                <h2 id="virtual-room-title" className="text-heading-2 text-foreground">Virtual consultation room</h2>
+                <p className="mt-1 text-small text-foreground-secondary">
+                  Once your clinic confirms this request, your secure Google Meet / Zoom video and low-data audio link will appear here.
+                </p>
+              </div>
+            </div>
+            <span className="shrink-0 rounded-full bg-sky-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-sky-800 dark:bg-sky-900/60 dark:text-sky-200">
+              Video &amp; Audio
+            </span>
+          </div>
+          <ul className="mt-4 space-y-1.5 border-t border-sky-200/60 pt-3 text-xs text-foreground-secondary dark:border-sky-900/40">
+            <li>• Keep your steady-state PCV, recent E/U/Cr labs, and medication list ready.</li>
+            <li>• Audio-only mode is supported for low-bandwidth mobile connections.</li>
+          </ul>
+        </Card>
+      )}
+
       <p className="max-w-2xl text-small text-foreground-secondary">
         A recorded request does not mean a clinician accepted it or reserved the preferred time. For urgent help, use the separate Emergency action.
       </p>

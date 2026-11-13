@@ -840,6 +840,37 @@ export const Community: React.FC = () => {
             </div>
           </div>
 
+          {/* Upcoming Community Features (Coming Soon) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-2">
+            <div className="bg-[#FAF7F9] border border-[#E6D8E0] rounded-2xl p-5 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="font-display font-bold text-sm text-[#3B0F2C]">
+                  Warrior Community Channels
+                </h4>
+                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                  Coming Soon
+                </span>
+              </div>
+              <p className="text-xs text-[#6E4A63] leading-relaxed">
+                WhatsApp-style moderated group chats where warriors can create, join, and share daily encouragement across Lagos, Abuja, and Ogun.
+              </p>
+            </div>
+
+            <div className="bg-[#FAF7F9] border border-[#E6D8E0] rounded-2xl p-5 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="font-display font-bold text-sm text-[#3B0F2C]">
+                  Trusted Companion Health Linking
+                </h4>
+                <span className="rounded-full bg-[#FBE4E8] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#C4122F]">
+                  Beta · Coming Soon
+                </span>
+              </div>
+              <p className="text-xs text-[#6E4A63] leading-relaxed">
+                Live two-way vitals and crisis alert syncing with a trusted family member or caregiver device. Use Emergency SOS on Home for instant alerts today.
+              </p>
+            </div>
+          </div>
+
           {/* Focus Topics Modal */}
           {selectedCircleDetail && (
             <div className="fixed inset-0 bg-[#3B0F2C]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
