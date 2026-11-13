@@ -8,6 +8,7 @@ interface TodaysHealthCardProps {
   refreshKey?: number;
   onStartCheckIn?: () => void;
   onLogPain?: () => void;
+  onReviewMeds?: () => void;
 }
 
 interface TodaySnapshot {
@@ -43,7 +44,7 @@ const formatUpdatedTime = (value: string | null) => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refreshKey = 0, onStartCheckIn, onLogPain }) => {
+export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refreshKey = 0, onStartCheckIn, onLogPain, onReviewMeds }) => {
   const [snapshot, setSnapshot] = useState<TodaySnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -131,12 +132,12 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
 
   if (loading) {
     return (
-      <Card as="section" data-semantic id="home-header-stats" aria-labelledby="todays-health-title" className="border-medical-100 bg-surface shadow-none" padding="lg">
-        <h2 id="todays-health-title" className="text-heading-2 text-foreground">Today&apos;s health</h2>
-        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Skeleton className="min-h-20" />
-          <Skeleton className="min-h-20" />
-          <Skeleton className="min-h-20" />
+      <Card as="section" data-semantic id="home-header-stats" aria-labelledby="todays-health-title" className="rounded-[28px] border border-wa-line bg-wa-surface shadow-[0_12px_30px_rgb(59_15_44/0.12)]" padding="md">
+        <h2 id="todays-health-title" className="text-sm font-bold text-wa-plum">Today&apos;s snapshot</h2>
+        <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+          <Skeleton className="min-h-24 rounded-[18px]" />
+          <Skeleton className="min-h-24 rounded-[18px]" />
+          <Skeleton className="col-span-2 min-h-20 rounded-[18px] sm:col-span-1 sm:min-h-24" />
         </div>
       </Card>
     );
@@ -188,111 +189,131 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
         id="home-header-stats"
         aria-labelledby="todays-health-title"
         data-semantic
-        className="relative overflow-hidden rounded-[28px] border-0 bg-[var(--wa-hero)] p-6 text-white shadow-none sm:p-8 lg:p-10"
+        className="relative overflow-hidden rounded-[28px] border border-wa-line bg-wa-surface p-4 text-wa-plum shadow-[0_12px_30px_rgb(59_15_44/0.12)] sm:p-5"
         padding="none"
       >
-        <span className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/[0.07]" aria-hidden="true" />
-        <span className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-navy-950/10 blur-3xl" aria-hidden="true" />
-        <div className="relative flex h-full flex-col gap-6 lg:gap-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-2.5">
             <div className="min-w-0">
-              <p className="text-small font-bold uppercase tracking-[0.08em] text-white/80">Today&apos;s health</p>
-              <h2 id="todays-health-title" className="mt-4 max-w-3xl text-[2.1rem] font-bold leading-[1.05] tracking-[-0.035em] text-white sm:text-[2.7rem] lg:text-[3.25rem]">
-                {snapshot.moodLabel || (hasTodayData ? 'Your day at a glance' : 'Ready when you are')}
-              </h2>
-              <p className="mt-3 max-w-xl text-body text-white/80">
-                {updatedTime ? `Last check-in at ${updatedTime}.` : 'Based only on what you recorded today.'}
+              <div className="flex items-center gap-2">
+                <h2 id="todays-health-title" className="font-display text-base font-extrabold text-wa-plum sm:text-lg">
+                  {snapshot.moodLabel || (hasTodayData ? "Today's snapshot" : 'Ready when you are')}
+                </h2>
+                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                  snapshot.hasCheckIn
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-wa-sun-soft text-wa-sun-ink dark:text-amber-300'
+                }`}>
+                  {snapshot.hasCheckIn ? <CheckCircle2 size={13} aria-hidden="true" /> : <CircleDashed size={13} aria-hidden="true" />}
+                  {snapshot.hasCheckIn ? 'Checked in' : 'Check-in due'}
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-wa-plum-muted">
+                {updatedTime ? `Updated at ${updatedTime}` : 'Your daily pain, water, and medicines at a glance'}
               </p>
             </div>
-            <span className="inline-flex min-h-10 w-fit shrink-0 items-center gap-2 self-start rounded-pill bg-white/15 px-4 text-small font-semibold text-white ring-1 ring-inset ring-white/30">
-              {snapshot.hasCheckIn ? <CheckCircle2 size={17} className="text-emerald-200" /> : <CircleDashed size={17} className="text-amber-200" />}
-              {snapshot.hasCheckIn ? 'Check-in recorded' : 'Check-in due'}
-            </span>
+            {!snapshot.hasCheckIn && onStartCheckIn ? (
+              <button
+                type="button"
+                data-ui-control
+                onClick={onStartCheckIn}
+                className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-wa-crimson px-3.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-wa-crimson-press focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
+              >
+                Check in
+                <ArrowRight size={14} aria-hidden="true" />
+              </button>
+            ) : null}
           </div>
 
-          {!snapshot.hasCheckIn && onStartCheckIn ? (
-            <Button
-              variant="secondary"
-              size="lg"
-              trailingIcon={<ArrowRight size={19} />}
-              className="min-h-14 w-full border-white/30 bg-white px-6 text-medical-700 shadow-elevated hover:bg-medical-50 sm:w-fit"
-              onClick={onStartCheckIn}
-            >
-              Start daily check-in
-            </Button>
-          ) : null}
-
-          <dl className="mt-auto grid grid-cols-2 gap-3 sm:grid-cols-3 lg:gap-4">
-            <div className="min-h-32 min-w-0 overflow-hidden rounded-[20px] bg-white/[0.08] p-3.5 border border-white/12 sm:min-h-36 sm:p-5 lg:min-h-40 lg:p-6">
-              <div className="flex items-center gap-2 text-small font-semibold text-white/85">
-                <HeartPulse size={18} className="text-medical-100" aria-hidden="true" />
-                <dt>Recorded pain</dt>
+          <dl className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
+            <div className="flex flex-col justify-between rounded-[18px] border border-wa-line-soft bg-wa-ground/70 p-3 dark:bg-white/5">
+              <div>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-wa-plum-muted">
+                  <HeartPulse size={15} className="text-wa-crimson" aria-hidden="true" />
+                  <dt>Pain</dt>
+                </div>
+                <dd className="mt-1.5 font-display text-lg font-extrabold tabular-nums text-wa-plum sm:text-xl">
+                  {snapshot.painLevel === null ? 'Not logged' : `${snapshot.painLevel} / 10`}
+                </dd>
               </div>
-              <dd className={`mt-4 break-words tabular-nums text-white ${snapshot.painLevel === null ? 'text-body font-semibold sm:text-heading-3' : 'text-heading-1'}`}>
-                {snapshot.painLevel === null ? 'Not recorded' : `${snapshot.painLevel} / 10`}
-              </dd>
               {onLogPain ? (
                 <button
                   type="button"
                   data-ui-control
                   onClick={onLogPain}
-                  className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-pill border border-white/40 bg-white/15 px-3 text-small font-semibold text-white hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  className="mt-2.5 inline-flex min-h-9 w-full items-center justify-center gap-1 rounded-full bg-wa-rose px-2.5 text-xs font-bold text-wa-crimson transition-colors hover:bg-wa-crimson hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
                 >
-                  <Plus size={16} aria-hidden="true" />
+                  <Plus size={14} aria-hidden="true" />
                   Log pain
                 </button>
               ) : null}
             </div>
-            <div className="min-h-32 min-w-0 overflow-hidden rounded-[20px] bg-white/[0.08] p-3.5 border border-white/12 sm:min-h-36 sm:p-5 lg:min-h-40 lg:p-6">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-2 text-small font-semibold text-white/85">
-                  <Droplets size={18} className="text-sky-300" aria-hidden="true" />
-                  <dt>Hydration</dt>
+
+            <div className="flex flex-col justify-between rounded-[18px] border border-wa-line-soft bg-wa-ground/70 p-3 dark:bg-white/5">
+              <div>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-wa-plum-muted">
+                  <Droplets size={15} className="text-wa-water" aria-hidden="true" />
+                  <dt>Water</dt>
                 </div>
+                {snapshot.waterAmount !== null && snapshot.waterGoal !== null ? (
+                  <dd className="mt-1.5">
+                    <span className="block font-display text-lg font-extrabold tabular-nums text-wa-plum sm:text-xl">
+                      {snapshot.waterAmount.toFixed(1)}L <span className="text-xs font-semibold text-wa-plum-muted">/ {snapshot.waterGoal.toFixed(1)}L</span>
+                    </span>
+                    <span
+                      role="progressbar"
+                      aria-label="Today's hydration"
+                      aria-valuemin={0}
+                      aria-valuemax={snapshot.waterGoal}
+                      aria-valuenow={snapshot.waterAmount}
+                      aria-valuetext={waterValueText}
+                      className="mt-1.5 block h-1.5 overflow-hidden rounded-pill bg-wa-line"
+                    >
+                      <span aria-hidden="true" className="block h-full rounded-pill bg-wa-water" style={{ width: `${hydrationPercentage}%` }} />
+                    </span>
+                  </dd>
+                ) : (
+                  <dd className="mt-1.5 font-display text-base font-bold text-wa-plum">
+                    {snapshot.hydrationState === 'unavailable' ? 'Unavailable' : 'Not logged'}
+                  </dd>
+                )}
               </div>
-              {snapshot.waterAmount !== null && snapshot.waterGoal !== null ? (
-                <dd className="mt-4">
-                  <span className="block text-heading-3 tabular-nums text-white">{waterValueText}</span>
-                  <span
-                    role="progressbar"
-                    aria-label="Today's hydration"
-                    aria-valuemin={0}
-                    aria-valuemax={snapshot.waterGoal}
-                    aria-valuenow={snapshot.waterAmount}
-                    aria-valuetext={waterValueText}
-                    className="mt-3 block h-2 overflow-hidden rounded-pill bg-navy-950/25"
-                  >
-                    <span aria-hidden="true" className="block h-full rounded-pill bg-sky-300" style={{ width: `${hydrationPercentage}%` }} />
-                  </span>
-                </dd>
-              ) : (
-                <dd className="mt-4 text-body font-semibold text-white">
-                  {snapshot.hydrationState === 'unavailable' ? 'Unavailable' : 'Not recorded'}
-                </dd>
-              )}
               <button
                 type="button"
                 data-ui-control
                 onClick={() => setWaterModalOpen(true)}
-                className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-pill border border-white/40 bg-white/15 px-3 text-small font-semibold text-white hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="mt-2.5 inline-flex min-h-9 w-full items-center justify-center gap-1 rounded-full bg-wa-water-soft px-2.5 text-xs font-bold text-wa-water-ink transition-colors hover:bg-wa-water hover:text-white dark:text-wa-water-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-water"
               >
-                <Plus size={16} aria-hidden="true" />
+                <Plus size={14} aria-hidden="true" />
                 Add water
               </button>
             </div>
-            <div className="col-span-2 min-h-28 rounded-card bg-white/[0.11] p-4 ring-1 ring-inset ring-white/20 sm:col-span-1 sm:min-h-36 sm:p-5 lg:min-h-40 lg:p-6">
-              <div className="flex items-center gap-2 text-small font-semibold text-white/85">
-                <Pill size={18} className="text-medical-100" aria-hidden="true" />
-                <dt>Medication</dt>
+
+            <div className="col-span-2 flex flex-col justify-between rounded-[18px] border border-wa-line-soft bg-wa-ground/70 p-3 dark:bg-white/5 sm:col-span-1">
+              <div>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-wa-plum-muted">
+                  <Pill size={15} className="text-wa-plum" aria-hidden="true" />
+                  <dt>Medicines</dt>
+                </div>
+                <dd className="mt-1.5">
+                  <span className="block font-display text-base font-bold text-wa-plum">{medicationSummary}</span>
+                  {nextMedication ? (
+                    <span className="mt-0.5 block truncate text-xs text-wa-plum-muted">
+                      {[nextMedication.name, nextMedication.time].filter(Boolean).join(' · ')}
+                    </span>
+                  ) : null}
+                </dd>
               </div>
-              <dd className="mt-4">
-                <span className="block text-body font-semibold text-white">{medicationSummary}</span>
-                {nextMedication ? (
-                  <span className="mt-1 block text-small text-white/75">
-                    {[nextMedication.name, nextMedication.time].filter(Boolean).join(' · ')}
-                  </span>
-                ) : null}
-              </dd>
+              {onReviewMeds ? (
+                <button
+                  type="button"
+                  data-ui-control
+                  onClick={onReviewMeds}
+                  className="mt-2.5 inline-flex min-h-9 w-full items-center justify-center gap-1 rounded-full border border-wa-line bg-wa-surface px-2.5 text-xs font-bold text-wa-plum transition-colors hover:bg-wa-rose/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
+                >
+                  Open meds
+                </button>
+              ) : null}
             </div>
           </dl>
         </div>

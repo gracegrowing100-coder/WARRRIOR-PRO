@@ -335,8 +335,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
       {activeTool ? (
         renderActiveTool()
       ) : (
-        <div data-semantic className="space-y-6 pb-8">
-          <header className="rounded-b-[32px] bg-[var(--wa-hero)] text-white p-5 sm:p-6 lg:p-7 relative overflow-hidden -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 lg:-mx-8 lg:-mt-8 mb-1">
+        <div data-semantic className="space-y-5 pb-8">
+          <header className="rounded-b-[36px] bg-[var(--wa-hero)] text-white px-5 pt-5 pb-11 sm:px-6 sm:pt-6 sm:pb-12 lg:px-7 relative overflow-hidden -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 lg:-mx-8 lg:-mt-8">
             <div aria-hidden="true" className="absolute -right-12 -top-6 w-48 h-60 opacity-[0.07] pointer-events-none text-wa-coral">
               <svg viewBox="14 2 72 96" className="w-full h-full fill-current">
                 <path fillRule="evenodd" d="M50 6C50 6 82 42 82 63A32 32 0 0 1 18 63C18 42 50 6 50 6ZM50 40L44.5 56.5L28 62L44.5 67.5L50 84L55.5 67.5L72 62L55.5 56.5Z" />
@@ -344,33 +344,33 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
             </div>
             <div className="relative flex items-start justify-between gap-4">
               <div>
-                <p className="text-small font-semibold text-wa-on-plum-muted">
+                <p className="text-xs font-semibold text-wa-on-plum-muted sm:text-small">
                   {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
                 </p>
-                <h1 className="mt-1 text-[1.85rem] font-extrabold leading-tight tracking-[-0.02em] text-white sm:text-[2.2rem] lg:text-[2.5rem] font-display">
+                <h1 className="mt-0.5 text-[1.65rem] font-extrabold leading-tight tracking-[-0.02em] text-white sm:text-[2.1rem] lg:text-[2.4rem] font-display">
                   {greeting}, {firstName}
                 </h1>
-                <div className="mt-3 inline-flex items-center gap-1.5 h-[30px] px-3 rounded-full bg-wa-coral/20 text-[#FFC7D0] text-[13px] font-semibold">
+                <div className="mt-2.5 inline-flex items-center gap-1.5 h-[28px] px-3 rounded-full bg-wa-coral/20 text-[#FFC7D0] text-[12px] font-semibold">
                   <Spark className="w-3 h-3 text-wa-coral" />
                   <span>{streakDays > 0 ? `${streakDays}-${t.dayLoggingStreak}` : t.startLoggingStreak}</span>
                 </div>
-                <p className="mt-3 max-w-sm text-[14px] leading-snug text-wa-on-plum-muted">
-                  {t.dailyCompanionSub}
-                </p>
               </div>
               <SosPill className="md:hidden" onClick={() => document.getElementById('emergency-fab')?.click()} />
             </div>
           </header>
 
-          <WelcomeGuide />
+          {/* Floating Snapshot Card overlapping the Plum Hero edge */}
+          <div className="-mt-8 relative z-10">
+            <TodaysHealthCard
+              userId={userId}
+              refreshKey={refreshPain}
+              onLogPain={() => setIsModalOpen(true)}
+              onStartCheckIn={() => openTool('checkin')}
+              onReviewMeds={() => openTool('medication')}
+            />
+          </div>
 
-          {/* Step 1: Compact Snapshot with 1-tap Log Pain & +1 Water */}
-          <TodaysHealthCard
-            userId={userId}
-            refreshKey={refreshPain}
-            onLogPain={() => setIsModalOpen(true)}
-            onStartCheckIn={() => openTool('checkin')}
-          />
+          <WelcomeGuide />
 
           {/* Step 2: Primary Quick Action Icons */}
           <HomeActionHub
