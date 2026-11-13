@@ -823,7 +823,7 @@ const ChatSystem: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Sub-tab Navigation */}
-      <div className="flex items-center gap-1.5 p-1 rounded-full bg-white border border-[#E6D8E0] shadow-2xs max-w-fit">
+      <div className="flex items-center gap-1.5 p-1 rounded-full bg-wa-surface border border-wa-line shadow-2xs max-w-fit">
         <button
           type="button"
           onClick={() => setSubTab('channels')}
@@ -853,7 +853,7 @@ const ChatSystem: React.FC = () => {
       {subTab === 'circle' ? (
         <PeerSupportSection currentUserId={auth.currentUser?.uid || 'user-warrior'} />
       ) : (
-        <div id="warrior-chat-container" className="h-[calc(100vh-210px)] min-h-[560px] flex flex-col md:flex-row bg-white text-[#3B0F2C] rounded-[28px] shadow-sm border border-[#E6D8E0] overflow-hidden relative font-sans">
+        <div id="warrior-chat-container" className="h-[calc(100vh-210px)] min-h-[560px] flex flex-col md:flex-row bg-wa-surface text-wa-plum rounded-[28px] shadow-sm border border-wa-line overflow-hidden relative font-sans">
       
       {/* Hidden file input for documents & standard uploads */}
       <input 
@@ -1342,17 +1342,17 @@ const ChatSystem: React.FC = () => {
       </AnimatePresence>
 
       {/* 5. SIDEBAR: CONVERSATION LIST (LHS) */}
-      <div className={`w-full md:w-80 lg:w-96 flex flex-col bg-[#F7F2F5] border-r border-[#E6D8E0] shrink-0 ${activeChatId ? 'hidden md:flex' : 'flex'}`}>
+      <div className={`w-full md:w-80 lg:w-96 flex flex-col bg-wa-ground border-r border-wa-line shrink-0 ${activeChatId ? 'hidden md:flex' : 'flex'}`}>
         
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-[#E6D8E0] space-y-3 bg-white">
+        <div className="p-4 border-b border-wa-line space-y-3 bg-wa-surface">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-[#C4122F] flex items-center justify-center shadow-sm">
                 <MessageSquare size={16} className="text-white" />
               </div>
               <div>
-                <h2 className="text-sm font-display font-bold text-[#3B0F2C] tracking-tight">Warrior Channels</h2>
+                <h2 className="text-sm font-display font-bold text-wa-plum tracking-tight">Warrior Channels</h2>
                 <span className="text-[10px] font-bold text-[#C4122F] bg-[#FBE4E8] px-2 py-0.5 rounded-full font-mono uppercase tracking-wider">
                   Active Community
                 </span>
@@ -1377,7 +1377,7 @@ const ChatSystem: React.FC = () => {
               placeholder="Search community chats..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#F7F2F5] text-xs text-[#3B0F2C] pl-9 pr-3 py-2.5 rounded-full border border-[#E6D8E0] focus:outline-none focus:border-[#C4122F] font-semibold placeholder:text-[#6E4A63]/60 transition"
+              className="w-full bg-wa-ground text-xs text-wa-plum pl-9 pr-3 py-2.5 rounded-full border border-wa-line focus:outline-none focus:border-wa-crimson font-semibold placeholder:text-wa-plum-muted/70 transition"
             />
           </div>
 
