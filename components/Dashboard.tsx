@@ -26,19 +26,28 @@ interface DashboardProps {
   language?: SupportedLanguage;
 }
 
-const ExpandableTool: React.FC<{ title: string; icon?: React.ReactNode; children: React.ReactNode }> = ({ title, icon, children }) => {
+const ExpandableTool: React.FC<{ title: string; subtitle?: string; icon?: React.ReactNode; children: React.ReactNode }> = ({ title, subtitle, icon, children }) => {
   const [open, setOpen] = useState(false);
 
   return (
     <details className="group" open={open} onToggle={event => setOpen(event.currentTarget.open)}>
-      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between py-3 text-small font-bold text-wa-plum dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson">
-        <span className="flex items-center gap-2.5">
-          {icon && <span className="text-wa-crimson">{icon}</span>}
-          <span>{title}</span>
+      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 py-3.5 text-small font-bold text-wa-plum focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson">
+        <span className="flex items-center gap-3 min-w-0">
+          {icon && (
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-wa-rose text-wa-crimson">
+              {icon}
+            </span>
+          )}
+          <span className="min-w-0">
+            <span className="block font-display text-sm font-bold text-wa-plum">{title}</span>
+            {subtitle && (
+              <span className="block text-xs font-normal text-wa-plum-muted truncate">{subtitle}</span>
+            )}
+          </span>
         </span>
-        <ChevronDown size={18} className="text-wa-plum-muted dark:text-wa-on-plum-muted transition-transform group-open:rotate-180 shrink-0" aria-hidden="true" />
+        <ChevronDown size={18} className="text-wa-plum-muted transition-transform group-open:rotate-180 shrink-0" aria-hidden="true" />
       </summary>
-      {open ? <div className="pb-4">{children}</div> : null}
+      {open ? <div className="pb-4 pt-1">{children}</div> : null}
     </details>
   );
 };
@@ -155,13 +164,34 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
 
       <WelcomeGuide />
 
-      <TodaysHealthCard
-        userId={userId}
-        refreshKey={refreshPain}
-        onStartCheckIn={() => scrollToHomeSection('daily-check-in-card')}
-      />
+      {/* Step 1: Today's Health Snapshot */}
+      <section aria-label="Today's health snapshot" className="space-y-2.5">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted">
+            Step 1 · Today&apos;s Snapshot
+          </span>
+          <span className="text-[11px] font-medium text-wa-plum-muted">
+            Tap below to log pain, water, or meds
+          </span>
+        </div>
+        <TodaysHealthCard
+          userId={userId}
+          refreshKey={refreshPain}
+          onStartCheckIn={() => scrollToHomeSection('daily-check-in-card')}
+        />
+      </section>
 
-      <div className="grid grid-cols-1 gap-6 lg:gap-7 xl:grid-cols-[minmax(0,3fr)_minmax(19rem,1fr)] xl:items-start xl:gap-8">
+      {/* Step 2: Daily Trackers & Support */}
+      <section aria-label="Daily trackers and support" className="space-y-3">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted">
+            Step 2 · Daily Habits &amp; Support
+          </span>
+          <span className="text-[11px] font-medium text-wa-plum-muted">
+            Hydration, medicines &amp; clinic check-ins
+          </span>
+        </div>
+        <div className="grid grid-cols-1 gap-6 lg:gap-7 xl:grid-cols-[minmax(0,3fr)_minmax(19rem,1fr)] xl:items-start xl:gap-8">
         <div className="contents xl:col-start-1 xl:row-start-1 xl:flex xl:min-w-0 xl:flex-col xl:gap-8">
           <section id="daily-check-in-card" aria-label="Daily check-in" className="order-4 min-w-0 scroll-mt-24 xl:order-none">
             <DailyMoodCheckIn compact userId={userId} onCheckInSaved={() => setRefreshPain(prev => prev + 1)} />
@@ -234,27 +264,46 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
             </div>
           </div>
         </aside>
-      </div>
-
-      <details className="group">
-        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 rounded-control px-4 py-3 text-body font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:px-5">
-          <span>
-            More health tools
-            <span className="mt-0.5 block text-small font-normal text-foreground-secondary">Secondary tools — open only what you need</span>
-          </span>
-          <ChevronDown className="shrink-0 text-foreground-secondary group-open:rotate-180" size={20} aria-hidden="true" />
-        </summary>
-        <div className="divide-y divide-line/50 border-t border-line/40 px-4 sm:px-5">
-          {[
-            { title: 'Mood and hydration trends', icon: <TrendingUp size={16} />, content: <MoodHydrationTrendsChart userId={userId} refreshTrigger={refreshPain} /> },
-            { title: 'Generated reports', icon: <FileText size={16} />, content: <PatternInsightsDoctorReport userId={userId} /> },
-            { title: 'Scheduled reminders', icon: <Bell size={16} />, content: <ScheduledRemindersManager userId={userId} /> },
-            { title: 'Caregiver tools', icon: <UserCheck size={16} />, content: <DesignatedCaregiverWidget userId={userId} currentPainLevel={currentPainLevel} /> },
-            { title: 'Pain trends', icon: <Heart size={16} />, content: <section id="pain-trends-chart-card" aria-label="Pain trends"><PainTrendsChart userId={userId} refreshKey={refreshPain} /></section> },
-            { title: 'Care Vault', icon: <Shield size={16} />, content: <section id="care-vault-section" aria-label="Care Vault"><CareVault userId={userId} /></section> },
-          ].map(tool => <ExpandableTool key={tool.title} title={tool.title} icon={tool.icon}>{tool.content}</ExpandableTool>)}
         </div>
-      </details>
+      </section>
+
+      {/* Step 3: Health Tools & Reports */}
+      <section aria-label="Health tools and reports" className="space-y-2.5">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted">
+            Step 3 · Reports, Trends &amp; Records
+          </span>
+          <span className="text-[11px] font-medium text-wa-plum-muted">
+            Tap to expand any tool
+          </span>
+        </div>
+        <details className="group rounded-[28px] border border-wa-line bg-wa-surface shadow-xs overflow-hidden">
+          <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-body font-medium text-wa-plum hover:bg-wa-ground/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-display text-base font-bold text-wa-plum">More health tools</span>
+                <span className="rounded-full bg-wa-rose px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-wa-crimson">
+                  6 tools
+                </span>
+              </div>
+              <span className="mt-0.5 block text-xs font-normal text-wa-plum-muted">
+                Pain trends, doctor reports, reminders, caregiver alerts &amp; Care Vault
+              </span>
+            </div>
+            <ChevronDown className="shrink-0 text-wa-plum-muted group-open:rotate-180 transition-transform" size={20} aria-hidden="true" />
+          </summary>
+          <div className="divide-y divide-wa-line-soft border-t border-wa-line-soft px-5">
+            {[
+              { title: 'Mood and hydration trends', subtitle: 'Check how your water intake affects your mood', icon: <TrendingUp size={17} />, content: <MoodHydrationTrendsChart userId={userId} refreshTrigger={refreshPain} /> },
+              { title: 'Generated reports', subtitle: 'Create a 30-day summary to show your doctor', icon: <FileText size={17} />, content: <PatternInsightsDoctorReport userId={userId} /> },
+              { title: 'Scheduled reminders', subtitle: 'Set daily alerts for water and medicines', icon: <Bell size={17} />, content: <ScheduledRemindersManager userId={userId} /> },
+              { title: 'Caregiver tools', subtitle: 'Manage emergency alerts for family or trusted contacts', icon: <UserCheck size={17} />, content: <DesignatedCaregiverWidget userId={userId} currentPainLevel={currentPainLevel} /> },
+              { title: 'Pain trends', subtitle: 'See how your pain levels change over time', icon: <Heart size={17} />, content: <section id="pain-trends-chart-card" aria-label="Pain trends"><PainTrendsChart userId={userId} refreshKey={refreshPain} /></section> },
+              { title: 'Care Vault', subtitle: 'Store genotype, steady-state PCV, E/U/Cr & clinic notes', icon: <Shield size={17} />, content: <section id="care-vault-section" aria-label="Care Vault"><CareVault userId={userId} /></section> },
+            ].map(tool => <ExpandableTool key={tool.title} title={tool.title} subtitle={tool.subtitle} icon={tool.icon}>{tool.content}</ExpandableTool>)}
+          </div>
+        </details>
+      </section>
 
       {/* Patient Privacy & Data Ethics Notice */}
       <section aria-labelledby="privacy-ethics-title" className="rounded-[22px] bg-wa-ground/60 dark:bg-white/5 p-4 border border-wa-line-soft/80 dark:border-white/10 text-wa-plum dark:text-white flex items-start gap-3">
