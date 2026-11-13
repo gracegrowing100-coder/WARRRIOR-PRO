@@ -17,7 +17,7 @@ const DEFAULT_CHATS = [
   { 
     id: 'lagos-warriors', 
     name: 'Lagos Warriors Support Group', 
-    avatar: '🔴',
+    avatar: 'LW',
     desc: 'The active group channel of the Lagos Sickle Cell Warrior community. Supporting warriors with knowledge, daily hydration reminders, and genetic tips.',
     lastMsg: 'Stay hydrated everyone! Remember to log your water today.', 
     time: '10:45 AM', 
@@ -35,7 +35,7 @@ const DEFAULT_CHATS = [
   { 
     id: 'global-scd-network', 
     name: 'Global SCD Network Alliance', 
-    avatar: '🧬',
+    avatar: 'GS',
     desc: 'Connecting sickle cell advocates, medical professionals, and support networks globally. Sharing breakthrough CRISPR therapeutic updates and international advocacy.',
     lastMsg: 'Global assembly link is ready. Meeting is starting.', 
     time: 'Yesterday', 
@@ -52,7 +52,7 @@ const DEFAULT_CHATS = [
   { 
     id: 'caregivers-circle', 
     name: 'Warrior Moms & Caregivers Circle', 
-    avatar: '🤱',
+    avatar: 'WC',
     desc: 'A dedicated, empathetic safe space for parents, siblings, and partners supporting children and adults living with Sickle Cell Disease.',
     lastMsg: 'We pack a thermos with warm bone broth and electrolytes.', 
     time: 'Yesterday', 
@@ -71,12 +71,105 @@ const DEFAULT_CHATS = [
 
 // Sample community message shortcuts. They are user-authored text, not clinical instructions.
 const CLINICAL_PRESETS = [
-  { id: 'pres_hydrate', text: '💧 Hydration check: I am taking a moment to drink water and record it.', label: '💧 Hydration', emoji: '💧' },
-  { id: 'pres_vaso', text: '❄️ Cold weather check: I am keeping warm and following my own care plan.', label: '❄️ Cold check', emoji: '❄️' },
-  { id: 'pres_support', text: '🤝 Warrior Solidarity: "None of us is as strong as all of us." We carry genomic resilience!', label: '🤝 Solidarity', emoji: '🤝' },
-  { id: 'pres_folic', text: '💊 Medication check: Remember the medication plan prescribed for you.', label: '💊 Daily meds', emoji: '💊' },
-  { id: 'pres_pain', text: '⚡ Pain check: I am experiencing discomfort and recording what I notice.', label: '⚡ Pain check', emoji: '⚡' }
+  { id: 'pres_hydrate', text: 'Hydration check: I am taking a moment to drink water and record it.', label: 'Hydration', emoji: '' },
+  { id: 'pres_vaso', text: 'Cold weather check: I am keeping warm and following my own care plan.', label: 'Cold check', emoji: '' },
+  { id: 'pres_support', text: 'Warrior Solidarity: Checking in with everyone today—stay strong and hydrated.', label: 'Solidarity', emoji: '' },
+  { id: 'pres_folic', text: 'Medication check: Remember the daily medication plan prescribed for you.', label: 'Daily meds', emoji: '' },
+  { id: 'pres_pain', text: 'Pain check: I am experiencing discomfort and recording what I notice.', label: 'Pain check', emoji: '' }
 ];
+
+const SAMPLE_CHANNEL_MESSAGES: Record<string, any[]> = {
+  'lagos-warriors': [
+    {
+      id: 'demo-lw-1',
+      text: 'Good morning everyone! Remember to carry a bottle or sachets if you are heading out in traffic today.',
+      senderId: 'tunde-uid',
+      senderName: 'Tunde (Warrior)',
+      timestamp: new Date(Date.now() - 3600000 * 3).toISOString(),
+      mediaUrl: null,
+      mediaType: null,
+      replyTo: null,
+      audioDuration: 0,
+      reactions: { '👍': ['faith-uid'] }
+    },
+    {
+      id: 'demo-lw-2',
+      text: 'Just finished my morning Folic Acid and logged 1.5L so far. Wishing everyone a calm, pain-free day.',
+      senderId: 'faith-uid',
+      senderName: 'Faith (Warrior)',
+      timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
+      mediaUrl: null,
+      mediaType: null,
+      replyTo: null,
+      audioDuration: 0,
+      reactions: { '❤️': ['tunde-uid', 'grace-mom-uid'] }
+    },
+    {
+      id: 'demo-lw-3',
+      text: 'Evening rain is starting around Surulere—remember to layer up early so cold drafts do not catch you.',
+      senderId: 'grace-mom-uid',
+      senderName: 'Grace (Caregiver)',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      mediaUrl: null,
+      mediaType: null,
+      replyTo: null,
+      audioDuration: 0,
+      reactions: {}
+    }
+  ],
+  'global-scd-network': [
+    {
+      id: 'demo-gs-1',
+      text: 'Welcome to the Global SCD Network Alliance! Share what daily routines help you stay consistent with hydration and clinic visits.',
+      senderId: 'marie-uid',
+      senderName: 'Marie (Paris, Warrior)',
+      timestamp: new Date(Date.now() - 7200000).toISOString(),
+      mediaUrl: null,
+      mediaType: null,
+      replyTo: null,
+      audioDuration: 0,
+      reactions: { '👏': ['nabil-uid'] }
+    },
+    {
+      id: 'demo-gs-2',
+      text: 'Keeping a printed summary of steady-state PCV and recent E/U/Cr labs in Care Vault saved us so much time at our last clinic review.',
+      senderId: 'nabil-uid',
+      senderName: 'Nabil (Cairo, Parent)',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      mediaUrl: null,
+      mediaType: null,
+      replyTo: null,
+      audioDuration: 0,
+      reactions: {}
+    }
+  ],
+  'caregivers-circle': [
+    {
+      id: 'demo-wc-1',
+      text: 'We pack a thermos with warm water and keep extra socks in the school bag whenever the weather cools down.',
+      senderId: 'grace-mom-uid',
+      senderName: 'Grace (Caregiver Mother)',
+      timestamp: new Date(Date.now() - 5400000).toISOString(),
+      mediaUrl: null,
+      mediaType: null,
+      replyTo: null,
+      audioDuration: 0,
+      reactions: { '❤️': ['amina-uid'] }
+    },
+    {
+      id: 'demo-wc-2',
+      text: 'That really helps. Setting two gentle afternoon water reminders has also made hydration much easier for my son.',
+      senderId: 'amina-uid',
+      senderName: 'Amina (Caregiver)',
+      timestamp: new Date(Date.now() - 1800000).toISOString(),
+      mediaUrl: null,
+      mediaType: null,
+      replyTo: null,
+      audioDuration: 0,
+      reactions: {}
+    }
+  ]
+};
 
 const EMOJI_REACTIONS = ['❤️', '🧬', '💧', '💊', '👏', '🙏', '🔥', '💪'];
 
@@ -227,7 +320,11 @@ const ChatSystem: React.FC = () => {
     if (!activeChatId) return;
     
     const unsubscribe = firebaseService.subscribeToMessages(activeChatId, (newMessages) => {
-      setMessages(newMessages);
+      if (newMessages && newMessages.length > 0) {
+        setMessages(newMessages);
+      } else {
+        setMessages(SAMPLE_CHANNEL_MESSAGES[activeChatId] || []);
+      }
     });
 
     return () => {
@@ -653,38 +750,6 @@ const ChatSystem: React.FC = () => {
         mediaToSend?.type || null,
         currentReply
       );
-
-      // Friendly simulated peer response in custom or group channels to make community feel vibrant & responsive
-      if (activeChatId && activeChatId.startsWith('custom-')) {
-        setTimeout(() => {
-          const peerResponses = [
-            "Welcome to the room! Thanks for creating this space for us. Staying hydrated! 💧",
-            "Glad to be here! Let's keep supporting each other and tracking our logs 💪",
-            "Warm greetings! Make sure to bundle up if it gets chilly this evening 🍵",
-            "Sending warrior strength! How is everyone's hydration today? 🌟"
-          ];
-          const randomResp = peerResponses[Math.floor(Math.random() * peerResponses.length)];
-          const simulatedPeerMsg = {
-            id: 'peer-reply-' + Date.now().toString(36),
-            text: randomResp,
-            senderId: 'tunde-uid',
-            senderName: 'Tunde (Warrior)',
-            timestamp: new Date().toISOString(),
-            mediaUrl: null,
-            mediaType: null,
-            replyTo: null,
-            audioDuration: 0,
-            reactions: { '❤️': [currentUserId] }
-          };
-          playTone('receive');
-          setMessages(prev => [...prev, simulatedPeerMsg]);
-          const cached = localStorage.getItem(`warrior_chat_${activeChatId}`);
-          const parsed = cached ? JSON.parse(cached) : [];
-          parsed.push(simulatedPeerMsg);
-          localStorage.setItem(`warrior_chat_${activeChatId}`, JSON.stringify(parsed));
-        }, 2500);
-      }
-
     } catch (error) {
       console.error("Failed to dispatch message:", error);
     }
@@ -1400,7 +1465,7 @@ const ChatSystem: React.FC = () => {
         </div>
 
         {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto divide-y divide-[#E6D8E0]/60 no-scrollbar select-none bg-[#F7F2F5]">
+        <div className="flex-1 overflow-y-auto divide-y divide-wa-line-soft no-scrollbar select-none bg-wa-ground">
           {filteredChats.map((chat) => {
             const isActive = chat.id === activeChatId;
             return (
@@ -1409,13 +1474,13 @@ const ChatSystem: React.FC = () => {
                 onClick={() => setActiveChatId(chat.id)}
                 className={`p-3.5 flex items-center gap-3 cursor-pointer transition-all ${
                   isActive 
-                    ? 'bg-[#FBE4E8] border-l-4 border-[#C4122F]' 
-                    : 'hover:bg-white/80'
+                    ? 'bg-wa-rose border-l-4 border-wa-crimson' 
+                    : 'hover:bg-wa-surface/80'
                 }`}
               >
                 {/* Avatar with live badge */}
                 <div className="relative">
-                  <div className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center text-xl border border-[#E6D8E0] shadow-2xs">
+                  <div className="w-11 h-11 bg-wa-surface text-wa-crimson rounded-2xl flex items-center justify-center text-xs font-display font-extrabold border border-wa-line shadow-2xs">
                     {chat.avatar}
                   </div>
                   {chat.online && (
@@ -1426,11 +1491,11 @@ const ChatSystem: React.FC = () => {
                 {/* Details */}
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-0.5">
-                    <h4 className="text-xs font-bold text-[#3B0F2C] truncate tracking-tight">{chat.name}</h4>
-                    <span className="text-[10px] font-mono text-[#6E4A63]">{chat.time}</span>
+                    <h4 className="text-xs font-bold text-wa-plum truncate tracking-tight">{chat.name}</h4>
+                    <span className="text-[10px] font-mono text-wa-plum-muted">{chat.time}</span>
                   </div>
 
-                  <p className="text-[11px] font-medium text-[#6E4A63] truncate leading-tight">
+                  <p className="text-[11px] font-medium text-wa-plum-muted truncate leading-tight">
                     {chat.lastMsg}
                   </p>
 
@@ -1454,13 +1519,15 @@ const ChatSystem: React.FC = () => {
         </div>
 
         {/* User Identity Footer */}
-        <div className="p-3 bg-white border-t border-[#E6D8E0] flex items-center justify-between">
+        <div className="p-3 bg-wa-surface border-t border-wa-line flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <span className="text-lg">🩺</span>
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-wa-rose text-xs font-display font-extrabold text-wa-crimson">
+              {currentUserName.slice(0, 2).toUpperCase()}
+            </span>
             <div>
-              <span className="text-xs font-bold text-[#3B0F2C] block">{currentUserName}</span>
-              <span className="text-[10px] font-mono text-[#1E7B4A]">
-                {isCurrentUserAdmin ? '🛡️ Admin Verified' : 'Warrior Online'}
+              <span className="text-xs font-bold text-wa-plum block">{currentUserName}</span>
+              <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
+                {isCurrentUserAdmin ? 'Admin Verified' : 'Warrior Online'}
               </span>
             </div>
           </div>
@@ -1477,7 +1544,7 @@ const ChatSystem: React.FC = () => {
         <div className={`flex-1 flex flex-col bg-white relative ${activeChatId ? 'flex' : 'hidden md:flex'}`}>
           
           {/* Active Chat Header */}
-          <div className="p-3 bg-white border-b border-[#E6D8E0] flex items-center justify-between select-none shadow-2xs z-10">
+          <div className="p-3 bg-wa-surface border-b border-wa-line flex items-center justify-between select-none shadow-2xs z-10">
             <div className="flex items-center gap-2.5 min-w-0">
               <button 
                 onClick={() => setActiveChatId(null)} 
@@ -1488,7 +1555,7 @@ const ChatSystem: React.FC = () => {
               </button>
 
               <div 
-                className="w-10 h-10 bg-[#F7F2F5] rounded-xl flex items-center justify-center text-xl cursor-pointer hover:scale-105 transition border border-[#E6D8E0]"
+                className="w-10 h-10 bg-wa-rose text-wa-crimson rounded-xl flex items-center justify-center text-xs font-display font-extrabold cursor-pointer hover:scale-105 transition border border-wa-line"
                 onClick={() => setShowGroupInfo(!showGroupInfo)}
               >
                 {activeChat.avatar}
@@ -1496,7 +1563,7 @@ const ChatSystem: React.FC = () => {
 
               <div className="cursor-pointer min-w-0" onClick={() => setShowGroupInfo(!showGroupInfo)}>
                 <div className="flex items-center gap-1.5">
-                  <h4 className="font-display font-bold text-xs text-[#3B0F2C] leading-tight truncate tracking-tight">{activeChat.name}</h4>
+                  <h4 className="font-display font-bold text-xs text-wa-plum leading-tight truncate tracking-tight">{activeChat.name}</h4>
                   {isCurrentUserAdmin && (
                     <span className="text-[8px] font-black text-[#C4122F] bg-[#FBE4E8] px-1.5 py-0.2 rounded font-mono uppercase">
                       Admin
@@ -1586,7 +1653,7 @@ const ChatSystem: React.FC = () => {
           {/* Messages Feed body */}
           <div 
             ref={scrollRef} 
-            className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar relative bg-[#FAF7F9] select-text"
+            className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar relative bg-wa-ground select-text"
           >
             {/* Seeded preview notice */}
             <div className="flex flex-col items-center select-none pt-1">
@@ -1600,7 +1667,7 @@ const ChatSystem: React.FC = () => {
             </div>
 
             {/* Quick Clinical Broadcasts bar */}
-            <div className="bg-white rounded-2xl p-3 border border-[#E6D8E0] space-y-2 select-none shadow-2xs">
+            <div className="bg-wa-surface rounded-2xl p-3 border border-wa-line space-y-2 select-none shadow-2xs">
               <span className="text-[9px] font-bold uppercase text-[#C4122F] tracking-wider block font-mono flex items-center gap-1">
                 <Sparkles size={11} />
                 QUICK COMMUNITY CHECK-INS
@@ -1611,9 +1678,9 @@ const ChatSystem: React.FC = () => {
                     key={p.id}
                     onClick={() => handleSendMessage(p.text)}
                     disabled={isCurrentUserMuted}
-                    className="bg-[#F7F2F5] border border-[#E6D8E0] hover:border-[#C4122F] hover:bg-[#FBE4E8] disabled:opacity-40 text-[11px] text-[#3B0F2C] font-semibold px-3 py-1 rounded-full transition-all hover:text-[#C4122F] active:scale-95 cursor-pointer shadow-2xs"
+                    className="bg-wa-ground border border-wa-line hover:border-wa-crimson hover:bg-wa-rose disabled:opacity-40 text-[11px] text-wa-plum font-semibold px-3 py-1 rounded-full transition-all hover:text-wa-crimson active:scale-95 cursor-pointer shadow-2xs"
                   >
-                    {p.emoji} {p.label}
+                    {p.label}
                   </button>
                 ))}
               </div>

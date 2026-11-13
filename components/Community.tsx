@@ -847,13 +847,20 @@ export const Community: React.FC = () => {
                 <h4 className="font-display font-bold text-sm text-wa-plum">
                   Warrior Community Channels
                 </h4>
-                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800">
-                  Coming Soon
+                <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                  Live in Chat
                 </span>
               </div>
               <p className="text-xs text-wa-plum-muted leading-relaxed">
-                WhatsApp-style moderated group chats where warriors can create, join, and share daily encouragement across Lagos, Abuja, and Ogun.
+                WhatsApp-style group channels where warriors can create, join, and share daily encouragement across Lagos, Abuja, and Ogun.
               </p>
+              <button
+                type="button"
+                onClick={() => { window.location.hash = '#/chat'; }}
+                className="inline-flex items-center gap-1 text-xs font-bold text-wa-crimson hover:underline cursor-pointer"
+              >
+                Open Community Channels →
+              </button>
             </div>
 
             <div className="bg-wa-ground border border-wa-line rounded-2xl p-5 space-y-2">
