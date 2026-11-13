@@ -331,6 +331,7 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
     try {
       const outcome = await firebaseService.saveCareVault(userId, patch);
       setData(current => mergeMedicalRecords(current, patch));
+      setReadState(outcome.state === 'device-only' ? 'cached' : 'recorded');
       setNotice(outcome.state === 'device-only'
         ? 'Saved only on this device. Your cloud record was not updated. These changes are not automatically sent later and a future cloud refresh may replace them.'
         : 'Changes recorded in your account. No clinician review or notification is implied.');
@@ -683,15 +684,18 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
         <div role="status" aria-label="Loading medical records">
           <Skeleton className="h-40 rounded-3xl" />
         </div>
-      ) : readState === 'unavailable' ? (
-        <StateMessage
-          state="error"
-          title="Medical records unavailable"
-          description="Your account records could not be loaded, and no usable copy is available on this device. Your records have not been changed."
-          action={<Button onClick={() => setReload(value => value + 1)}>Try again</Button>}
-        />
       ) : (
         <>
+          {readState === 'unavailable' && (
+            <Alert
+              tone="warning"
+              title="Cloud records unavailable — device-only mode active"
+              action={<Button variant="secondary" size="sm" onClick={() => setReload(value => value + 1)}>Retry cloud sync</Button>}
+            >
+              Your account records could not be loaded from the cloud right now. You can still add and save medical records below on this device.
+            </Alert>
+          )}
+
           {readState === 'cached' && (
             <Alert tone="warning" title="Showing information saved on this device">
               Cloud confirmation is unavailable. This copy may not include changes from another device.
