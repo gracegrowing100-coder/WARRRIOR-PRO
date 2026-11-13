@@ -1139,7 +1139,10 @@ export const firebaseService = {
           },
         };
       }
-      return { state: 'missing', data: null };
+      const cached = localStorage.getItem(cacheKey);
+      return cached
+        ? { state: 'cached', data: JSON.parse(cached) }
+        : { state: 'missing', data: null };
     } catch (error) {
       console.warn("Firestore hydration failed, using cache:", error);
       const cached = localStorage.getItem(cacheKey);

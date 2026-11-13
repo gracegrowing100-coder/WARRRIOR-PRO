@@ -103,21 +103,27 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
     try {
       const today = getTodayKey();
       const currentWater = snapshot?.waterAmount ?? 0;
+      const waterGoal = snapshot?.waterGoal ?? 3.0;
       const amountToAdd = calculateAmount(selectedUnit, quantity);
-      const newTotal = Math.min(8, currentWater + amountToAdd);
+      const newTotal = Math.min(8, parseFloat((currentWater + amountToAdd).toFixed(2)));
 
-      // Use addSymptomLog to update water (waterIntake field)
-      await firebaseService.addSymptomLog(
+      const result = await firebaseService.saveWaterLog(
         userId,
-        snapshot.painLevel ?? 0,
-        [],
-        [],
+        today,
         newTotal,
-        today
+        waterGoal
       );
+
+      setSnapshot((prev) => prev ? {
+        ...prev,
+        waterAmount: newTotal,
+        waterGoal,
+        hydrationState: result.state === 'recorded' ? 'recorded' : 'cached',
+      } : prev);
 
       setQuantity(1);
       setWaterModalOpen(false);
+      window.dispatchEvent(new CustomEvent('warrior-streak-updated'));
       await loadSnapshot();
     } catch (error) {
       console.error('Could not add water:', error);
