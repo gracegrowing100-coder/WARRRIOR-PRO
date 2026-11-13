@@ -104,7 +104,9 @@ const CLINICAL_GENOTYPES: GenotypeOption[] = [
 
 const PRESET_MEDS = [
   { id: 'Hydroxyurea (Daily Capsule)', name: 'Hydroxyurea', form: 'Daily capsule' },
-  { id: 'Folic Acid (Daily Support)', name: 'Folic acid', form: 'Daily tablet' },
+  { id: 'Folic Acid (Daily Support)', name: 'Folic Acid', form: 'Daily tablet' },
+  { id: 'Vitamin B Complex (Daily Supplement)', name: 'Vitamin B Complex', form: 'Daily tablet' },
+  { id: 'Proguanil (Malaria Prophylaxis)', name: 'Proguanil', form: 'Daily malaria prophylaxis' },
   { id: 'Penicillin V (Prophylactic)', name: 'Penicillin V', form: 'Daily, to prevent infection' },
   { id: 'Crizanlizumab (IV Infusion)', name: 'Crizanlizumab', form: 'IV infusion' },
   { id: 'Voxelotor (Sickle-Targeted)', name: 'Voxelotor', form: 'Daily tablet' },
@@ -752,7 +754,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({
             <div className="flex-1 min-h-2" />
 
             <div className="text-center text-[12px] leading-relaxed text-wa-muted pt-2 border-t border-wa-line/60">
-              <p>Pilot version for product evaluation. Use sample information only.</p>
+              <p>Clinical companion for daily sickle cell support.</p>
               <div className="flex justify-center gap-3 mt-1 font-semibold">
                 <button
                   type="button"

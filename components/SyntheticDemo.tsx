@@ -61,7 +61,7 @@ export const SyntheticDemo: React.FC<SyntheticDemoProps> = ({ onExit }) => {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-600 text-lg font-black text-white">W</div>
             <div>
               <p className="text-sm font-black tracking-tight">Warrior AI</p>
-              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Synthetic pilot workspace</p>
+              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Interactive clinical preview</p>
             </div>
           </div>
           <button

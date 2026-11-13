@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Building2, CalendarDays, CheckCircle2, Clock3, Home, MapPin, Video } from 'lucide-react';
+import { ArrowLeft, Building2, CalendarDays, CheckCircle2, Clock3, HeartHandshake, Home, MapPin, Stethoscope, UserRound, Video } from 'lucide-react';
 import { firebaseService } from '../../services/firebaseService';
 import { PageHeader } from '../layout';
 import { Alert, Button, Card, FormField, StateMessage, Textarea, TextInput } from '../ui';
@@ -42,6 +42,27 @@ function formatModeLabel(mode: AppointmentMode) {
   }
 }
 
+const SPECIALIST_OPTIONS = [
+  {
+    id: 'Speak to a doctor',
+    title: 'Speak to a doctor',
+    subtitle: 'General medical & SCD care review',
+    icon: UserRound,
+  },
+  {
+    id: 'Clinical Hematologist',
+    title: 'Clinical Hematologist',
+    subtitle: 'Specialist sickle cell haematology',
+    icon: Stethoscope,
+  },
+  {
+    id: 'Speak to a mental health therapist',
+    title: 'Mental health therapist',
+    subtitle: 'Chronic pain & emotional support',
+    icon: HeartHandshake,
+  },
+] as const;
+
 export const AppointmentRequest: React.FC<AppointmentRequestProps> = ({
   userId,
   initialReason = '',
@@ -49,6 +70,7 @@ export const AppointmentRequest: React.FC<AppointmentRequestProps> = ({
   onDone,
 }) => {
   const [step, setStep] = useState<RequestStep>('preferences');
+  const [specialist, setSpecialist] = useState<string>('');
   const [appointmentType, setAppointmentType] = useState<AppointmentMode>('clinic');
   const [homeAddress, setHomeAddress] = useState('');
   const [preferredDate, setPreferredDate] = useState('');
@@ -83,6 +105,9 @@ export const AppointmentRequest: React.FC<AppointmentRequestProps> = ({
         ...(reason.trim() ? { patientNote: reason.trim() } : {}),
         status: 'Requested',
       };
+      if (specialist) {
+        payload.doctorSpecialty = specialist;
+      }
       if (appointmentType !== 'clinic') {
         payload.appointmentType = appointmentType;
       }
@@ -133,6 +158,15 @@ export const AppointmentRequest: React.FC<AppointmentRequestProps> = ({
         <Card as="section" aria-labelledby="request-summary-title" className="max-w-2xl shadow-none">
           <h2 id="request-summary-title" className="text-heading-2 text-foreground">Request summary</h2>
           <dl className="mt-5 divide-y divide-line">
+            {specialist && (
+              <div className="flex gap-4 py-4 first:pt-0">
+                <Stethoscope size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-action" />
+                <div>
+                  <dt className="text-small font-semibold text-foreground-secondary">Specialist requested</dt>
+                  <dd className="mt-1 text-body font-semibold text-foreground">{specialist}</dd>
+                </div>
+              </div>
+            )}
             <div className="flex gap-4 py-4 first:pt-0">
               {appointmentType === 'home' ? (
                 <Home size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-action" />
@@ -197,6 +231,48 @@ export const AppointmentRequest: React.FC<AppointmentRequestProps> = ({
       />
       <form noValidate onSubmit={reviewRequest} className="max-w-2xl space-y-6">
         <Card as="section" className="space-y-5 shadow-none">
+          {/* Specialist Selector */}
+          <div>
+            <label className="block text-small font-semibold text-foreground">
+              Who would you like to speak with?
+            </label>
+            <p className="mt-1 text-caption text-foreground-secondary">
+              Choose a doctor, a clinical hematologist, or a mental health therapist.
+            </p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Specialist type">
+              {SPECIALIST_OPTIONS.map((option) => {
+                const Icon = option.icon;
+                const selected = specialist === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setSpecialist(selected ? '' : option.id)}
+                    className={`flex flex-col justify-between rounded-[20px] p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson ${
+                      selected
+                        ? 'border-2 border-wa-crimson bg-wa-rose/40 dark:bg-wa-rose/10 text-wa-plum dark:text-white'
+                        : 'border border-wa-line-soft bg-wa-surface hover:bg-wa-ground/60 dark:border-white/10 dark:bg-white/5 text-wa-plum dark:text-white'
+                    }`}
+                  >
+                    <div>
+                      <span className={`inline-flex h-9 w-9 items-center justify-center rounded-xl ${
+                        selected ? 'bg-wa-crimson text-white' : 'bg-wa-ground dark:bg-white/10 text-wa-crimson'
+                      }`}>
+                        <Icon size={18} />
+                      </span>
+                      <div className="mt-3 font-display text-sm font-bold">{option.title}</div>
+                      <p className="mt-0.5 text-xs text-wa-plum-muted dark:text-wa-on-plum-muted leading-tight">
+                        {option.subtitle}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Consultation Type Selector */}
           <div>
             <label className="block text-small font-semibold text-foreground">

@@ -18,10 +18,12 @@ import { Spark } from './brand';
 import { Button, SosPill } from './ui';
 import { firebaseService } from '../services/firebaseService';
 import { auth } from '../firebase-init';
+import { APP_TRANSLATIONS, SupportedLanguage } from '../services/offlineKnowledgeBase';
 
 interface DashboardProps {
   onNavigate: (to: Page) => void;
   userId: string;
+  language?: SupportedLanguage;
 }
 
 const ExpandableTool: React.FC<{ title: string; icon?: React.ReactNode; children: React.ReactNode }> = ({ title, icon, children }) => {
@@ -41,7 +43,7 @@ const ExpandableTool: React.FC<{ title: string; icon?: React.ReactNode; children
   );
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'en' }) => {
   const [profileName, setProfileName] = useState<string>("Warrior");
   const [refreshPain, setRefreshPain] = useState<number>(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -120,7 +122,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
 
   const firstName = profileName.trim().split(/\s+/)[0] || 'Warrior';
   const currentHour = new Date().getHours();
-  const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
+  const t = APP_TRANSLATIONS[language] || APP_TRANSLATIONS.en;
+  const greeting = currentHour < 12 ? t.greetingMorning : currentHour < 18 ? t.greetingAfternoon : t.greetingEvening;
 
   return (
     <div data-semantic className="space-y-7 pb-8 sm:space-y-8 lg:space-y-9">
@@ -140,10 +143,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
             </h1>
             <div className="mt-3 inline-flex items-center gap-1.5 h-[30px] px-3 rounded-full bg-wa-coral/20 text-[#FFC7D0] text-[13px] font-semibold">
               <Spark className="w-3 h-3 text-wa-coral" />
-              <span>{streakDays > 0 ? `${streakDays}-day logging streak` : 'Start your logging streak today'}</span>
+              <span>{streakDays > 0 ? `${streakDays}-${t.dayLoggingStreak}` : t.startLoggingStreak}</span>
             </div>
             <p className="mt-3 max-w-sm text-[14px] leading-snug text-wa-on-plum-muted">
-              Your daily health companion. Start with a quick check-in below.
+              {t.dailyCompanionSub}
             </p>
           </div>
           <SosPill className="md:hidden" onClick={() => document.getElementById('emergency-fab')?.click()} />
@@ -195,8 +198,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
                   <LifeBuoy size={21} />
                 </span>
                 <div>
-                  <h2 id="crisis-help-title" className="text-heading-2">Need urgent help?</h2>
-                  <p className="mt-1 max-w-prose text-small text-foreground-secondary">Open your existing emergency information and contact options.</p>
+                  <h2 id="crisis-help-title" className="text-heading-2">{t.needUrgentHelp}</h2>
+                  <p className="mt-1 max-w-prose text-small text-foreground-secondary">{t.urgentHelpSub}</p>
                 </div>
               </div>
               <Button
@@ -206,7 +209,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
                 className="mt-auto w-full shrink-0"
                 onClick={() => document.getElementById('emergency-fab')?.click()}
               >
-                Get help
+                {t.getHelpBtn}
               </Button>
             </div>
           </section>
@@ -223,9 +226,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId }) => {
             <div className="rounded-[28px] bg-wa-rose p-[18px] flex gap-3.5 items-start text-wa-plum border border-wa-line-soft dark:border-white/10">
               <Spark className="w-7 h-7 text-wa-crimson shrink-0 mt-0.5" />
               <div>
-                <div className="font-display font-bold text-[15px] text-wa-plum dark:text-white">Warrior tip</div>
+                <div className="font-display font-bold text-[15px] text-wa-plum dark:text-white">{t.warriorTipTitle}</div>
                 <div className="text-[14px] leading-relaxed mt-1 text-wa-plum/90 dark:text-white/90">
-                  Keep a small &ldquo;flare bag&rdquo; ready: water, warm socks, your medicines and your clinic card.
+                  {t.warriorTipBody}
                 </div>
               </div>
             </div>

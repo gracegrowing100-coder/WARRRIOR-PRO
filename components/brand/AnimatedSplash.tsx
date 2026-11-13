@@ -120,7 +120,7 @@ export const AnimatedSplash: React.FC<AnimatedSplashProps> = ({ ready, onDone })
           <div className="w-[120px] h-1 rounded-full bg-white/15 overflow-hidden">
             <div className="w-[55%] h-full rounded-full bg-wa-coral" />
           </div>
-          <span className="text-[13px] text-wa-on-plum-muted">Pilot version · sample data only</span>
+          <span className="text-[13px] text-wa-on-plum-muted">Warrior AI · Sickle Cell Companion</span>
         </div>
       </motion.div>
     );
@@ -433,7 +433,7 @@ export const AnimatedSplash: React.FC<AnimatedSplashProps> = ({ ready, onDone })
           transition={{ delay: 0.4, duration: 0.3 }}
           className="text-[13px] text-wa-on-plum-muted"
         >
-          Pilot version · sample data only
+          Warrior AI · Sickle Cell Companion
         </motion.span>
       </div>
     </motion.div>

@@ -537,7 +537,18 @@ export const APP_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>>
     selectLang: "Language",
     crisisWarning: "In Crisis? Tap Emergency SOS for instant rapid response.",
     streakDays: "Day Streak",
-    speakPrompt: "Tap to Speak (Offline Voice)"
+    speakPrompt: "Tap to Speak (Offline Voice)",
+    greetingMorning: "Good morning",
+    greetingAfternoon: "Good afternoon",
+    greetingEvening: "Good evening",
+    dailyCompanionSub: "Your daily health companion. Start with a quick check-in below.",
+    dayLoggingStreak: "day logging streak",
+    startLoggingStreak: "Start your logging streak today",
+    needUrgentHelp: "Need urgent help?",
+    urgentHelpSub: "Open your existing emergency information and contact options.",
+    getHelpBtn: "Get help",
+    warriorTipTitle: "Warrior tip",
+    warriorTipBody: "Keep a small “flare bag” ready: water, warm socks, your medicines and your clinic card."
   },
   yo: {
     appName: "Warrior AI",
@@ -560,7 +571,18 @@ export const APP_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>>
     selectLang: "Èdè",
     crisisWarning: "Ṣé ìrora ń bẹ? Tẹ Pàjáwìrì SOS fún ìrànwọ́ lẹ́sẹ̀kẹsẹ̀.",
     streakDays: "Ọjọ́ Ìtẹ̀lé",
-    speakPrompt: "Tẹ́ẹ láti sọ̀rọ̀"
+    speakPrompt: "Tẹ́ẹ láti sọ̀rọ̀",
+    greetingMorning: "Ẹ káàárọ̀",
+    greetingAfternoon: "Ẹ káàsán",
+    greetingEvening: "Ẹ kú ìrọ̀lẹ́",
+    dailyCompanionSub: "Olùrànlọ́wọ́ ìlera rẹ lójoojúmọ́. Bẹ̀rẹ̀ pẹ̀lú àyẹ̀wò kíákíá ní ìsàlẹ̀.",
+    dayLoggingStreak: "ọjọ́ àkọsílẹ̀ tẹ̀léra",
+    startLoggingStreak: "Bẹ̀rẹ̀ àkọsílẹ̀ rẹ lónìí",
+    needUrgentHelp: "Ṣé o nílò ìrànlọ́wọ́ kíákíá?",
+    urgentHelpSub: "Ṣí àlàyé pàjáwìrì rẹ àti àwọn nọ́mbà ìkànnì.",
+    getHelpBtn: "Gba ìrànlọ́wọ́",
+    warriorTipTitle: "Ìmọ̀ràn Akọni",
+    warriorTipBody: "Jẹ́ kí àpò ìpalẹ̀mọ́ rẹ wà ní ìtòsí: omi, ìbọ̀sẹ̀ tó móoru, oògùn rẹ àti káàdì ilé-ìwòsàn."
   },
   ha: {
     appName: "Warrior AI",
@@ -583,7 +605,18 @@ export const APP_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>>
     selectLang: "Harshe",
     crisisWarning: "Kuna cikin ciwo? Latsa Agajin Gaggawa don taimako nan take.",
     streakDays: "Kwanakin Ci Gaba",
-    speakPrompt: "Danna don Magana"
+    speakPrompt: "Danna don Magana",
+    greetingMorning: "Ina kwana",
+    greetingAfternoon: "Barka da rana",
+    greetingEvening: "Barka da yamma",
+    dailyCompanionSub: "Abokin lafiyarka na yau da kullum. Fara da binciken yau a ƙasa.",
+    dayLoggingStreak: "kwanaki a jere",
+    startLoggingStreak: "Fara yin rijista a yau",
+    needUrgentHelp: "Kuna buƙatar taimakon gaggawa?",
+    urgentHelpSub: "Buɗe bayanan gaggawa da lambobin tuntuɓa.",
+    getHelpBtn: "Nemi taimako",
+    warriorTipTitle: "Shawarar Jarumi",
+    warriorTipBody: "Ajiye ƙaramin jakar gaggawa a kusa: ruwa, safa mai ɗumi, magungunanka da katin asibiti."
   },
   ig: {
     appName: "Warrior AI",
@@ -606,6 +639,17 @@ export const APP_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>>
     selectLang: "Asụsụ",
     crisisWarning: "Ọ dị gị njọ? Pịa Enyemaka Mberede maka enyemaka ozugbo.",
     streakDays: "Ụbọchị Na-aga n'ihu",
-    speakPrompt: "Pịa ka ị kwuo okwu"
+    speakPrompt: "Pịa ka ị kwuo okwu",
+    greetingMorning: "Ụtụtụ ọma",
+    greetingAfternoon: "Ehihie ọma",
+    greetingEvening: "Mgbede ọma",
+    dailyCompanionSub: "Onye enyemaka ahụike gị kwa ụbọchị. Bido na nyocha dị n'okpuru.",
+    dayLoggingStreak: "ụbọchị ndekọ n'usoro",
+    startLoggingStreak: "Bido ndekọ ahụike gị taa",
+    needUrgentHelp: "Ị chọrọ enyemaka ngwa ngwa?",
+    urgentHelpSub: "Meghee ozi mberede gị na ndị ị ga-akpọ.",
+    getHelpBtn: "Nweta enyemaka",
+    warriorTipTitle: "Ndụmọdụ Dike",
+    warriorTipBody: "Debe obere akpa nkwado nso: mmiri, sọks dị ọkụ, ọgwụ gị na kaadị ụlọọgwụ gị."
   }
 };

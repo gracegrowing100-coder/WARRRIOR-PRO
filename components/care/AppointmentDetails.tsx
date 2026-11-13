@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Building2, CalendarDays, Clock3, FileText, Home, MapPin, Video } from 'lucide-react';
+import { ArrowLeft, Building2, CalendarDays, Clock3, FileText, Home, MapPin, Stethoscope, Video } from 'lucide-react';
 import type { AppointmentRecord } from '../../services/firebaseService';
 import { Alert, Button, Card, HealthStatusBadge, Modal } from '../ui';
 
@@ -68,6 +68,15 @@ export const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
       <Card as="section" aria-labelledby="appointment-details-title" className="max-w-2xl shadow-none">
         <h2 id="appointment-details-title" className="text-heading-2 text-foreground">Request details</h2>
         <dl className="mt-5 divide-y divide-line">
+          {appointment.doctorSpecialty && (
+            <div className="flex gap-4 py-4 first:pt-0">
+              <Stethoscope size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-action" />
+              <div>
+                <dt className="text-small font-semibold text-foreground-secondary">Specialist requested</dt>
+                <dd className="mt-1 text-body font-semibold text-foreground">{appointment.doctorSpecialty}</dd>
+              </div>
+            </div>
+          )}
           {/* Consultation Type */}
           <div className="flex gap-4 py-4 first:pt-0">
             {appointment.appointmentType === 'home' ? (

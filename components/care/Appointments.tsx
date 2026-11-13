@@ -63,6 +63,11 @@ const RequestList: React.FC<{
                   <span className="min-w-0 flex-1">
                     <span className="block text-body font-semibold text-foreground">
                       Requested for {displayDate(appointment.bookedDate)}{appointment.bookedTime ? ` at ${appointment.bookedTime}` : ''}
+                      {appointment.doctorSpecialty && (
+                        <span className="ml-2 text-xs font-semibold text-wa-crimson">
+                          · {appointment.doctorSpecialty}
+                        </span>
+                      )}
                       {appointment.appointmentType && (
                         <span className="ml-2 text-xs font-medium text-foreground-secondary">
                           · {appointment.appointmentType === 'home' ? 'Home visit' : appointment.appointmentType === 'virtual' ? 'Virtual' : 'Clinic visit'}

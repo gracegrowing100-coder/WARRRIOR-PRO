@@ -47,6 +47,7 @@ export const recordSections: RecordSection[] = [
   ] },
   { key: 'labs', title: 'Laboratory records', itemLabel: 'laboratory record', fields: [
     { key: 'date', label: 'Laboratory date', required: true }, { key: 'hemoglobin', label: 'Haemoglobin (g/dL)', type: 'number', required: true },
+    { key: 'steadyStatePcv', label: 'Steady-State PCV (%)', type: 'number' }, { key: 'lastEUCr', label: 'Last E/U/Cr readings (Electrolytes, Urea, Creatinine)' },
     { key: 'reticulocyte', label: 'Reticulocytes (%)', type: 'number' }, { key: 'bilirubin', label: 'Bilirubin (mg/dL)', type: 'number' },
     { key: 'ldh', label: 'LDH (U/L)', type: 'number' }, { key: 'ferritin', label: 'Ferritin (ng/mL)', type: 'number' },
     { key: 'hbfPercentage', label: 'HbF (%)', type: 'number' }, { key: 'notes', label: 'Laboratory notes', type: 'multiline' },

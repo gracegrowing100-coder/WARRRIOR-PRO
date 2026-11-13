@@ -227,7 +227,7 @@ const App: React.FC = () => {
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'home': return <Dashboard onNavigate={navigate} userId={user?.uid || ''} />;
+      case 'home': return <Dashboard onNavigate={navigate} userId={user?.uid || ''} language={language} />;
       case 'games': return <GamesHub />;
       case 'chat': return (
         <ChatWorkspace
@@ -250,7 +250,7 @@ const App: React.FC = () => {
       case 'community': return <Community />;
       case 'more': return <MoreMenu onNavigate={navigate} />;
       case 'advocacy': return <Advocacy />;
-      default: return <Dashboard onNavigate={navigate} userId={user?.uid || ''} />;
+      default: return <Dashboard onNavigate={navigate} userId={user?.uid || ''} language={language} />;
     }
   };
 

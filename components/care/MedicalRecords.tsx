@@ -80,7 +80,7 @@ const groups: GroupDefinition[] = [
     icon: FlaskConical,
     badgeColor: 'text-teal-600 bg-teal-50 dark:bg-teal-950/40',
     accentBorder: 'border-teal-200 dark:border-teal-900/40',
-    description: 'Baseline blood count tracking (Haemoglobin, Reticulocytes, Bilirubin, HbF%).',
+    description: 'Baseline blood count & renal tracking (Haemoglobin, Steady-State PCV, E/U/Cr, Reticulocytes, HbF%).',
   },
   {
     title: 'Immunizations',
@@ -132,8 +132,8 @@ const sectionGuides: Record<string, { purpose: string; guidance: string }> = {
     guidance: 'Record simple or exchange blood transfusions, volume transfused, and reaction history. Critical for tracking red cell alloantibodies and safe cross-matching.',
   },
   labs: {
-    purpose: 'Steady-state blood markers',
-    guidance: 'Track your steady-state baseline blood metrics—Haemoglobin, Reticulocyte count, Bilirubin, and HbF%. Comparing current labs against your baseline helps doctors detect acute aplastic or hemolytic events.',
+    purpose: 'Steady-state blood markers & renal panel',
+    guidance: 'Track your steady-state baseline blood metrics—Haemoglobin, Steady-State PCV (%), E/U/Cr (Electrolytes, Urea, Creatinine), Reticulocyte count, Bilirubin, and HbF%. Comparing current labs against your baseline helps doctors detect acute crises or renal changes.',
   },
   immunizations: {
     purpose: 'Preventive bacterial & viral vaccines',
@@ -215,6 +215,8 @@ const SAMPLE_CLINICAL_RECORD: MedicalRecordData = {
       id: 'sample-lab-1',
       date: '2026-08-14',
       hemoglobin: 8.7,
+      steadyStatePcv: 26,
+      lastEUCr: 'Na+ 138, K+ 4.1, Urea 3.4 mmol/L, Cr 62 µmol/L',
       reticulocyte: 7.8,
       bilirubin: 2.2,
       ldh: 395,
