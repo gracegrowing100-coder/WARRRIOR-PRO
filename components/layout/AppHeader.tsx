@@ -48,7 +48,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   }, [settingsOpen]);
 
   return (
-    <header data-semantic className="sticky top-0 z-40 flex min-h-[4.25rem] items-center justify-between gap-3 border-b border-[#EADDE2] bg-[#FAF6F8]/95 px-4 py-2.5 text-wa-plum backdrop-blur-md sm:px-5 lg:min-h-20 lg:px-8">
+    <header data-semantic className="sticky top-0 z-40 flex min-h-[4.25rem] items-center justify-between gap-3 border-b border-wa-line bg-wa-surface/95 px-4 py-2.5 text-wa-plum backdrop-blur-md sm:px-5 lg:min-h-20 lg:px-8">
       {/* Mobile Brand Identity Control (< 768px): Sleek Logo Badge Only */}
       <button 
         type="button" 
@@ -104,7 +104,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           aria-label="Display and language settings"
           aria-controls="app-header-settings"
           aria-expanded={settingsOpen}
-          className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-white border border-[#EADDE2] text-wa-plum hover:bg-[#FBE4E8] transition-colors shadow-xs sm:hidden"
+          className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-wa-surface border border-wa-line text-wa-plum hover:bg-wa-rose transition-colors shadow-xs sm:hidden"
           onClick={() => setSettingsOpen((open) => !open)}
         >
           <SlidersHorizontal size={17} aria-hidden="true" />
@@ -117,9 +117,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           role="group"
           aria-label="Display and language settings"
           className={cn(
-            'items-center rounded-2xl border border-[#EADDE2] bg-white p-2 shadow-elevated sm:static sm:flex sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none',
+            'items-center rounded-2xl border border-wa-line bg-wa-surface p-2 shadow-elevated sm:static sm:flex sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none',
             settingsOpen 
-              ? 'absolute right-0 top-13 z-50 flex flex-col sm:flex-row gap-2.5 p-3.5 rounded-2xl shadow-xl bg-white border border-[#EADDE2] min-w-[200px]' 
+              ? 'absolute right-0 top-13 z-50 flex flex-col sm:flex-row gap-2.5 p-3.5 rounded-2xl shadow-xl bg-wa-surface border border-wa-line min-w-[200px]' 
               : 'hidden',
           )}
         >

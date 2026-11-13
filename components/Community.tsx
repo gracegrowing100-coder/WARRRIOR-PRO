@@ -384,14 +384,14 @@ export const Community: React.FC = () => {
   return (
     <div className="space-y-5" data-semantic>
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E6D8E0]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-wa-line">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-display text-[#3B0F2C] tracking-tight">Community & Support</h1>
-          <p className="text-xs sm:text-sm text-[#6E4A63] mt-0.5">Strength in connection, verified care in proximity.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display text-wa-plum tracking-tight">Community & Support</h1>
+          <p className="text-xs sm:text-sm text-wa-plum-muted mt-0.5">Strength in connection, verified care in proximity.</p>
         </div>
 
         {/* Tab Switcher Pills */}
-        <div role="tablist" aria-label="Community destinations" className="flex items-center gap-1 p-1 rounded-full bg-white border border-[#E6D8E0] shadow-2xs max-w-fit">
+        <div role="tablist" aria-label="Community destinations" className="flex items-center gap-1 p-1 rounded-full bg-wa-surface border border-wa-line shadow-2xs max-w-fit">
           <button 
             type="button"
             role="tab"
@@ -400,7 +400,7 @@ export const Community: React.FC = () => {
             className={`px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'support' 
                 ? 'bg-[#3B0F2C] text-white shadow-xs' 
-                : 'text-[#6E4A63] hover:text-[#3B0F2C] hover:bg-[#F7F2F5]'
+                : 'text-wa-plum-muted hover:text-wa-plum hover:bg-wa-ground'
             }`}
           >
             <MapPin size={13} className={activeTab === 'support' ? 'text-[#FBE4E8]' : 'text-[#C4122F]'} />
@@ -414,7 +414,7 @@ export const Community: React.FC = () => {
             className={`px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'warrior_match' 
                 ? 'bg-[#3B0F2C] text-white shadow-xs' 
-                : 'text-[#6E4A63] hover:text-[#3B0F2C] hover:bg-[#F7F2F5]'
+                : 'text-wa-plum-muted hover:text-wa-plum hover:bg-wa-ground'
             }`}
           >
             <Users size={13} className={activeTab === 'warrior_match' ? 'text-[#FBE4E8]' : 'text-[#C4122F]'} />
@@ -428,7 +428,7 @@ export const Community: React.FC = () => {
             className={`px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'forum' 
                 ? 'bg-[#3B0F2C] text-white shadow-xs' 
-                : 'text-[#6E4A63] hover:text-[#3B0F2C] hover:bg-[#F7F2F5]'
+                : 'text-wa-plum-muted hover:text-wa-plum hover:bg-wa-ground'
             }`}
           >
             <MessageSquare size={13} className={activeTab === 'forum' ? 'text-[#FBE4E8]' : 'text-[#C4122F]'} />
@@ -443,12 +443,12 @@ export const Community: React.FC = () => {
       {activeTab === 'support' && (
         <div className="space-y-5">
           {/* Controls Bar: Search, City Epicenter, Sort, Filter */}
-          <div className="bg-white p-4 sm:p-5 rounded-[24px] border border-[#E6D8E0] shadow-2xs space-y-3.5">
+          <div className="bg-wa-surface p-4 sm:p-5 rounded-[24px] border border-wa-line shadow-2xs space-y-3.5">
             <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-center justify-between">
               
               {/* City selector */}
               <div className="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
-                <span className="text-[10px] font-mono font-bold text-[#6E4A63] uppercase tracking-wider shrink-0 mr-1">Location:</span>
+                <span className="text-[10px] font-mono font-bold text-wa-plum-muted uppercase tracking-wider shrink-0 mr-1">Location:</span>
                 {(['Lagos', 'Abuja', 'Ogun'] as const).map(city => (
                   <button
                     key={city}
@@ -460,7 +460,7 @@ export const Community: React.FC = () => {
                     className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
                       selectedCity === city 
                         ? 'bg-[#3B0F2C] text-white shadow-xs' 
-                        : 'bg-[#F7F2F5] text-[#6E4A63] border border-[#E6D8E0] hover:text-[#3B0F2C]'
+                        : 'bg-wa-ground text-wa-plum-muted border border-wa-line hover:text-wa-plum'
                     }`}
                   >
                     {city}
@@ -470,13 +470,13 @@ export const Community: React.FC = () => {
 
               {/* Category filter & Sort by */}
               <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-between lg:justify-end">
-                <div className="flex items-center gap-1.5 bg-[#F7F2F5] px-3 py-1.5 rounded-full border border-[#E6D8E0]">
-                  <Filter size={13} className="text-[#6E4A63]" />
+                <div className="flex items-center gap-1.5 bg-wa-ground px-3 py-1.5 rounded-full border border-wa-line">
+                  <Filter size={13} className="text-wa-plum-muted" />
                   <select 
                     value={selectedCategoryFilter}
                     onChange={(e) => setSelectedCategoryFilter(e.target.value)}
                     aria-label="Filter resource categories"
-                    className="bg-transparent border-none text-xs text-[#3B0F2C] font-bold focus:outline-none cursor-pointer"
+                    className="bg-transparent border-none text-xs text-wa-plum font-bold focus:outline-none cursor-pointer"
                   >
                     <option value="All">All Resources</option>
                     <option value="Specialized Clinics">Specialized Clinics</option>
@@ -488,7 +488,7 @@ export const Community: React.FC = () => {
                 <button 
                   type="button"
                   onClick={() => setSortBy(prev => prev === 'distance' ? 'name' : 'distance')}
-                  className="flex items-center gap-1.5 bg-[#F7F2F5] border border-[#E6D8E0] hover:bg-[#FBE4E8] px-3 py-1.5 rounded-full text-xs font-bold text-[#3B0F2C] cursor-pointer transition"
+                  className="flex items-center gap-1.5 bg-wa-ground border border-wa-line hover:bg-wa-rose px-3 py-1.5 rounded-full text-xs font-bold text-wa-plum cursor-pointer transition"
                   title="Toggle Sorting Mode"
                 >
                   <ArrowUpDown size={13} className="text-[#C4122F]" />
@@ -499,13 +499,13 @@ export const Community: React.FC = () => {
 
             {/* Keyword search input */}
             <div className="relative">
-              <Search className="absolute left-3.5 top-3 text-[#6E4A63]" size={16} />
+              <Search className="absolute left-3.5 top-3 text-wa-plum-muted" size={16} />
               <input 
                 type="text" 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={`Search centers in ${selectedCity} (e.g. hematology, foundation, emergency)`} 
-                className="w-full pl-10 pr-4 py-2.5 bg-[#FAF7F9] rounded-full border border-[#E6D8E0] text-xs font-medium text-[#3B0F2C] placeholder:text-[#6E4A63]/60 focus:outline-none focus:border-[#C4122F] transition"
+                className="w-full pl-10 pr-4 py-2.5 bg-wa-ground rounded-full border border-wa-line text-xs font-medium text-wa-plum placeholder:text-wa-plum-muted/60 focus:outline-none focus:border-[#C4122F] transition"
               />
             </div>
           </div>
@@ -513,7 +513,7 @@ export const Community: React.FC = () => {
           {/* Directory Listings */}
           <div className="space-y-4">
             <div className="flex items-center justify-between px-1">
-              <h2 className="text-xs font-bold font-mono text-[#6E4A63] uppercase tracking-wider">
+              <h2 className="text-xs font-bold font-mono text-wa-plum-muted uppercase tracking-wider">
                 {processedCenters.length} Verified Facilities & Networks in {selectedCity}
               </h2>
             </div>
@@ -529,7 +529,7 @@ export const Community: React.FC = () => {
                           Featured &bull; {featuredCenter.category}
                         </span>
                       </div>
-                      <span className="text-xs font-mono font-bold text-[#FBE4E8] bg-white/10 px-2.5 py-0.5 rounded-full border border-white/15">
+                      <span className="text-xs font-mono font-bold text-[#FBE4E8] bg-wa-surface/10 px-2.5 py-0.5 rounded-full border border-white/15">
                         📍 {featuredCenter.distance} km from center
                       </span>
                     </div>
@@ -561,14 +561,14 @@ export const Community: React.FC = () => {
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(featuredCenter.center_name + ' ' + featuredCenter.address)}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="min-h-11 px-5 py-2.5 bg-white hover:bg-[#FAF7F9] text-[#3B0F2C] rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+                        className="min-h-11 px-5 py-2.5 bg-wa-surface hover:bg-wa-ground text-wa-plum rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
                       >
                         <ExternalLink size={14} />
                         <span>Directions</span>
                       </a>
                       <a 
                         href={`mailto:${featuredCenter.email}`}
-                        className="min-h-11 px-4 py-2.5 bg-white/10 hover:bg-white/15 text-white rounded-full text-xs font-semibold flex items-center gap-1.5 transition"
+                        className="min-h-11 px-4 py-2.5 bg-wa-surface/10 hover:bg-wa-surface/15 text-white rounded-full text-xs font-semibold flex items-center gap-1.5 transition"
                       >
                         <Mail size={14} />
                         <span>Email</span>
@@ -585,37 +585,37 @@ export const Community: React.FC = () => {
                       return (
                         <div 
                           key={center.id}
-                          className="bg-white border border-[#E6D8E0] rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-xs transition flex flex-col justify-between"
+                          className="bg-wa-surface border border-wa-line rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-xs transition flex flex-col justify-between"
                         >
                           <div>
                             <div className="flex items-start justify-between gap-2 mb-2.5">
                               <div className="flex items-center gap-2">
                                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                                  isClinicOrNgo ? 'bg-[#FDF2F4] text-[#C4122F]' : 'bg-[#E8F8EE] text-[#1E7B4A]'
+                                  isClinicOrNgo ? 'bg-wa-rose/60 text-[#C4122F]' : 'bg-[#E8F8EE] text-[#1E7B4A]'
                                 }`}>
                                   <Building2 size={16} />
                                 </div>
                                 <div>
-                                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6E4A63] block">
+                                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-wa-plum-muted block">
                                     {center.category} &bull; {center.city}
                                   </span>
                                 </div>
                               </div>
-                              <span className="text-[11px] font-mono font-bold text-[#6E4A63] bg-[#FAF7F9] px-2 py-0.5 rounded-full border border-[#E6D8E0]">
+                              <span className="text-[11px] font-mono font-bold text-wa-plum-muted bg-wa-ground px-2 py-0.5 rounded-full border border-wa-line">
                                 {center.distance} km
                               </span>
                             </div>
 
-                            <h3 className="font-display font-bold text-sm sm:text-base text-[#3B0F2C] tracking-tight leading-snug mb-1">
+                            <h3 className="font-display font-bold text-sm sm:text-base text-wa-plum tracking-tight leading-snug mb-1">
                               {center.center_name}
                             </h3>
-                            <p className="text-xs text-[#6E4A63] flex items-start gap-1.5 leading-relaxed mb-3">
+                            <p className="text-xs text-wa-plum-muted flex items-start gap-1.5 leading-relaxed mb-3">
                               <MapPin size={13} className="text-[#C4122F] shrink-0 mt-0.5" />
                               <span className="truncate">{center.address}</span>
                             </p>
                           </div>
 
-                          <div className="flex items-center gap-2 pt-3 border-t border-[#F1E6EC] mt-auto">
+                          <div className="flex items-center gap-2 pt-3 border-t border-wa-line-soft mt-auto">
                             <a 
                               href={`tel:${center.phone}`}
                               className="min-h-10 flex-1 px-3 py-2 bg-[#C4122F] hover:bg-[#9E0E26] text-white rounded-full text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-2xs transition"
@@ -627,14 +627,14 @@ export const Community: React.FC = () => {
                               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(center.center_name + ' ' + center.address)}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="min-h-10 px-3.5 py-2 bg-[#FAF7F9] hover:bg-[#F7F2F5] text-[#3B0F2C] border border-[#E6D8E0] rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition"
+                              className="min-h-10 px-3.5 py-2 bg-wa-ground hover:bg-wa-ground text-wa-plum border border-wa-line rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition"
                             >
                               <ExternalLink size={13} />
                               <span>Route</span>
                             </a>
                             <a 
                               href={`mailto:${center.email}`}
-                              className="min-h-10 px-3 py-2 bg-[#FAF7F9] hover:bg-[#F7F2F5] text-[#6E4A63] border border-[#E6D8E0] rounded-full text-xs font-semibold flex items-center justify-center"
+                              className="min-h-10 px-3 py-2 bg-wa-ground hover:bg-wa-ground text-wa-plum-muted border border-wa-line rounded-full text-xs font-semibold flex items-center justify-center"
                               title="Send Email"
                             >
                               <Mail size={13} />
@@ -647,16 +647,16 @@ export const Community: React.FC = () => {
                 )}
               </div>
             ) : (
-              <div className="py-12 bg-white rounded-2xl border border-[#E6D8E0] text-center space-y-2 p-6">
-                <Building2 size={32} className="mx-auto text-[#6E4A63]/60 mb-2" />
-                <h3 className="font-bold text-sm text-[#3B0F2C]">No facilities match active filters</h3>
-                <p className="text-xs text-[#6E4A63] max-w-xs mx-auto">
+              <div className="py-12 bg-wa-surface rounded-2xl border border-wa-line text-center space-y-2 p-6">
+                <Building2 size={32} className="mx-auto text-wa-plum-muted/60 mb-2" />
+                <h3 className="font-bold text-sm text-wa-plum">No facilities match active filters</h3>
+                <p className="text-xs text-wa-plum-muted max-w-xs mx-auto">
                   Try clearing your search query or selecting a different category filter.
                 </p>
                 <button
                   type="button"
                   onClick={() => { setSearchQuery(''); setSelectedCategoryFilter('All'); }}
-                  className="mt-2 px-4 py-2 bg-[#F7F2F5] text-[#3B0F2C] hover:bg-[#FBE4E8] rounded-full text-xs font-bold transition cursor-pointer"
+                  className="mt-2 px-4 py-2 bg-wa-ground text-wa-plum hover:bg-wa-rose rounded-full text-xs font-bold transition cursor-pointer"
                 >
                   Reset Filters
                 </button>
@@ -665,7 +665,7 @@ export const Community: React.FC = () => {
           </div>
 
           {/* Sticky Emergency Assistance Box */}
-          <div className="bg-[#3B0F2C] text-white rounded-[24px] p-5 sm:p-6 shadow-sm border border-[#E6D8E0] flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
+          <div className="bg-[#3B0F2C] text-white rounded-[24px] p-5 sm:p-6 shadow-sm border border-wa-line flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
             <div className="flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-2xl bg-[#C4122F] flex items-center justify-center text-white shrink-0 shadow-xs">
                 <ShieldAlert className="w-6 h-6 animate-pulse" />
@@ -693,7 +693,7 @@ export const Community: React.FC = () => {
               </a>
               <a 
                 href="tel:112" 
-                className="flex-1 md:flex-none min-h-10 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-full text-xs font-bold text-center uppercase tracking-wider transition flex items-center justify-center gap-1.5"
+                className="flex-1 md:flex-none min-h-10 px-4 py-2.5 bg-wa-surface/10 hover:bg-wa-surface/20 text-white border border-white/20 rounded-full text-xs font-bold text-center uppercase tracking-wider transition flex items-center justify-center gap-1.5"
               >
                 <span>Call 112 / 911</span>
               </a>
@@ -708,9 +708,9 @@ export const Community: React.FC = () => {
       {activeTab === 'warrior_match' && (
         <div className="space-y-5">
           {/* Intro Card */}
-          <div className="bg-[#3B0F2C] text-white rounded-[28px] p-5 sm:p-6 shadow-sm border border-[#E6D8E0]">
+          <div className="bg-[#3B0F2C] text-white rounded-[28px] p-5 sm:p-6 shadow-sm border border-wa-line">
             <div className="max-w-2xl space-y-2">
-              <div className="inline-flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-full text-[11px] font-bold text-[#FBE4E8] uppercase tracking-wider">
+              <div className="inline-flex items-center gap-1.5 bg-wa-surface/10 px-3 py-1 rounded-full text-[11px] font-bold text-[#FBE4E8] uppercase tracking-wider">
                 <Sparkles size={12} className="text-[#FBE4E8]" />
                 <span>Comorbidity Lived-Experience Matching</span>
               </div>
@@ -724,15 +724,15 @@ export const Community: React.FC = () => {
           </div>
 
           {/* Comorbidity Selection Chips */}
-          <div className="bg-white p-4 sm:p-5 rounded-[24px] border border-[#E6D8E0] shadow-2xs space-y-3">
+          <div className="bg-wa-surface p-4 sm:p-5 rounded-[24px] border border-wa-line shadow-2xs space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xs font-bold font-mono text-[#3B0F2C] uppercase tracking-wider">
+                <h3 className="text-xs font-bold font-mono text-wa-plum uppercase tracking-wider">
                   Select Your Health Factors & Comorbidities
                 </h3>
-                <p className="text-xs text-[#6E4A63] mt-0.5">Filter specialized peer circles by your specific diagnosis:</p>
+                <p className="text-xs text-wa-plum-muted mt-0.5">Filter specialized peer circles by your specific diagnosis:</p>
               </div>
-              <span className="text-[10px] font-bold bg-[#FBE4E8] text-[#C4122F] px-2.5 py-1 rounded-full">
+              <span className="text-[10px] font-bold bg-wa-rose text-[#C4122F] px-2.5 py-1 rounded-full">
                 {selectedComorbidities.length} Active
               </span>
             </div>
@@ -748,7 +748,7 @@ export const Community: React.FC = () => {
                     className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                       isSelected
                         ? 'bg-[#C4122F] text-white shadow-xs'
-                        : 'bg-[#F7F2F5] hover:bg-[#FBE4E8] text-[#3B0F2C] border border-[#E6D8E0]'
+                        : 'bg-wa-ground hover:bg-wa-rose text-wa-plum border border-wa-line'
                     }`}
                   >
                     <span>{isSelected ? '✓' : '+'}</span>
@@ -761,7 +761,7 @@ export const Community: React.FC = () => {
 
           {/* Matched Groups List */}
           <div className="space-y-3.5">
-            <h3 className="text-xs font-bold font-mono text-[#6E4A63] uppercase tracking-wider px-1">
+            <h3 className="text-xs font-bold font-mono text-wa-plum-muted uppercase tracking-wider px-1">
               Recommended Peer Circles
             </h3>
 
@@ -773,42 +773,42 @@ export const Community: React.FC = () => {
                 return (
                   <div 
                     key={group.id} 
-                    className={`bg-white border rounded-2xl p-5 space-y-3.5 transition-all shadow-2xs ${
-                      isMatching ? 'border-[#C4122F]/40 ring-1 ring-[#C4122F]/20' : 'border-[#E6D8E0]'
+                    className={`bg-wa-surface border rounded-2xl p-5 space-y-3.5 transition-all shadow-2xs ${
+                      isMatching ? 'border-[#C4122F]/40 ring-1 ring-[#C4122F]/20' : 'border-wa-line'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
-                          isMatching ? 'bg-[#FBE4E8] text-[#C4122F]' : 'bg-[#FAF7F9] text-[#6E4A63] border border-[#E6D8E0]'
+                          isMatching ? 'bg-wa-rose text-[#C4122F]' : 'bg-wa-ground text-wa-plum-muted border border-wa-line'
                         }`}>
                           {isMatching ? '98% Comorbidity Match' : 'Open Circle'}
                         </span>
-                        <h4 className="font-display font-bold text-sm sm:text-base text-[#3B0F2C] mt-1.5 leading-snug">
+                        <h4 className="font-display font-bold text-sm sm:text-base text-wa-plum mt-1.5 leading-snug">
                           {group.name}
                         </h4>
                       </div>
-                      <div className="w-9 h-9 rounded-xl bg-[#FDF2F4] text-[#C4122F] flex items-center justify-center shrink-0">
+                      <div className="w-9 h-9 rounded-xl bg-wa-rose/60 text-[#C4122F] flex items-center justify-center shrink-0">
                         <Users size={18} />
                       </div>
                     </div>
 
-                    <p className="text-xs text-[#6E4A63] leading-relaxed font-medium">
+                    <p className="text-xs text-wa-plum-muted leading-relaxed font-medium">
                       {group.description}
                     </p>
 
-                    <div className="space-y-1.5 text-xs border-t border-[#F1E6EC] pt-2.5 text-[#6E4A63]">
+                    <div className="space-y-1.5 text-xs border-t border-wa-line-soft pt-2.5 text-wa-plum-muted">
                       <div className="flex justify-between items-center">
                         <span className="font-semibold">Mentor:</span>
                         <span className="font-bold text-[#C4122F]">{group.mentor}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="font-semibold">Sessions:</span>
-                        <span className="text-[#3B0F2C] font-medium">{group.meetingSchedule}</span>
+                        <span className="text-wa-plum font-medium">{group.meetingSchedule}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="font-semibold">Active Warriors:</span>
-                        <span className="text-[#3B0F2C] font-mono font-bold">{group.membersCount}</span>
+                        <span className="text-wa-plum font-mono font-bold">{group.membersCount}</span>
                       </div>
                     </div>
 
@@ -816,7 +816,7 @@ export const Community: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setSelectedCircleDetail(group)}
-                        className="flex-1 min-h-10 py-2 bg-[#F7F2F5] hover:bg-[#FBE4E8] text-[#3B0F2C] text-xs font-bold rounded-full transition cursor-pointer border border-[#E6D8E0] flex items-center justify-center gap-1.5"
+                        className="flex-1 min-h-10 py-2 bg-wa-ground hover:bg-wa-rose text-wa-plum text-xs font-bold rounded-full transition cursor-pointer border border-wa-line flex items-center justify-center gap-1.5"
                       >
                         <span>Focus Topics</span>
                         <ChevronRight size={14} />
@@ -842,30 +842,30 @@ export const Community: React.FC = () => {
 
           {/* Upcoming Community Features (Coming Soon) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-2">
-            <div className="bg-[#FAF7F9] border border-[#E6D8E0] rounded-2xl p-5 space-y-2">
+            <div className="bg-wa-ground border border-wa-line rounded-2xl p-5 space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <h4 className="font-display font-bold text-sm text-[#3B0F2C]">
+                <h4 className="font-display font-bold text-sm text-wa-plum">
                   Warrior Community Channels
                 </h4>
                 <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800">
                   Coming Soon
                 </span>
               </div>
-              <p className="text-xs text-[#6E4A63] leading-relaxed">
+              <p className="text-xs text-wa-plum-muted leading-relaxed">
                 WhatsApp-style moderated group chats where warriors can create, join, and share daily encouragement across Lagos, Abuja, and Ogun.
               </p>
             </div>
 
-            <div className="bg-[#FAF7F9] border border-[#E6D8E0] rounded-2xl p-5 space-y-2">
+            <div className="bg-wa-ground border border-wa-line rounded-2xl p-5 space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <h4 className="font-display font-bold text-sm text-[#3B0F2C]">
+                <h4 className="font-display font-bold text-sm text-wa-plum">
                   Trusted Companion Health Linking
                 </h4>
-                <span className="rounded-full bg-[#FBE4E8] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#C4122F]">
+                <span className="rounded-full bg-wa-rose px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#C4122F]">
                   Beta · Coming Soon
                 </span>
               </div>
-              <p className="text-xs text-[#6E4A63] leading-relaxed">
+              <p className="text-xs text-wa-plum-muted leading-relaxed">
                 Live two-way vitals and crisis alert syncing with a trusted family member or caregiver device. Use Emergency SOS on Home for instant alerts today.
               </p>
             </div>
@@ -874,19 +874,19 @@ export const Community: React.FC = () => {
           {/* Focus Topics Modal */}
           {selectedCircleDetail && (
             <div className="fixed inset-0 bg-[#3B0F2C]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-              <div className="bg-white border border-[#E6D8E0] rounded-[28px] max-w-md w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95">
-                <div className="flex justify-between items-start border-b border-[#F1E6EC] pb-3">
+              <div className="bg-wa-surface border border-wa-line rounded-[28px] max-w-md w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95">
+                <div className="flex justify-between items-start border-b border-wa-line-soft pb-3">
                   <div>
                     <span className="text-[10px] font-mono uppercase tracking-wider text-[#C4122F] font-bold">
                       Specialized Peer Circle
                     </span>
-                    <h3 className="font-display font-bold text-base text-[#3B0F2C] mt-0.5">
+                    <h3 className="font-display font-bold text-base text-wa-plum mt-0.5">
                       {selectedCircleDetail.name}
                     </h3>
                   </div>
                   <button 
                     onClick={() => setSelectedCircleDetail(null)}
-                    className="p-1 rounded-full text-[#6E4A63] hover:text-[#3B0F2C] transition cursor-pointer"
+                    className="p-1 rounded-full text-wa-plum-muted hover:text-wa-plum transition cursor-pointer"
                   >
                     <X size={18} />
                   </button>
@@ -894,12 +894,12 @@ export const Community: React.FC = () => {
 
                 <div className="space-y-3">
                   <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#6E4A63] mb-1.5 font-mono">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-wa-plum-muted mb-1.5 font-mono">
                       Weekly Clinical Focus Topics
                     </h4>
                     <div className="space-y-1.5">
                       {selectedCircleDetail.recentTopics.map((topic: string, i: number) => (
-                        <div key={i} className="p-2.5 bg-[#FAF7F9] border border-[#E6D8E0] rounded-xl text-xs font-semibold text-[#3B0F2C] flex items-center gap-2">
+                        <div key={i} className="p-2.5 bg-wa-ground border border-wa-line rounded-xl text-xs font-semibold text-wa-plum flex items-center gap-2">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#C4122F]"></span>
                           <span>{topic}</span>
                         </div>
@@ -907,8 +907,8 @@ export const Community: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="p-3 bg-[#FDF9FB] border border-[#E6D8E0] rounded-xl text-xs text-[#6E4A63] space-y-1">
-                    <span className="font-bold text-[#3B0F2C] block">Schedule & Format:</span>
+                  <div className="p-3 bg-[#FDF9FB] border border-wa-line rounded-xl text-xs text-wa-plum-muted space-y-1">
+                    <span className="font-bold text-wa-plum block">Schedule & Format:</span>
                     <p className="flex items-center gap-1.5">
                       <Clock size={12} className="text-[#C4122F]" />
                       <span>{selectedCircleDetail.meetingSchedule}</span>
@@ -936,7 +936,7 @@ export const Community: React.FC = () => {
       {activeTab === 'forum' && (
         <div className="space-y-5">
           {/* Category Filter Pills & Create Button Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-[24px] border border-[#E6D8E0] shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-wa-surface p-3.5 rounded-[24px] border border-wa-line shadow-2xs">
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
               {['All', 'General', 'Medication', 'Nutrition', 'Mental Health', 'Advocacy'].map(cat => (
                 <button 
@@ -945,7 +945,7 @@ export const Community: React.FC = () => {
                   className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer whitespace-nowrap ${
                     activeCategory === cat 
                       ? 'bg-[#3B0F2C] text-white shadow-xs' 
-                      : 'bg-[#F7F2F5] text-[#6E4A63] border border-[#E6D8E0] hover:text-[#3B0F2C]'
+                      : 'bg-wa-ground text-wa-plum-muted border border-wa-line hover:text-wa-plum'
                   }`}
                 >
                   {cat}
@@ -969,16 +969,16 @@ export const Community: React.FC = () => {
               .map(post => (
                 <div 
                   key={post.id} 
-                  className="bg-white p-5 rounded-2xl shadow-2xs border border-[#E6D8E0] space-y-3 hover:border-[#C4122F]/30 transition"
+                  className="bg-wa-surface p-5 rounded-2xl shadow-2xs border border-wa-line space-y-3 hover:border-[#C4122F]/30 transition"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 bg-[#FDF2F4] text-[#C4122F] rounded-xl flex items-center justify-center text-xs font-bold border border-[#F1E6EC]">
+                      <div className="w-9 h-9 bg-wa-rose/60 text-[#C4122F] rounded-xl flex items-center justify-center text-xs font-bold border border-wa-line-soft">
                         {(post.authorName || 'W')[0]}
                       </div>
                       <div>
-                        <span className="text-xs font-bold text-[#3B0F2C]">{post.authorName || 'Warrior'}</span>
-                        <p className="text-[10px] font-mono text-[#6E4A63]">
+                        <span className="text-xs font-bold text-wa-plum">{post.authorName || 'Warrior'}</span>
+                        <p className="text-[10px] font-mono text-wa-plum-muted">
                           {post.createdAt?.toDate ? post.createdAt.toDate().toLocaleDateString() : 'Community member'}
                         </p>
                       </div>
@@ -986,7 +986,7 @@ export const Community: React.FC = () => {
 
                     <div className="flex items-center gap-1.5">
                       {(post.tags || []).map((tag: string) => (
-                        <span key={tag} className="text-[10px] font-bold bg-[#FBE4E8] text-[#C4122F] px-2 py-0.5 rounded-full">
+                        <span key={tag} className="text-[10px] font-bold bg-wa-rose text-[#C4122F] px-2 py-0.5 rounded-full">
                           #{tag}
                         </span>
                       ))}
@@ -994,19 +994,19 @@ export const Community: React.FC = () => {
                   </div>
                   
                   <div className="space-y-1">
-                    <h3 className="text-sm sm:text-base font-bold font-display text-[#3B0F2C] leading-snug">
+                    <h3 className="text-sm sm:text-base font-bold font-display text-wa-plum leading-snug">
                       {post.title}
                     </h3>
-                    <p className="text-xs sm:text-sm text-[#6E4A63] leading-relaxed font-normal">
+                    <p className="text-xs sm:text-sm text-wa-plum-muted leading-relaxed font-normal">
                       {post.content}
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-[#F1E6EC]">
+                  <div className="flex items-center justify-between pt-3 border-t border-wa-line-soft">
                     <button 
                       type="button"
                       onClick={() => handleLike(post.id)}
-                      className="flex items-center gap-1.5 text-xs font-semibold text-[#6E4A63] hover:text-[#C4122F] transition cursor-pointer"
+                      className="flex items-center gap-1.5 text-xs font-semibold text-wa-plum-muted hover:text-[#C4122F] transition cursor-pointer"
                     >
                       <Heart size={15} className={post.likes && post.likes > 0 ? 'text-[#C4122F] fill-[#C4122F]' : ''} />
                       <span>{post.likes || 0} Helpful</span>
@@ -1015,7 +1015,7 @@ export const Community: React.FC = () => {
                     <button 
                       type="button"
                       onClick={() => handleSharePost(post)}
-                      className="flex items-center gap-1.5 text-xs font-semibold text-[#6E4A63] hover:text-[#3B0F2C] transition cursor-pointer"
+                      className="flex items-center gap-1.5 text-xs font-semibold text-wa-plum-muted hover:text-wa-plum transition cursor-pointer"
                     >
                       <Share2 size={14} />
                       <span>{copiedPostId === post.id ? 'Copied!' : 'Share'}</span>
@@ -1028,15 +1028,15 @@ export const Community: React.FC = () => {
           {/* New Post Modal */}
           {showNewPost && (
             <div className="fixed inset-0 bg-[#3B0F2C]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-              <div className="bg-white border border-[#E6D8E0] rounded-[28px] max-w-lg w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 text-[#3B0F2C]">
-                <div className="flex justify-between items-center border-b border-[#F1E6EC] pb-3">
+              <div className="bg-wa-surface border border-wa-line rounded-[28px] max-w-lg w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 text-wa-plum">
+                <div className="flex justify-between items-center border-b border-wa-line-soft pb-3">
                   <div>
-                    <h3 className="text-base font-display font-bold text-[#3B0F2C]">Share Community Insight</h3>
-                    <p className="text-xs text-[#6E4A63]">Post tips, coping stories, or questions for fellow warriors</p>
+                    <h3 className="text-base font-display font-bold text-wa-plum">Share Community Insight</h3>
+                    <p className="text-xs text-wa-plum-muted">Post tips, coping stories, or questions for fellow warriors</p>
                   </div>
                   <button 
                     onClick={() => setShowNewPost(false)} 
-                    className="p-1 rounded-full text-[#6E4A63] hover:text-[#3B0F2C] transition cursor-pointer"
+                    className="p-1 rounded-full text-wa-plum-muted hover:text-wa-plum transition cursor-pointer"
                   >
                     <X size={18} />
                   </button>
@@ -1044,13 +1044,13 @@ export const Community: React.FC = () => {
 
                 <div className="space-y-3">
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-[#6E4A63] block mb-1">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted block mb-1">
                       Category
                     </label>
                     <select
                       value={activeCategory}
                       onChange={(e) => setActiveCategory(e.target.value)}
-                      className="w-full bg-[#FAF7F9] border border-[#E6D8E0] rounded-xl px-3.5 py-2 text-xs text-[#3B0F2C] font-semibold focus:outline-none focus:border-[#C4122F]"
+                      className="w-full bg-wa-ground border border-wa-line rounded-xl px-3.5 py-2 text-xs text-wa-plum font-semibold focus:outline-none focus:border-[#C4122F]"
                     >
                       {['General', 'Medication', 'Nutrition', 'Mental Health', 'Advocacy'].map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
@@ -1059,7 +1059,7 @@ export const Community: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-[#6E4A63] block mb-1">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted block mb-1">
                       Title
                     </label>
                     <input 
@@ -1067,12 +1067,12 @@ export const Community: React.FC = () => {
                       value={newPostTitle}
                       onChange={(e) => setNewPostTitle(e.target.value)}
                       placeholder="e.g. Tips for navigating long lecture days..." 
-                      className="w-full bg-[#FAF7F9] border border-[#E6D8E0] rounded-xl px-3.5 py-2.5 text-xs text-[#3B0F2C] font-semibold focus:outline-none focus:border-[#C4122F]"
+                      className="w-full bg-wa-ground border border-wa-line rounded-xl px-3.5 py-2.5 text-xs text-wa-plum font-semibold focus:outline-none focus:border-[#C4122F]"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-[#6E4A63] block mb-1">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted block mb-1">
                       Insight / Question
                     </label>
                     <textarea 
@@ -1080,16 +1080,16 @@ export const Community: React.FC = () => {
                       value={newPostContent}
                       onChange={(e) => setNewPostContent(e.target.value)}
                       placeholder="Share what worked for you or ask the community..." 
-                      className="w-full bg-[#FAF7F9] border border-[#E6D8E0] rounded-xl px-3.5 py-2.5 text-xs text-[#3B0F2C] font-medium resize-none focus:outline-none focus:border-[#C4122F]"
+                      className="w-full bg-wa-ground border border-wa-line rounded-xl px-3.5 py-2.5 text-xs text-wa-plum font-medium resize-none focus:outline-none focus:border-[#C4122F]"
                     />
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2 border-t border-[#F1E6EC]">
+                <div className="flex justify-end gap-2 pt-2 border-t border-wa-line-soft">
                   <button
                     type="button"
                     onClick={() => setShowNewPost(false)}
-                    className="px-4 py-2 bg-[#F7F2F5] hover:bg-[#E6D8E0] text-[#6E4A63] rounded-full text-xs font-bold transition"
+                    className="px-4 py-2 bg-wa-ground hover:bg-[#E6D8E0] text-wa-plum-muted rounded-full text-xs font-bold transition"
                   >
                     Cancel
                   </button>

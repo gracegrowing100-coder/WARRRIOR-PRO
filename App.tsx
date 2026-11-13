@@ -350,7 +350,7 @@ const App: React.FC = () => {
                 aria-label="Open profile"
                 aria-expanded={showProfile}
                 data-ui-control
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#EADDE2] ${showProfile ? 'bg-wa-plum text-white' : 'bg-white text-wa-plum hover:bg-[#FBE4E8]'} shadow-xs transition-colors`}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-wa-line ${showProfile ? 'bg-wa-crimson text-white' : 'bg-wa-surface text-wa-plum hover:bg-wa-rose'} shadow-xs transition-colors`}
                 onClick={() => setShowProfile(true)}
               >
                 {user?.photoURL ? (

@@ -549,16 +549,16 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
           </div>
         </header>
 
-        <div className="border-b border-[#F1E6EC] bg-[#FDF2F4] px-4 py-2 text-xs text-[#6E4A63] sm:px-5 flex items-center justify-between">
+        <div className="border-b border-wa-line-soft bg-wa-rose/60 px-4 py-2 text-xs text-wa-plum-muted sm:px-5 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <span className="font-semibold text-[#3B0F2C]">Mira is an AI assistant, not a doctor.</span>{' '}
-            <span className="text-[#6E4A63] hidden sm:inline">It can make mistakes and will tell you when human review is needed.</span>
+            <span className="font-semibold text-wa-plum">Mira is an AI assistant, not a doctor.</span>{' '}
+            <span className="text-wa-plum-muted hidden sm:inline">It can make mistakes and will tell you when human review is needed.</span>
           </div>
         </div>
 
         {/* Language chips row */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar px-4 py-2 border-b border-[#F1E6EC] bg-white">
-          <span className="text-[11px] font-bold text-[#6E4A63] shrink-0 mr-1 uppercase tracking-wider font-display">Language:</span>
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar px-4 py-2 border-b border-wa-line-soft bg-wa-surface">
+          <span className="text-[11px] font-bold text-wa-plum-muted shrink-0 mr-1 uppercase tracking-wider font-display">Language:</span>
           {MIRA_LANGUAGES.map((lang) => {
             const isSelected = language === lang.code;
             return (
@@ -574,7 +574,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
                   "rounded-full px-3 py-1 text-xs font-semibold shrink-0 transition-all",
                   isSelected
                     ? "bg-[#C4122F] text-white shadow-sm"
-                    : "bg-[#F7F2F5] text-[#6E4A63] hover:bg-[#FBE4E8] hover:text-[#C4122F] border border-[#E6D8E0]"
+                    : "bg-wa-ground text-wa-plum-muted hover:bg-wa-rose hover:text-[#C4122F] border border-wa-line"
                 )}
               >
                 {lang.code === 'pcm' ? 'Pidgin' : lang.label}
@@ -591,19 +591,19 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
           className="min-h-[22rem] flex-1 space-y-4 overflow-y-auto overflow-x-hidden bg-canvas/70 px-3 py-5 sm:px-5 scroll-smooth"
         >
           {!introDismissed && (
-            <div className="mx-auto max-w-xl rounded-2xl bg-white border border-[#E6D8E0] p-3 sm:p-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
+            <div className="mx-auto max-w-xl rounded-2xl bg-wa-surface border border-wa-line p-3 sm:p-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
-                <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#FDF2F4] text-[#C4122F]">
+                <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-wa-rose text-[#C4122F]">
                   <Settings2 size={16} />
                 </span>
                 <div className="min-w-0">
-                  <h3 className="text-xs font-bold text-[#3B0F2C]">Make Mira yours</h3>
-                  <p className="text-[11px] text-[#6E4A63] truncate">Choose your language and whether you want spoken replies.</p>
+                  <h3 className="text-xs font-bold text-wa-plum">Make Mira yours</h3>
+                  <p className="text-[11px] text-wa-plum-muted truncate">Choose your language and whether you want spoken replies.</p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
                 <Button size="sm" onClick={() => { dismissPreferencesIntro(); setSettingsOpen(true); }} className="text-xs h-7 px-2.5">Set preferences</Button>
-                <Button size="sm" variant="ghost" onClick={dismissPreferencesIntro} className="text-xs h-7 px-2 text-[#6E4A63]">Not now</Button>
+                <Button size="sm" variant="ghost" onClick={dismissPreferencesIntro} className="text-xs h-7 px-2 text-wa-plum-muted">Not now</Button>
               </div>
             </div>
           )}
@@ -617,11 +617,11 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
 
           {!loadingConversation && messages.length === 0 && (
             <div className="mx-auto max-w-md py-4 sm:py-6 text-center">
-              <span aria-hidden="true" className="mx-auto inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#C4122F] shadow-xs border border-[#E6D8E0]">
+              <span aria-hidden="true" className="mx-auto inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-wa-surface text-[#C4122F] shadow-xs border border-wa-line">
                 <HeartPulse size={20} />
               </span>
-              <h3 className="mt-2.5 text-sm sm:text-base font-bold text-[#3B0F2C] font-display">How can I support you?</h3>
-              <p className="mt-1 text-xs text-[#6E4A63] max-w-xs mx-auto">Ask about daily sickle-cell support, hydration, pain, medication routines, or preparing for an appointment.</p>
+              <h3 className="mt-2.5 text-sm sm:text-base font-bold text-wa-plum font-display">How can I support you?</h3>
+              <p className="mt-1 text-xs text-wa-plum-muted max-w-xs mx-auto">Ask about daily sickle-cell support, hydration, pain, medication routines, or preparing for an appointment.</p>
             </div>
           )}
 
@@ -658,16 +658,16 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
                 <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#C4122F] text-white shadow-sm">
                   <Spark className="w-4 h-4 text-white" />
                 </span>
-                <article className="min-w-0 rounded-[22px] rounded-bl-[6px] border border-[#F1E6EC] bg-white px-4 py-3 shadow-[0_2px_8px_rgba(59,15,44,0.06)]">
-                  <div className="flex items-center gap-2 text-caption font-semibold text-[#6E4A63] mb-1">
-                    <span className="text-[#3B0F2C]">Mira</span><span className="rounded-full bg-[#FBE4E8] text-[#C4122F] px-2 py-0.5 text-[10px] font-bold">✦ AI</span>
+                <article className="min-w-0 rounded-[22px] rounded-bl-[6px] border border-wa-line-soft bg-wa-surface px-4 py-3 shadow-[0_2px_8px_rgba(59,15,44,0.06)]">
+                  <div className="flex items-center gap-2 text-caption font-semibold text-wa-plum-muted mb-1">
+                    <span className="text-wa-plum">Mira</span><span className="rounded-full bg-wa-rose text-[#C4122F] px-2 py-0.5 text-[10px] font-bold">✦ AI</span>
                     <span className="sr-only">Mira (AI)</span>
                   </div>
-                  <p className="mt-1 whitespace-pre-wrap text-body text-[#3B0F2C] leading-relaxed">{message.text}</p>
-                  {timestamp && <p className="mt-1.5 text-caption text-[#6E4A63]">{timestamp}</p>}
+                  <p className="mt-1 whitespace-pre-wrap text-body text-wa-plum leading-relaxed">{message.text}</p>
+                  {timestamp && <p className="mt-1.5 text-caption text-wa-plum-muted">{timestamp}</p>}
                   
                   {/* Health action chips */}
-                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-[#F1E6EC]">
+                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-wa-line-soft">
                     <button
                       type="button"
                       onClick={() => {
@@ -776,8 +776,8 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
         )}
 
         {/* Suggested Prompts row */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar px-4 py-2 bg-[#F7F2F5] border-t border-[#F1E6EC]">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E4A63] shrink-0 mr-1 font-display">✦ Try asking:</span>
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar px-4 py-2 bg-wa-ground border-t border-wa-line-soft">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-wa-plum-muted shrink-0 mr-1 font-display">✦ Try asking:</span>
           {SUGGESTED_PROMPTS.map((prompt) => (
             <button
               key={prompt}
@@ -785,16 +785,16 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
               onClick={() => {
                 setInputText(prompt.replace(/^[^\s]+\s/, ''));
               }}
-              className="rounded-full bg-white px-3 py-1 text-xs font-medium text-[#3B0F2C] border border-[#E6D8E0] hover:border-[#C4122F] hover:text-[#C4122F] transition-all shrink-0 shadow-2xs"
+              className="rounded-full bg-wa-surface px-3 py-1 text-xs font-medium text-wa-plum border border-wa-line hover:border-[#C4122F] hover:text-[#C4122F] transition-all shrink-0 shadow-2xs"
             >
               {prompt}
             </button>
           ))}
         </div>
 
-        <form onSubmit={handleSend} className="border-t border-[#F1E6EC] bg-white px-3 py-3 sm:px-5" noValidate>
+        <form onSubmit={handleSend} className="border-t border-wa-line-soft bg-wa-surface px-3 py-3 sm:px-5" noValidate>
           <label htmlFor="mira-message-composer" className="sr-only">Your message to Mira</label>
-          <div className="flex items-end gap-1.5 rounded-2xl border border-[#E6D8E0] bg-[#F7F2F5] p-1.5 focus-within:border-[#C4122F] focus-within:ring-2 focus-within:ring-[#FBE4E8] shadow-sm transition-all duration-150">
+          <div className="flex items-end gap-1.5 rounded-2xl border border-wa-line bg-wa-ground p-1.5 focus-within:border-[#C4122F] focus-within:ring-2 focus-within:ring-wa-rose shadow-sm transition-all duration-150">
             <Textarea
               id="mira-message-composer"
               rows={1}
@@ -803,7 +803,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
               placeholder="Ask Mira anything about sickle cell care…"
               aria-label="Message to Mira"
               disabled={busy}
-              className="min-h-12 max-h-32 resize-none border-0 bg-transparent px-3 py-3 text-[#3B0F2C] placeholder:text-[#6E4A63]/60 focus-visible:outline-none"
+              className="min-h-12 max-h-32 resize-none border-0 bg-transparent px-3 py-3 text-wa-plum placeholder:text-wa-plum-muted/70 focus-visible:outline-none"
             />
             {voiceAvailable && (
               <IconButton
@@ -812,7 +812,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
                 variant="ghost"
                 onClick={() => void handleMicrophone()}
                 disabled={busy || !speechInputVerified}
-                className="text-[#3B0F2C] hover:text-[#C4122F] hover:bg-white"
+                className="text-wa-plum hover:text-[#C4122F] hover:bg-wa-surface"
                 title={speechInputVerified ? undefined : `Voice input is not available in ${languageDefinition.label} right now.`}
               />
             )}
