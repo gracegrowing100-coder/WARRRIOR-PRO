@@ -193,6 +193,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
       const result = await firebaseService.updateMedication(userId, medId, { lastTakenDate: updatedDate });
       setMeds(prev => prev.map(m => m.id === medId ? { ...m, lastTakenDate: updatedDate } : m));
       setOperationMessage(result.state === 'recorded' ? 'Medication status saved to your account.' : 'Medication status saved on this device only.');
+      window.dispatchEvent(new CustomEvent('warrior-streak-updated'));
       
       // Play a little check-mark notification noise
       if (!currentlyTaken) {
@@ -236,6 +237,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
       setNewMed({ name: '', dosage: '', time: '08:00', frequency: 'Once Daily' });
       setShowAddForm(false);
       setOperationMessage(result.state === 'recorded' ? 'Medication saved to your account.' : 'Medication saved on this device only.');
+      window.dispatchEvent(new CustomEvent('warrior-streak-updated'));
       await fetchMeds();
     } catch (error) {
       console.error(error);
@@ -267,7 +269,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
     .slice(0, 2);
 
   return (
-    <div className={compact ? 'relative h-full' : 'bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-sm border border-gray-100 dark:border-slate-800/80 flex flex-col relative overflow-hidden transition-all duration-300'}>
+    <div className={compact ? 'relative h-full' : 'bg-wa-surface rounded-[28px] p-5 sm:p-6 shadow-xs border border-wa-line flex flex-col relative overflow-hidden transition-all duration-300 text-wa-plum'}>
       {compact && <div data-semantic="medication-card" className="flex flex-col gap-3 rounded-[28px] bg-wa-surface p-[18px] text-wa-plum shadow-none border border-wa-line-soft">
         <div className="flex items-center gap-3">
           <span aria-hidden="true" className="inline-flex h-11 w-11 items-center justify-center rounded-control bg-medical-50 text-action-accent dark:bg-medical-950/55 dark:text-medical-200">
@@ -376,20 +378,20 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
             return (
               <div 
                 key={med.id} 
-                className={`flex items-center justify-between p-4 rounded-3xl border transition-all duration-300 ${isTaken ? 'bg-green-50/40 dark:bg-green-950/20 border-green-150 dark:border-green-900/35 shadow-sm opacity-80' : 'bg-gray-50/50 dark:bg-slate-850/40 border-gray-100 dark:border-slate-800 hover:border-red-100 dark:hover:border-red-950/40'}`}
+                className={`flex items-center justify-between p-4 rounded-3xl border transition-all duration-300 ${isTaken ? 'bg-emerald-500/10 border-emerald-500/30 shadow-xs' : 'bg-wa-ground/70 dark:bg-white/5 border-wa-line-soft hover:border-wa-crimson/40'}`}
               >
                 <div className="flex items-center gap-3">
                   {/* Status checkbox button */}
                   <button
                     aria-label={`Mark ${med.name} as ${isTaken ? 'not taken' : 'taken'}`}
                     onClick={() => handleToggleTaken(med.id, isTaken)}
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all border-2 cursor-pointer ${isTaken ? 'bg-green-600 border-green-600 text-white' : 'bg-white dark:bg-slate-805 border-gray-200 dark:border-slate-700 hover:border-red-500 text-transparent'}`}
+                    className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center transition-all border-2 cursor-pointer ${isTaken ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-wa-surface border-wa-line hover:border-wa-crimson text-transparent'}`}
                   >
-                    <Check className="w-4 h-4 text-white" strokeWidth={3} />
+                    {isTaken ? <Check className="w-4 h-4 text-white" strokeWidth={3} /> : null}
                   </button>
 
                   <div className="min-w-0">
-                    <span className={`font-black text-sm block ${isTaken ? 'line-through text-gray-400 dark:text-slate-550' : 'text-gray-800 dark:text-slate-205'}`}>{med.name}</span>
+                    <span className={`font-bold text-sm block truncate ${isTaken ? 'line-through text-wa-plum-muted' : 'text-wa-plum'}`}>{med.name}</span>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[10px] text-gray-400 dark:text-slate-450 font-bold uppercase">{med.dosage}</span>
                       <span className="text-[10px] text-gray-300 dark:text-slate-600">•</span>

@@ -990,8 +990,12 @@ export const firebaseService = {
       const q = query(collection(db, path), orderBy('time', 'asc'));
       const snapshot = await getDocs(q);
       const meds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      localStorage.setItem(cacheKey, JSON.stringify(meds));
-      return meds;
+      if (meds.length > 0) {
+        localStorage.setItem(cacheKey, JSON.stringify(meds));
+        return meds;
+      }
+      const cached = localStorage.getItem(cacheKey);
+      return cached ? JSON.parse(cached) : [];
     } catch (error) {
       console.warn("Firestore medications failed, using cache:", error);
       const cached = localStorage.getItem(cacheKey);
@@ -1022,8 +1026,15 @@ export const firebaseService = {
       localStorage.setItem(cacheKey, JSON.stringify(meds));
       return { state: 'recorded' as const, data: newMed };
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
-      throw error;
+      try {
+        handleFirestoreError(error, OperationType.CREATE, path);
+      } catch { /* Fall back to device-only cache when Firestore write fails. */ }
+      const cached = localStorage.getItem(cacheKey);
+      const meds = cached ? JSON.parse(cached) : [];
+      const newMed = { id: Math.random().toString(36).substring(2, 9), ...data };
+      meds.push(newMed);
+      localStorage.setItem(cacheKey, JSON.stringify(meds));
+      return { state: 'device-only' as const, data: newMed };
     }
   },
 
