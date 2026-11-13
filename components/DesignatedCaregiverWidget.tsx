@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, MessageSquare, AlertTriangle, Edit3, ShieldAlert, Check, X, UserCheck, Heart, Send, ExternalLink } from 'lucide-react';
+import { Phone, MessageSquare, AlertTriangle, Edit3, ShieldAlert, Check, UserCheck, Copy, ExternalLink, Send } from 'lucide-react';
+import { Button, Modal } from './ui';
 
 interface CaregiverInfo {
   name: string;
@@ -18,7 +19,7 @@ const EMPTY_CAREGIVER: CaregiverInfo = {
   altPhone: '',
   hospitalHotline: '',
   notes: '',
-  customSosText: ''
+  customSosText: '',
 };
 
 interface DesignatedCaregiverWidgetProps {
@@ -31,12 +32,12 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<CaregiverInfo>(EMPTY_CAREGIVER);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [copiedAlert, setCopiedAlert] = useState(false);
   const [showSosModal, setShowSosModal] = useState(false);
   const [sosSentStatus, setSosSentStatus] = useState<string | null>(null);
   const storageKey = userId ? `warrior_designated_caregiver_${userId}` : 'warrior_designated_caregiver';
   const hasCaregiver = Boolean(caregiver.name.trim() && caregiver.phone.trim());
 
-  // Load saved caregiver info from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem(storageKey);
@@ -49,7 +50,7 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
         setFormData(EMPTY_CAREGIVER);
       }
     } catch (e) {
-      console.warn("Failed to parse caregiver details from storage:", e);
+      console.warn('Failed to parse caregiver details from storage:', e);
     }
   }, [storageKey]);
 
@@ -59,292 +60,336 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
     try {
       localStorage.setItem(storageKey, JSON.stringify(formData));
       setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 2000);
+      setTimeout(() => setSavedSuccess(false), 2500);
       setIsEditing(false);
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
     }
   };
 
   const cleanPhone = (phoneStr: string) => phoneStr.replace(/[^0-9+]/g, '');
 
+  const buildSosMessage = () => {
+    const extra = caregiver.customSosText.trim() ? `\nMessage: ${caregiver.customSosText.trim()}` : '';
+    return `[EMERGENCY SCD SOS ALERT]\nFrom: Warrior AI Sickle Cell Care\nCurrent Pain Level: ${currentPainLevel}/10${extra}\nTime: ${new Date().toLocaleTimeString()}`;
+  };
+
   const triggerSosBroadcast = () => {
-    const text = encodeURIComponent(
-      `🚨 [EMERGENCY SCD SOS ALERT] 🚨\nFrom: Sickle Cell Care Platform\nCurrent Pain Level: ${currentPainLevel}/10\nMessage: ${caregiver.customSosText}\nTimestamp: ${new Date().toLocaleTimeString()}`
-    );
+    const text = encodeURIComponent(buildSosMessage());
     const smsUrl = `sms:${cleanPhone(caregiver.phone)}?body=${text}`;
     window.location.href = smsUrl;
-    setSosSentStatus("Emergency SMS draft dispatched to primary caregiver!");
+    setSosSentStatus('Emergency SMS draft opened for your primary caregiver.');
     setTimeout(() => {
       setShowSosModal(false);
       setSosSentStatus(null);
     }, 2500);
   };
 
-  return (
-    <div className="bg-gradient-to-br from-slate-900 via-rose-950/80 to-slate-900 rounded-[2.5rem] p-6 border-2 border-rose-500/30 shadow-xl text-white relative overflow-hidden transition-all duration-300">
-      {/* Background glow graphics */}
-      <div className="absolute top-0 right-0 w-48 h-48 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
+  const copySosSummary = async () => {
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(buildSosMessage());
+        setCopiedAlert(true);
+        setTimeout(() => setCopiedAlert(false), 2000);
+      }
+    } catch (err) {
+      console.warn('Could not copy SOS message:', err);
+    }
+  };
 
-      {/* Top Header Row */}
-      <div className="flex items-center justify-between mb-5 relative z-10">
+  return (
+    <div className="rounded-[28px] border border-wa-line bg-wa-surface p-5 text-wa-plum shadow-xs sm:p-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="bg-rose-500/20 p-3 rounded-2xl border border-rose-500/30 text-rose-400 shadow-inner">
-            <ShieldAlert className="w-5 h-5 text-rose-400 animate-pulse" />
-          </div>
+          <span
+            aria-hidden="true"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-wa-rose text-wa-crimson"
+          >
+            <ShieldAlert size={20} />
+          </span>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-              <h4 className="font-black text-white text-sm uppercase tracking-wider">Designated Caregiver</h4>
-            </div>
-            <p className="text-[10px] text-rose-200/80 font-bold uppercase tracking-widest mt-0.5">
-              One-Tap Emergency Assist & Contact
+            <h2 className="font-display text-base font-extrabold text-wa-plum sm:text-lg">
+              Designated Caregiver
+            </h2>
+            <p className="text-xs text-wa-plum-muted">
+              One-tap emergency assist &amp; trusted family contact
             </p>
           </div>
         </div>
 
         <button
           type="button"
+          data-ui-control
           onClick={() => {
             setFormData(caregiver);
             setIsEditing(true);
           }}
-          className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-rose-200 text-xs font-bold rounded-xl border border-white/15 flex items-center gap-1.5 transition-all cursor-pointer"
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-wa-line bg-wa-ground px-3.5 text-xs font-bold text-wa-plum transition-colors hover:border-wa-crimson/40 hover:bg-wa-rose/40 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
         >
-          <Edit3 className="w-3.5 h-3.5" /> {hasCaregiver ? 'Edit Info' : 'Add Info'}
+          <Edit3 size={14} aria-hidden="true" />
+          {hasCaregiver ? 'Edit Info' : 'Add Info'}
         </button>
       </div>
 
-      {/* Main Caregiver Info Card */}
-      {hasCaregiver ? <div className="bg-slate-900/90 rounded-2xl p-4 border border-rose-500/20 mb-5 relative z-10 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
-          <div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-rose-400 bg-rose-950/60 px-2.5 py-0.5 rounded-full border border-rose-800/50">
-              Primary Contact
-            </span>
-            <h5 className="text-lg font-black text-white mt-1 flex items-center gap-2">
-              <UserCheck className="w-4 h-4 text-emerald-400" /> {caregiver.name}
-            </h5>
-            <p className="text-xs text-rose-200/90 font-semibold">{caregiver.relationship}</p>
-          </div>
-          <div className="text-left sm:text-right">
-            <span className="text-[10px] text-slate-400 font-bold uppercase block">Phone Number</span>
-            <a 
-              href={`tel:${cleanPhone(caregiver.phone)}`} 
-              className="text-sm font-black text-yellow-300 hover:underline flex items-center gap-1 sm:justify-end"
-            >
-              <Phone className="w-3.5 h-3.5" /> {caregiver.phone}
-            </a>
-          </div>
-        </div>
-
-        {caregiver.notes && (
-          <p className="text-xs text-slate-300 italic leading-relaxed font-medium bg-slate-950/50 p-2.5 rounded-xl border border-slate-850">
-            "{caregiver.notes}"
-          </p>
-        )}
-      </div> : <div className="bg-slate-900/90 rounded-2xl p-5 border border-rose-500/20 mb-5 relative z-10 text-center">
-        <p className="text-sm font-bold text-white">No designated caregiver recorded</p>
-        <p className="mt-1 text-xs text-slate-400">Add a trusted contact before using caregiver call or message actions.</p>
-      </div>}
-
-      {/* ONE-TAP ACTION BUTTONS */}
-      {hasCaregiver && <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 relative z-10">
-        {/* 1. Direct Phone Call */}
-        <a
-          href={`tel:${cleanPhone(caregiver.phone)}`}
-          className="bg-emerald-600 hover:bg-emerald-500 text-white p-3 rounded-2xl flex flex-col items-center justify-center text-center shadow-lg shadow-emerald-950/40 transition-all active:scale-95 group cursor-pointer border border-emerald-400/30"
+      {savedSuccess && (
+        <div
+          role="status"
+          className="mt-4 flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-700 dark:text-emerald-300"
         >
-          <Phone className="w-5 h-5 mb-1 group-hover:scale-110 transition-transform" />
-          <span className="text-[11px] font-black uppercase tracking-wider">Call Now</span>
-          <span className="text-[9px] text-emerald-100 opacity-80">Direct Phone Dial</span>
-        </a>
-
-        {/* 2. SMS Direct Alert */}
-        <a
-          href={`sms:${cleanPhone(caregiver.phone)}?body=${encodeURIComponent("URGENT: Sickle Cell Pain Crisis Assistance Needed!")}`}
-          className="bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-2xl flex flex-col items-center justify-center text-center shadow-lg shadow-blue-950/40 transition-all active:scale-95 group cursor-pointer border border-blue-400/30"
-        >
-          <MessageSquare className="w-5 h-5 mb-1 group-hover:scale-110 transition-transform" />
-          <span className="text-[11px] font-black uppercase tracking-wider">SMS Alert</span>
-          <span className="text-[9px] text-blue-100 opacity-80">Quick Message</span>
-        </a>
-
-        {/* 3. WhatsApp Direct Chat */}
-        <a
-          href={`https://wa.me/${cleanPhone(caregiver.phone)}?text=${encodeURIComponent("URGENT: Sickle Cell Crisis Assistance Needed!")}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bg-teal-600 hover:bg-teal-500 text-white p-3 rounded-2xl flex flex-col items-center justify-center text-center shadow-lg shadow-teal-950/40 transition-all active:scale-95 group cursor-pointer border border-teal-400/30"
-        >
-          <ExternalLink className="w-5 h-5 mb-1 group-hover:scale-110 transition-transform" />
-          <span className="text-[11px] font-black uppercase tracking-wider">WhatsApp</span>
-          <span className="text-[9px] text-teal-100 opacity-80">Instant Chat</span>
-        </a>
-
-        {/* 4. One-Tap Emergency SOS Broadcast */}
-        <button
-          type="button"
-          onClick={() => setShowSosModal(true)}
-          className="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white p-3 rounded-2xl flex flex-col items-center justify-center text-center shadow-lg shadow-rose-950/60 transition-all active:scale-95 group cursor-pointer border border-rose-400/40"
-        >
-          <AlertTriangle className="w-5 h-5 mb-1 text-yellow-300 animate-bounce" />
-          <span className="text-[11px] font-black uppercase tracking-wider text-yellow-200">Emergency Alert</span>
-          <span className="text-[9px] text-rose-100 opacity-90">Send Crisis Alert</span>
-        </button>
-      </div>}
-
-      {/* EDIT CAREGIVER MODAL */}
-      {isEditing && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-[120] flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-[2.5rem] p-6 text-white space-y-5 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
-                <h4 className="font-extrabold text-base text-white">Edit Caregiver & Emergency Contact</h4>
-              </div>
-              <button 
-                onClick={() => setIsEditing(false)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-xl"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSave} className="space-y-4 text-xs">
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">Caregiver Full Name</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Caregiver or trusted contact name"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-rose-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">Relationship</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.relationship}
-                    onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
-                    placeholder="e.g. Spouse / Primary Support"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-rose-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">Primary Phone Number</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="Include country code"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-rose-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">Hospital ER Hotline / Alternate Contact</label>
-                <input
-                  type="text"
-                  value={formData.altPhone}
-                  onChange={(e) => setFormData({ ...formData, altPhone: e.target.value })}
-                  placeholder="Optional alternate contact number"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-rose-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">Care Notes & Medical Guidance</label>
-                <textarea
-                  rows={2}
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Notes about blood type, clinical passport location, or key house access..."
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-rose-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">Custom Emergency Message</label>
-                <textarea
-                  rows={2}
-                  value={formData.customSosText}
-                  onChange={(e) => setFormData({ ...formData, customSosText: e.target.value })}
-                  placeholder="Optional message for the SMS draft"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-rose-500"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold uppercase tracking-wider"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-rose-950/40"
-                >
-                  <Check size={16} /> Save Caregiver Profile
-                </button>
-              </div>
-            </form>
-          </div>
+          <Check size={15} aria-hidden="true" />
+          Caregiver contact saved on this device.
         </div>
       )}
 
-      {/* SOS CONFIRMATION MODAL */}
-      {showSosModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[130] flex items-center justify-center p-4">
-          <div className="bg-slate-900 border-2 border-red-500 w-full max-w-md rounded-[2.5rem] p-6 text-white space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-red-600 rounded-2xl text-white">
-                <AlertTriangle className="w-8 h-8 animate-bounce" />
+      {/* Caregiver Summary Card */}
+      <div className="mt-5">
+        {hasCaregiver ? (
+          <div className="space-y-3 rounded-[22px] border border-wa-line-soft bg-wa-ground/70 p-4 dark:bg-white/5">
+            <div className="flex flex-col justify-between gap-3 border-b border-wa-line-soft pb-3 sm:flex-row sm:items-center">
+              <div className="min-w-0">
+                <span className="inline-flex items-center rounded-full bg-wa-rose px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-wa-crimson">
+                  Primary Contact
+                </span>
+                <h3 className="mt-1.5 flex items-center gap-2 font-display text-lg font-extrabold text-wa-plum">
+                  <UserCheck size={18} className="shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                  <span className="truncate">{caregiver.name}</span>
+                </h3>
+                {caregiver.relationship && (
+                  <p className="text-xs font-semibold text-wa-plum-muted">{caregiver.relationship}</p>
+                )}
               </div>
-              <div>
-                <h4 className="font-black text-lg text-white">Confirm Emergency Alert</h4>
-                <p className="text-xs text-rose-300 font-bold">Primary Caregiver: {caregiver.name}</p>
+
+              <div className="text-left sm:text-right">
+                <span className="block text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted">
+                  Phone Number
+                </span>
+                <a
+                  href={`tel:${cleanPhone(caregiver.phone)}`}
+                  className="mt-0.5 inline-flex items-center gap-1.5 font-display text-sm font-extrabold text-wa-crimson hover:underline"
+                >
+                  <Phone size={14} aria-hidden="true" />
+                  {caregiver.phone}
+                </a>
+                {caregiver.altPhone.trim() && (
+                  <a
+                    href={`tel:${cleanPhone(caregiver.altPhone)}`}
+                    className="mt-1 flex items-center gap-1 text-xs font-semibold text-wa-plum-muted hover:text-wa-plum sm:justify-end"
+                  >
+                    <Phone size={12} aria-hidden="true" />
+                    ER / Alt: {caregiver.altPhone}
+                  </a>
+                )}
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed font-medium bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800">
-              Sending crisis alert to <strong className="text-white">{caregiver.phone}</strong> with current pain level ({currentPainLevel}/10).
-            </p>
-
-            {sosSentStatus ? (
-              <div className="p-3 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 rounded-xl text-xs font-bold text-center animate-in fade-in">
-                ✓ {sosSentStatus}
-              </div>
-            ) : (
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowSosModal(false)}
-                  className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold uppercase text-xs rounded-xl"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={triggerSosBroadcast}
-                  className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-black uppercase text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-red-950/60"
-                >
-                  <Send size={16} /> Send Emergency Alert Now
-                </button>
-              </div>
+            {caregiver.notes.trim() && (
+              <p className="rounded-xl border border-wa-line-soft bg-wa-surface p-3 text-xs leading-relaxed text-wa-plum-muted">
+                {caregiver.notes}
+              </p>
             )}
           </div>
+        ) : (
+          <div className="rounded-[22px] border border-dashed border-wa-line bg-wa-ground/60 p-6 text-center dark:bg-white/5">
+            <p className="font-display text-sm font-bold text-wa-plum">No designated caregiver recorded</p>
+            <p className="mt-1 text-xs text-wa-plum-muted">
+              Add a trusted contact before using caregiver call or message actions.
+            </p>
+            <Button
+              variant="primary"
+              size="sm"
+              className="mt-4"
+              onClick={() => {
+                setFormData(caregiver);
+                setIsEditing(true);
+              }}
+            >
+              Add trusted caregiver
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* One-Tap Action Buttons */}
+      {hasCaregiver && (
+        <div className="mt-4 space-y-2.5">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+            <a
+              href={`tel:${cleanPhone(caregiver.phone)}`}
+              className="flex flex-col items-center justify-center rounded-2xl bg-emerald-600 p-3.5 text-center text-white shadow-xs transition-all hover:bg-emerald-700 active:scale-[0.98]"
+            >
+              <Phone size={20} className="mb-1" aria-hidden="true" />
+              <span className="text-xs font-bold">Call Now</span>
+              <span className="text-[10px] text-white/85">Direct dial</span>
+            </a>
+
+            <a
+              href={`sms:${cleanPhone(caregiver.phone)}?body=${encodeURIComponent('URGENT: Sickle Cell Pain Crisis Assistance Needed!')}`}
+              className="flex flex-col items-center justify-center rounded-2xl bg-wa-water p-3.5 text-center text-white shadow-xs transition-all hover:opacity-90 active:scale-[0.98]"
+            >
+              <MessageSquare size={20} className="mb-1" aria-hidden="true" />
+              <span className="text-xs font-bold">SMS Alert</span>
+              <span className="text-[10px] text-white/85">Quick message</span>
+            </a>
+
+            <a
+              href={`https://wa.me/${cleanPhone(caregiver.phone)}?text=${encodeURIComponent('URGENT: Sickle Cell Crisis Assistance Needed!')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center justify-center rounded-2xl bg-wa-hero p-3.5 text-center text-white shadow-xs transition-all hover:opacity-90 active:scale-[0.98]"
+            >
+              <ExternalLink size={20} className="mb-1" aria-hidden="true" />
+              <span className="text-xs font-bold">WhatsApp</span>
+              <span className="text-[10px] text-white/85">Instant chat</span>
+            </a>
+
+            <button
+              type="button"
+              data-ui-control
+              onClick={() => setShowSosModal(true)}
+              className="flex flex-col items-center justify-center rounded-2xl bg-wa-crimson p-3.5 text-center text-white shadow-xs transition-all hover:bg-wa-crimson-press active:scale-[0.98] cursor-pointer"
+            >
+              <AlertTriangle size={20} className="mb-1" aria-hidden="true" />
+              <span className="text-xs font-bold">Emergency Alert</span>
+              <span className="text-[10px] text-white/85">Send crisis alert</span>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void copySosSummary()}
+            className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-wa-line bg-wa-ground px-4 text-xs font-bold text-wa-plum transition-colors hover:bg-wa-rose/30 cursor-pointer"
+          >
+            <Copy size={14} aria-hidden="true" />
+            {copiedAlert ? 'Emergency alert text copied!' : 'Copy emergency alert summary'}
+          </button>
         </div>
       )}
+
+      {/* Edit Caregiver Modal */}
+      <Modal
+        open={isEditing}
+        onOpenChange={setIsEditing}
+        title="Edit Caregiver & Emergency Contact"
+        description="Stored locally on this device for quick emergency calls and alerts."
+        size="md"
+      >
+        <form onSubmit={handleSave} className="space-y-4 text-sm">
+          <div>
+            <label className="mb-1 block text-xs font-bold text-wa-plum">Caregiver Full Name</label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Caregiver or trusted contact name"
+              className="min-h-11 w-full rounded-xl border border-wa-line bg-wa-surface px-3.5 text-sm text-wa-plum placeholder:text-wa-plum-muted focus:border-wa-crimson focus:outline-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-bold text-wa-plum">Relationship</label>
+              <input
+                type="text"
+                required
+                value={formData.relationship}
+                onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
+                placeholder="e.g. Spouse / Primary Support"
+                className="min-h-11 w-full rounded-xl border border-wa-line bg-wa-surface px-3.5 text-sm text-wa-plum placeholder:text-wa-plum-muted focus:border-wa-crimson focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-wa-plum">Primary Phone Number</label>
+              <input
+                type="text"
+                required
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="Include country code"
+                className="min-h-11 w-full rounded-xl border border-wa-line bg-wa-surface px-3.5 text-sm text-wa-plum placeholder:text-wa-plum-muted focus:border-wa-crimson focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-bold text-wa-plum">Hospital ER Hotline / Alternate Contact</label>
+            <input
+              type="text"
+              value={formData.altPhone}
+              onChange={(e) => setFormData({ ...formData, altPhone: e.target.value })}
+              placeholder="Optional alternate contact number"
+              className="min-h-11 w-full rounded-xl border border-wa-line bg-wa-surface px-3.5 text-sm text-wa-plum placeholder:text-wa-plum-muted focus:border-wa-crimson focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-bold text-wa-plum">Care Notes &amp; Medical Guidance</label>
+            <textarea
+              rows={2}
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              placeholder="Notes about blood type, clinical passport location, or key house access..."
+              className="w-full rounded-xl border border-wa-line bg-wa-surface p-3 text-sm text-wa-plum placeholder:text-wa-plum-muted focus:border-wa-crimson focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-bold text-wa-plum">Custom Emergency Message</label>
+            <textarea
+              rows={2}
+              value={formData.customSosText}
+              onChange={(e) => setFormData({ ...formData, customSosText: e.target.value })}
+              placeholder="Optional message for the SMS draft"
+              className="w-full rounded-xl border border-wa-line bg-wa-surface p-3 text-sm text-wa-plum placeholder:text-wa-plum-muted focus:border-wa-crimson focus:outline-none"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="secondary" onClick={() => setIsEditing(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" leadingIcon={<Check size={16} />}>
+              Save Caregiver Profile
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* SOS Confirmation Modal */}
+      <Modal
+        open={showSosModal}
+        onOpenChange={setShowSosModal}
+        title="Confirm Emergency Alert"
+        description={`Primary Caregiver: ${caregiver.name}`}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="rounded-2xl border border-wa-line-soft bg-wa-ground p-3.5 text-xs leading-relaxed text-wa-plum dark:bg-white/5">
+            Sending crisis SMS draft to <strong>{caregiver.phone}</strong> with your current pain level ({currentPainLevel}/10).
+          </p>
+
+          {sosSentStatus ? (
+            <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-center text-xs font-bold text-emerald-700 dark:text-emerald-300">
+              {sosSentStatus}
+            </div>
+          ) : (
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="secondary" onClick={() => setShowSosModal(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                leadingIcon={<Send size={15} />}
+                onClick={triggerSosBroadcast}
+              >
+                Send Emergency Alert Now
+              </Button>
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 };
