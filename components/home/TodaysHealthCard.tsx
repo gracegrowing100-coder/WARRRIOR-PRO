@@ -59,13 +59,17 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
 
     try {
       const today = getTodayKey();
-      const [checkIn, painLogs, water, medications] = await Promise.all([
+      const [checkIn, painLogs, symptomLogs, water, medications] = await Promise.all([
         firebaseService.getDailyMoodCheckIn(userId, today),
         firebaseService.getPainLogs(userId),
+        typeof firebaseService.getSymptomLogs === 'function'
+          ? firebaseService.getSymptomLogs(userId).catch(() => [])
+          : Promise.resolve([]),
         firebaseService.getWaterLog(userId, today),
         firebaseService.getMedications(userId),
       ]);
-      const todayPain = (painLogs as PainLog[]).find((entry) => entry.dateStr === today);
+      const todayPain = (painLogs as PainLog[]).find((entry) => entry.dateStr === today)
+        ?? (symptomLogs as PainLog[]).find((entry) => entry.dateStr === today);
       const recordedCheckIn = checkIn as { emotion?: string; timestamp?: string } | null;
 
       setSnapshot({

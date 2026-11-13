@@ -1297,8 +1297,12 @@ export const firebaseService = {
       const q = query(collection(db, path), orderBy('dateStr', 'asc'));
       const snapshot = await getDocs(q);
       const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      localStorage.setItem(cacheKey, JSON.stringify(logs));
-      return logs;
+      if (logs.length > 0) {
+        localStorage.setItem(cacheKey, JSON.stringify(logs));
+        return logs;
+      }
+      const cached = localStorage.getItem(cacheKey);
+      return cached ? JSON.parse(cached) : [];
     } catch (error) {
       console.warn("Firestore pain logs failed, using cache:", error);
       const cached = localStorage.getItem(cacheKey);
@@ -1341,7 +1345,9 @@ export const firebaseService = {
       }
       await this.updateStreak(userId);
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
+      try {
+        handleFirestoreError(error, OperationType.CREATE, path);
+      } catch { /* Local cache is already saved for offline/device-only use. */ }
     }
   },
 
@@ -1357,8 +1363,12 @@ export const firebaseService = {
       const q = query(collection(db, path), orderBy('dateStr', 'asc'));
       const snapshot = await getDocs(q);
       const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      localStorage.setItem(cacheKey, JSON.stringify(logs));
-      return logs;
+      if (logs.length > 0) {
+        localStorage.setItem(cacheKey, JSON.stringify(logs));
+        return logs;
+      }
+      const cached = localStorage.getItem(cacheKey);
+      return cached ? JSON.parse(cached) : [];
     } catch (error) {
       console.warn("Firestore symptom logs failed, using cache:", error);
       const cached = localStorage.getItem(cacheKey);
@@ -1444,6 +1454,8 @@ export const firebaseService = {
     localStorage.setItem(cacheKey, JSON.stringify(logs));
 
     if (!userId) {
+      await this.addPainLog(userId, painLevel, dateStr, triggers);
+      await this.saveWaterLog(userId, dateStr, waterIntake, 3.0);
       await this.updateStreak(userId);
       return;
     }
@@ -1470,7 +1482,11 @@ export const firebaseService = {
       await this.saveWaterLog(userId, dateStr, waterIntake, 3.0);
       await this.updateStreak(userId);
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
+      try {
+        handleFirestoreError(error, OperationType.CREATE, path);
+      } catch { /* Local cache is already saved for offline/device-only use. */ }
+      await this.addPainLog(userId, painLevel, dateStr, triggers);
+      await this.saveWaterLog(userId, dateStr, waterIntake, 3.0);
     }
   },
 
