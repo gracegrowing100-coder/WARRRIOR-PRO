@@ -7,6 +7,7 @@ interface TodaysHealthCardProps {
   userId: string;
   refreshKey?: number;
   onStartCheckIn?: () => void;
+  onLogPain?: () => void;
 }
 
 interface TodaySnapshot {
@@ -42,7 +43,7 @@ const formatUpdatedTime = (value: string | null) => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refreshKey = 0, onStartCheckIn }) => {
+export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refreshKey = 0, onStartCheckIn, onLogPain }) => {
   const [snapshot, setSnapshot] = useState<TodaySnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -230,6 +231,17 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
               <dd className={`mt-4 break-words tabular-nums text-white ${snapshot.painLevel === null ? 'text-body font-semibold sm:text-heading-3' : 'text-heading-1'}`}>
                 {snapshot.painLevel === null ? 'Not recorded' : `${snapshot.painLevel} / 10`}
               </dd>
+              {onLogPain ? (
+                <button
+                  type="button"
+                  data-ui-control
+                  onClick={onLogPain}
+                  className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-pill border border-white/40 bg-white/15 px-3 text-small font-semibold text-white hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                  <Plus size={16} aria-hidden="true" />
+                  Log pain
+                </button>
+              ) : null}
             </div>
             <div className="min-h-32 min-w-0 overflow-hidden rounded-[20px] bg-white/[0.08] p-3.5 border border-white/12 sm:min-h-36 sm:p-5 lg:min-h-40 lg:p-6">
               <div className="flex items-start justify-between gap-2">

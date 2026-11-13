@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, LifeBuoy, ShieldCheck, TrendingUp, FileText, Bell, UserCheck, Heart, Shield } from 'lucide-react';
+import { ArrowLeft, Bell, Calendar, CloudSun, FileText, LifeBuoy, Shield, ShieldCheck, Smile, TrendingUp, UserCheck } from 'lucide-react';
 import { Page } from '../App';
 import { WaterIntakeTracker } from './WaterIntakeTracker';
 import { MedicationReminder } from './MedicationReminder';
@@ -26,74 +26,104 @@ interface DashboardProps {
   language?: SupportedLanguage;
 }
 
-const ExpandableTool: React.FC<{ title: string; subtitle?: string; icon?: React.ReactNode; children: React.ReactNode }> = ({ title, subtitle, icon, children }) => {
-  const [open, setOpen] = useState(false);
+type HomeToolView =
+  | null
+  | 'hydration'
+  | 'medication'
+  | 'checkin'
+  | 'trends'
+  | 'reports'
+  | 'reminders'
+  | 'caregiver'
+  | 'vault'
+  | 'weather';
 
-  return (
-    <details className="group" open={open} onToggle={event => setOpen(event.currentTarget.open)}>
-      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 py-3.5 text-small font-bold text-wa-plum focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson">
-        <span className="flex items-center gap-3 min-w-0">
-          {icon && (
-            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-wa-rose text-wa-crimson">
-              {icon}
-            </span>
-          )}
-          <span className="min-w-0">
-            <span className="block font-display text-sm font-bold text-wa-plum">{title}</span>
-            {subtitle && (
-              <span className="block text-xs font-normal text-wa-plum-muted truncate">{subtitle}</span>
-            )}
-          </span>
-        </span>
-        <ChevronDown size={18} className="text-wa-plum-muted transition-transform group-open:rotate-180 shrink-0" aria-hidden="true" />
-      </summary>
-      {open ? <div className="pb-4 pt-1">{children}</div> : null}
-    </details>
-  );
+interface ToolMeta {
+  title: string;
+  subtitle: string;
+}
+
+const TOOL_META: Record<Exclude<HomeToolView, null>, ToolMeta> = {
+  hydration: {
+    title: 'Water & Hydration',
+    subtitle: 'Track sachets, bottles, and daily hydration goals',
+  },
+  medication: {
+    title: 'Medicines & Schedule',
+    subtitle: 'Track daily doses and mark medicines taken',
+  },
+  checkin: {
+    title: 'Daily Check-in',
+    subtitle: 'Log your mood, fatigue, and how you feel today',
+  },
+  trends: {
+    title: 'Pain, Mood & Hydration Trends',
+    subtitle: 'See how your symptoms and water intake change over time',
+  },
+  reports: {
+    title: 'Doctor Reports',
+    subtitle: 'Create a 30-day summary to share with your clinic',
+  },
+  reminders: {
+    title: 'Scheduled Reminders',
+    subtitle: 'Set daily alerts for water and medicines',
+  },
+  caregiver: {
+    title: 'Caregiver & Alerts',
+    subtitle: 'Manage emergency alerts for family or trusted contacts',
+  },
+  vault: {
+    title: 'Care Vault',
+    subtitle: 'Store genotype, steady-state PCV, E/U/Cr & clinic notes',
+  },
+  weather: {
+    title: 'Weather & Recent Logs',
+    subtitle: 'Check local temperature triggers and recent health entries',
+  },
 };
 
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'en' }) => {
-  const [profileName, setProfileName] = useState<string>("Warrior");
+  const [profileName, setProfileName] = useState<string>('Warrior');
   const [refreshPain, setRefreshPain] = useState<number>(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPainLevel, setCurrentPainLevel] = useState<number>(3);
   const [streakDays, setStreakDays] = useState<number>(12);
+  const [activeTool, setActiveTool] = useState<HomeToolView>(null);
 
   const fetchProfileAndStats = async (active = true) => {
-    let pName = "Warrior";
+    let pName = 'Warrior';
 
     try {
-      // Calculate/retrieve up-to-date daily streak first
       const s = await firebaseService.updateStreak(userId);
       if (typeof s === 'number') {
         setStreakDays(s);
       }
     } catch (e) {
-      console.warn("Failed to update streak count on startup:", e);
+      console.warn('Failed to update streak count on startup:', e);
     }
 
     if (userId) {
       try {
         const p = await firebaseService.getUserProfile(userId);
         if (p && active) {
-          pName = p.displayName || "Warrior";
+          pName = p.displayName || 'Warrior';
           setProfileName(pName);
         } else {
           const currentUser = auth.currentUser;
           if (currentUser && active) {
-            pName = currentUser.displayName || "Warrior";
+            pName = currentUser.displayName || 'Warrior';
             setProfileName(pName);
           }
         }
       } catch (e) {
-        console.warn("Failed to fetch user profile:", e);
+        console.warn('Failed to fetch user profile:', e);
       }
     }
   };
 
   useEffect(() => {
     let active = true;
-    
+
     const fetchAll = async () => {
       await fetchProfileAndStats(active);
     };
@@ -118,15 +148,18 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
     void fetchProfileAndStats(true);
   };
 
-  const scrollToHomeSection = (sectionId: string) => {
-    const section = document.getElementById(sectionId);
-    if (!section) return;
+  const openTool = (tool: Exclude<HomeToolView, null>) => {
+    setActiveTool(tool);
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  };
 
-    const reducedMotion = typeof window.matchMedia === 'function'
-      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    section.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
-    const firstControl = section.querySelector<HTMLElement>('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
-    firstControl?.focus({ preventScroll: true });
+  const closeTool = () => {
+    setActiveTool(null);
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
   };
 
   const firstName = profileName.trim().split(/\s+/)[0] || 'Warrior';
@@ -134,189 +167,307 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
   const t = APP_TRANSLATIONS[language] || APP_TRANSLATIONS.en;
   const greeting = currentHour < 12 ? t.greetingMorning : currentHour < 18 ? t.greetingAfternoon : t.greetingEvening;
 
-  return (
-    <div data-semantic className="space-y-7 pb-8 sm:space-y-8 lg:space-y-9">
-      <header className="rounded-b-[32px] bg-[var(--wa-hero)] text-white p-5 sm:p-6 lg:p-7 relative overflow-hidden -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 lg:-mx-8 lg:-mt-8 mb-2">
-        <div aria-hidden="true" className="absolute -right-12 -top-6 w-48 h-60 opacity-[0.07] pointer-events-none text-wa-coral">
-          <svg viewBox="14 2 72 96" className="w-full h-full fill-current">
-            <path fillRule="evenodd" d="M50 6C50 6 82 42 82 63A32 32 0 0 1 18 63C18 42 50 6 50 6ZM50 40L44.5 56.5L28 62L44.5 67.5L50 84L55.5 67.5L72 62L55.5 56.5Z" />
-          </svg>
-        </div>
-        <div className="relative flex items-start justify-between gap-4">
-          <div>
-            <p className="text-small font-semibold text-wa-on-plum-muted">
-              {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
-            </p>
-            <h1 className="mt-1 text-[1.85rem] font-extrabold leading-tight tracking-[-0.02em] text-white sm:text-[2.2rem] lg:text-[2.5rem] font-display">
-              {greeting}, {firstName}
-            </h1>
-            <div className="mt-3 inline-flex items-center gap-1.5 h-[30px] px-3 rounded-full bg-wa-coral/20 text-[#FFC7D0] text-[13px] font-semibold">
-              <Spark className="w-3 h-3 text-wa-coral" />
-              <span>{streakDays > 0 ? `${streakDays}-${t.dayLoggingStreak}` : t.startLoggingStreak}</span>
-            </div>
-            <p className="mt-3 max-w-sm text-[14px] leading-snug text-wa-on-plum-muted">
-              {t.dailyCompanionSub}
-            </p>
+  const toolTiles: Array<{
+    id: string;
+    title: string;
+    description: string;
+    icon: React.ReactNode;
+    accentClass: string;
+    onClick: () => void;
+  }> = [
+    {
+      id: 'checkin',
+      title: 'Daily Check-in',
+      description: 'Mood & energy',
+      icon: <Smile size={22} />,
+      accentClass: 'bg-wa-rose text-wa-crimson',
+      onClick: () => openTool('checkin'),
+    },
+    {
+      id: 'trends',
+      title: 'Pain & Trends',
+      description: 'Charts & patterns',
+      icon: <TrendingUp size={22} />,
+      accentClass: 'bg-wa-rose text-wa-crimson',
+      onClick: () => openTool('trends'),
+    },
+    {
+      id: 'reports',
+      title: 'Doctor Report',
+      description: '30-day summary',
+      icon: <FileText size={22} />,
+      accentClass: 'bg-wa-water-soft text-wa-water-ink dark:text-wa-water-bright',
+      onClick: () => openTool('reports'),
+    },
+    {
+      id: 'vault',
+      title: 'Care Vault',
+      description: 'PCV, E/U/Cr & labs',
+      icon: <Shield size={22} />,
+      accentClass: 'bg-wa-sun-soft text-wa-sun-ink dark:text-amber-300',
+      onClick: () => openTool('vault'),
+    },
+    {
+      id: 'reminders',
+      title: 'Reminders',
+      description: 'Water & meds alerts',
+      icon: <Bell size={22} />,
+      accentClass: 'bg-wa-water-soft text-wa-water-ink dark:text-wa-water-bright',
+      onClick: () => openTool('reminders'),
+    },
+    {
+      id: 'caregiver',
+      title: 'Caregiver',
+      description: 'Family SOS alerts',
+      icon: <UserCheck size={22} />,
+      accentClass: 'bg-wa-rose text-wa-crimson',
+      onClick: () => openTool('caregiver'),
+    },
+    {
+      id: 'weather',
+      title: 'Weather & Logs',
+      description: 'Triggers & history',
+      icon: <CloudSun size={22} />,
+      accentClass: 'bg-wa-sun-soft text-wa-sun-ink dark:text-amber-300',
+      onClick: () => openTool('weather'),
+    },
+    {
+      id: 'appointments',
+      title: 'Appointments',
+      description: 'Clinic & video visits',
+      icon: <Calendar size={22} />,
+      accentClass: 'bg-wa-water-soft text-wa-water-ink dark:text-wa-water-bright',
+      onClick: () => onNavigate('care'),
+    },
+  ];
+
+  const renderActiveTool = () => {
+    if (!activeTool) return null;
+    const meta = TOOL_META[activeTool];
+
+    return (
+      <div data-semantic className="space-y-5 pb-8">
+        <div className="sticky top-0 z-20 -mx-4 border-b border-wa-line bg-wa-ground/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              data-ui-control
+              onClick={closeTool}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-wa-line bg-wa-surface px-4 text-sm font-bold text-wa-plum shadow-xs transition-colors hover:bg-wa-rose/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
+            >
+              <ArrowLeft size={18} aria-hidden="true" />
+              Back to Home
+            </button>
+            <SosPill onClick={() => document.getElementById('emergency-fab')?.click()} />
           </div>
-          <SosPill className="md:hidden" onClick={() => document.getElementById('emergency-fab')?.click()} />
+          <div className="mt-3">
+            <h1 className="font-display text-xl font-extrabold text-wa-plum sm:text-2xl">{meta.title}</h1>
+            <p className="text-xs text-wa-plum-muted sm:text-sm">{meta.subtitle}</p>
+          </div>
         </div>
-      </header>
 
-      <WelcomeGuide />
-
-      {/* Step 1: Today's Health Snapshot */}
-      <section aria-label="Today's health snapshot" className="space-y-2.5">
-        <div className="flex items-center justify-between px-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted">
-            Step 1 · Today&apos;s Snapshot
-          </span>
-          <span className="text-[11px] font-medium text-wa-plum-muted">
-            Tap below to log pain, water, or meds
-          </span>
-        </div>
-        <TodaysHealthCard
-          userId={userId}
-          refreshKey={refreshPain}
-          onStartCheckIn={() => scrollToHomeSection('daily-check-in-card')}
-        />
-      </section>
-
-      {/* Step 2: Daily Trackers & Support */}
-      <section aria-label="Daily trackers and support" className="space-y-3">
-        <div className="flex items-center justify-between px-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted">
-            Step 2 · Daily Habits &amp; Support
-          </span>
-          <span className="text-[11px] font-medium text-wa-plum-muted">
-            Hydration, medicines &amp; clinic check-ins
-          </span>
-        </div>
-        <div className="grid grid-cols-1 gap-6 lg:gap-7 xl:grid-cols-[minmax(0,3fr)_minmax(19rem,1fr)] xl:items-start xl:gap-8">
-        <div className="contents xl:col-start-1 xl:row-start-1 xl:flex xl:min-w-0 xl:flex-col xl:gap-8">
-          <section id="daily-check-in-card" aria-label="Daily check-in" className="order-4 min-w-0 scroll-mt-24 xl:order-none">
-            <DailyMoodCheckIn compact userId={userId} onCheckInSaved={() => setRefreshPain(prev => prev + 1)} />
+        {activeTool === 'hydration' && (
+          <section id="water-intake-tracker-module" aria-label="Hydration">
+            <WaterIntakeTracker userId={userId} />
           </section>
+        )}
 
-          <section id="water-intake-tracker-module" aria-label="Hydration" className="order-2 min-w-0 scroll-mt-24 xl:order-none">
-            <WaterIntakeTracker compact userId={userId} />
+        {activeTool === 'medication' && (
+          <section id="medication-reminder-card" aria-label="Medication">
+            <MedicationReminder userId={userId} />
           </section>
+        )}
 
-          <section id="medication-reminder-card" aria-label="Medication" className="order-3 min-w-0 scroll-mt-24 xl:order-none">
-            <MedicationReminder compact userId={userId} />
+        {activeTool === 'checkin' && (
+          <section id="daily-check-in-card" aria-label="Daily check-in">
+            <DailyMoodCheckIn userId={userId} onCheckInSaved={() => setRefreshPain(prev => prev + 1)} />
           </section>
+        )}
 
-          <div className="order-5 min-w-0 xl:order-none">
+        {activeTool === 'trends' && (
+          <div className="space-y-6">
+            <section id="pain-trends-chart-card" aria-label="Pain trends">
+              <PainTrendsChart userId={userId} refreshKey={refreshPain} />
+            </section>
+            <section aria-label="Mood and hydration trends">
+              <MoodHydrationTrendsChart userId={userId} refreshTrigger={refreshPain} />
+            </section>
+          </div>
+        )}
+
+        {activeTool === 'reports' && (
+          <section aria-label="Generated reports">
+            <PatternInsightsDoctorReport userId={userId} />
+          </section>
+        )}
+
+        {activeTool === 'reminders' && (
+          <section aria-label="Scheduled reminders">
+            <ScheduledRemindersManager userId={userId} />
+          </section>
+        )}
+
+        {activeTool === 'caregiver' && (
+          <section aria-label="Caregiver tools">
+            <DesignatedCaregiverWidget userId={userId} currentPainLevel={currentPainLevel} />
+          </section>
+        )}
+
+        {activeTool === 'vault' && (
+          <section id="care-vault-section" aria-label="Care Vault">
+            <CareVault userId={userId} />
+          </section>
+        )}
+
+        {activeTool === 'weather' && (
+          <div className="space-y-5">
+            <WeatherCard />
+            <RecentHealthSummary userId={userId} refreshKey={refreshPain} />
             <UpcomingAppointmentCard userId={userId} onOpenCare={() => onNavigate('care')} />
           </div>
-        </div>
+        )}
+      </div>
+    );
+  };
 
-        <aside aria-label="Home shortcuts and support" className="contents xl:col-start-2 xl:row-start-1 xl:flex xl:min-w-0 xl:flex-col xl:gap-8">
-          <div className="order-1 xl:order-none">
-            <HomeActionHub
-              onLogHealth={() => setIsModalOpen(true)}
-              onAddWater={() => scrollToHomeSection('water-intake-tracker-module')}
-              onReviewMedication={() => scrollToHomeSection('medication-reminder-card')}
-              onOpenMira={() => onNavigate('chat')}
-              onOpenCare={() => onNavigate('care')}
-            />
-          </div>
-
-          <section aria-labelledby="crisis-help-title" className="order-7 rounded-card border border-medical-100/70 bg-medical-50 p-5 shadow-subtle dark:border-medical-700/40 dark:bg-medical-900/20 sm:p-6 xl:order-none">
-            <div className="flex h-full min-h-[13rem] flex-col gap-5">
-              <div className="flex items-start gap-3">
-                <span aria-hidden="true" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-white text-action-accent shadow-subtle dark:bg-medical-950/70 dark:text-medical-200">
-                  <LifeBuoy size={21} />
-                </span>
-                <div>
-                  <h2 id="crisis-help-title" className="text-heading-2">{t.needUrgentHelp}</h2>
-                  <p className="mt-1 max-w-prose text-small text-foreground-secondary">{t.urgentHelpSub}</p>
+  return (
+    <>
+      {activeTool ? (
+        renderActiveTool()
+      ) : (
+        <div data-semantic className="space-y-6 pb-8">
+          <header className="rounded-b-[32px] bg-[var(--wa-hero)] text-white p-5 sm:p-6 lg:p-7 relative overflow-hidden -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 lg:-mx-8 lg:-mt-8 mb-1">
+            <div aria-hidden="true" className="absolute -right-12 -top-6 w-48 h-60 opacity-[0.07] pointer-events-none text-wa-coral">
+              <svg viewBox="14 2 72 96" className="w-full h-full fill-current">
+                <path fillRule="evenodd" d="M50 6C50 6 82 42 82 63A32 32 0 0 1 18 63C18 42 50 6 50 6ZM50 40L44.5 56.5L28 62L44.5 67.5L50 84L55.5 67.5L72 62L55.5 56.5Z" />
+              </svg>
+            </div>
+            <div className="relative flex items-start justify-between gap-4">
+              <div>
+                <p className="text-small font-semibold text-wa-on-plum-muted">
+                  {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                </p>
+                <h1 className="mt-1 text-[1.85rem] font-extrabold leading-tight tracking-[-0.02em] text-white sm:text-[2.2rem] lg:text-[2.5rem] font-display">
+                  {greeting}, {firstName}
+                </h1>
+                <div className="mt-3 inline-flex items-center gap-1.5 h-[30px] px-3 rounded-full bg-wa-coral/20 text-[#FFC7D0] text-[13px] font-semibold">
+                  <Spark className="w-3 h-3 text-wa-coral" />
+                  <span>{streakDays > 0 ? `${streakDays}-${t.dayLoggingStreak}` : t.startLoggingStreak}</span>
                 </div>
+                <p className="mt-3 max-w-sm text-[14px] leading-snug text-wa-on-plum-muted">
+                  {t.dailyCompanionSub}
+                </p>
               </div>
-              <Button
-                variant="danger"
-                size="lg"
-                leadingIcon={<LifeBuoy size={19} />}
-                className="mt-auto w-full shrink-0"
-                onClick={() => document.getElementById('emergency-fab')?.click()}
-              >
-                {t.getHelpBtn}
-              </Button>
+              <SosPill className="md:hidden" onClick={() => document.getElementById('emergency-fab')?.click()} />
+            </div>
+          </header>
+
+          <WelcomeGuide />
+
+          {/* Step 1: Compact Snapshot with 1-tap Log Pain & +1 Water */}
+          <TodaysHealthCard
+            userId={userId}
+            refreshKey={refreshPain}
+            onLogPain={() => setIsModalOpen(true)}
+            onStartCheckIn={() => openTool('checkin')}
+          />
+
+          {/* Step 2: Primary Quick Action Icons */}
+          <HomeActionHub
+            onLogHealth={() => setIsModalOpen(true)}
+            onAddWater={() => openTool('hydration')}
+            onReviewMedication={() => openTool('medication')}
+            onOpenMira={() => onNavigate('chat')}
+            onOpenCare={() => onNavigate('care')}
+          />
+
+          {/* Step 3: Health Tools & Records Icon Grid (each opens full page with Back to Home) */}
+          <section aria-label="Health tools and records" className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <h2 className="font-display text-[16px] font-bold text-wa-plum dark:text-white">
+                Health tools &amp; records
+              </h2>
+              <span className="text-[12px] font-medium text-wa-plum-muted">
+                Tap any icon to open
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {toolTiles.map((tile) => (
+                <button
+                  key={tile.id}
+                  type="button"
+                  data-ui-control
+                  onClick={tile.onClick}
+                  className="flex flex-col items-start gap-2.5 rounded-[22px] border border-wa-line bg-wa-surface p-4 text-left shadow-xs transition-all hover:border-wa-crimson/40 hover:bg-wa-rose/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl ${tile.accentClass}`}
+                  >
+                    {tile.icon}
+                  </span>
+                  <div className="min-w-0">
+                    <span className="block font-display text-sm font-bold text-wa-plum">
+                      {tile.title}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-wa-plum-muted">
+                      {tile.description}
+                    </span>
+                  </div>
+                </button>
+              ))}
             </div>
           </section>
 
-          <div className="order-6 min-w-0 xl:order-none">
-            <RecentHealthSummary userId={userId} refreshKey={refreshPain} />
-          </div>
+          {/* Compact Bottom Strip: Urgent Help + Tip + Privacy */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <section aria-labelledby="crisis-help-title" className="rounded-[24px] border border-medical-100/70 bg-medical-50 p-5 shadow-subtle dark:border-medical-700/40 dark:bg-medical-900/20">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-start gap-3 min-w-0">
+                  <span aria-hidden="true" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-action-accent shadow-subtle dark:bg-medical-950/70 dark:text-medical-200">
+                    <LifeBuoy size={20} />
+                  </span>
+                  <div className="min-w-0">
+                    <h2 id="crisis-help-title" className="text-base font-bold text-wa-plum dark:text-white">{t.needUrgentHelp}</h2>
+                    <p className="mt-0.5 text-xs text-wa-plum-muted dark:text-wa-on-plum-muted">{t.urgentHelpSub}</p>
+                  </div>
+                </div>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => document.getElementById('emergency-fab')?.click()}
+                >
+                  {t.getHelpBtn}
+                </Button>
+              </div>
+            </section>
 
-          <div className="order-8 min-w-0 xl:order-none">
-            <WeatherCard />
-          </div>
-
-          <div className="order-9 min-w-0 xl:order-none">
-            <div className="rounded-[28px] bg-wa-rose p-[18px] flex gap-3.5 items-start text-wa-plum border border-wa-line-soft dark:border-white/10">
-              <Spark className="w-7 h-7 text-wa-crimson shrink-0 mt-0.5" />
-              <div>
-                <div className="font-display font-bold text-[15px] text-wa-plum dark:text-white">{t.warriorTipTitle}</div>
-                <div className="text-[14px] leading-relaxed mt-1 text-wa-plum/90 dark:text-white/90">
+            <div className="rounded-[24px] bg-wa-rose p-5 flex gap-3.5 items-start text-wa-plum border border-wa-line-soft dark:border-white/10">
+              <Spark className="w-6 h-6 text-wa-crimson shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <div className="font-display font-bold text-[14px] text-wa-plum dark:text-white">{t.warriorTipTitle}</div>
+                <div className="text-[13px] leading-relaxed mt-0.5 text-wa-plum/90 dark:text-white/90">
                   {t.warriorTipBody}
                 </div>
               </div>
             </div>
           </div>
-        </aside>
-        </div>
-      </section>
 
-      {/* Step 3: Health Tools & Reports */}
-      <section aria-label="Health tools and reports" className="space-y-2.5">
-        <div className="flex items-center justify-between px-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted">
-            Step 3 · Reports, Trends &amp; Records
-          </span>
-          <span className="text-[11px] font-medium text-wa-plum-muted">
-            Tap to expand any tool
-          </span>
-        </div>
-        <details className="group rounded-[28px] border border-wa-line bg-wa-surface shadow-xs overflow-hidden">
-          <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-body font-medium text-wa-plum hover:bg-wa-ground/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson">
+          <section aria-labelledby="privacy-ethics-title" className="rounded-[20px] bg-wa-ground/60 dark:bg-white/5 p-3.5 border border-wa-line-soft/80 dark:border-white/10 text-wa-plum dark:text-white flex items-start gap-3">
+            <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+              <ShieldCheck size={18} />
+            </span>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-display text-base font-bold text-wa-plum">More health tools</span>
-                <span className="rounded-full bg-wa-rose px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-wa-crimson">
-                  6 tools
-                </span>
-              </div>
-              <span className="mt-0.5 block text-xs font-normal text-wa-plum-muted">
-                Pain trends, doctor reports, reminders, caregiver alerts &amp; Care Vault
-              </span>
+              <h2 id="privacy-ethics-title" className="text-[12px] font-bold">Privacy &amp; Clinical Data Ethics</h2>
+              <p className="text-[11px] leading-relaxed text-wa-plum-muted dark:text-wa-on-plum-muted mt-0.5">
+                Your personal health logs, symptom records, and pain trends are stored with patient privacy safeguards. Your data is never sold or shared without your explicit consent.
+              </p>
             </div>
-            <ChevronDown className="shrink-0 text-wa-plum-muted group-open:rotate-180 transition-transform" size={20} aria-hidden="true" />
-          </summary>
-          <div className="divide-y divide-wa-line-soft border-t border-wa-line-soft px-5">
-            {[
-              { title: 'Mood and hydration trends', subtitle: 'Check how your water intake affects your mood', icon: <TrendingUp size={17} />, content: <MoodHydrationTrendsChart userId={userId} refreshTrigger={refreshPain} /> },
-              { title: 'Generated reports', subtitle: 'Create a 30-day summary to show your doctor', icon: <FileText size={17} />, content: <PatternInsightsDoctorReport userId={userId} /> },
-              { title: 'Scheduled reminders', subtitle: 'Set daily alerts for water and medicines', icon: <Bell size={17} />, content: <ScheduledRemindersManager userId={userId} /> },
-              { title: 'Caregiver tools', subtitle: 'Manage emergency alerts for family or trusted contacts', icon: <UserCheck size={17} />, content: <DesignatedCaregiverWidget userId={userId} currentPainLevel={currentPainLevel} /> },
-              { title: 'Pain trends', subtitle: 'See how your pain levels change over time', icon: <Heart size={17} />, content: <section id="pain-trends-chart-card" aria-label="Pain trends"><PainTrendsChart userId={userId} refreshKey={refreshPain} /></section> },
-              { title: 'Care Vault', subtitle: 'Store genotype, steady-state PCV, E/U/Cr & clinic notes', icon: <Shield size={17} />, content: <section id="care-vault-section" aria-label="Care Vault"><CareVault userId={userId} /></section> },
-            ].map(tool => <ExpandableTool key={tool.title} title={tool.title} subtitle={tool.subtitle} icon={tool.icon}>{tool.content}</ExpandableTool>)}
-          </div>
-        </details>
-      </section>
-
-      {/* Patient Privacy & Data Ethics Notice */}
-      <section aria-labelledby="privacy-ethics-title" className="rounded-[22px] bg-wa-ground/60 dark:bg-white/5 p-4 border border-wa-line-soft/80 dark:border-white/10 text-wa-plum dark:text-white flex items-start gap-3">
-        <span aria-hidden="true" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-          <ShieldCheck size={20} />
-        </span>
-        <div className="min-w-0">
-          <h2 id="privacy-ethics-title" className="text-[13px] font-bold">Privacy & Clinical Data Ethics</h2>
-          <p className="text-[12px] leading-relaxed text-wa-plum-muted dark:text-wa-on-plum-muted mt-0.5">
-            Your personal health logs, symptom records, and pain trends are stored with patient privacy safeguards. Your data is never sold or shared without your explicit consent.
-          </p>
+          </section>
         </div>
-      </section>
+      )}
+
       <SymptomPainCheckIn
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
@@ -324,7 +475,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
         onPainChange={setCurrentPainLevel}
         onSaved={handleSymptomPainSaved}
       />
-    </div>
+    </>
   );
 };
 

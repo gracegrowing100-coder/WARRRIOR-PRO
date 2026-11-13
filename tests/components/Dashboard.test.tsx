@@ -26,10 +26,12 @@ vi.mock('../../components/MoodHydrationTrendsChart', () => ({ MoodHydrationTrend
 vi.mock('../../components/ScheduledRemindersManager', () => ({ ScheduledRemindersManager: ({ userId }: { userId: string }) => `Reminders for ${userId}` }));
 vi.mock('../../components/PatternInsightsDoctorReport', () => ({ PatternInsightsDoctorReport: ({ userId }: { userId: string }) => `Pattern report for ${userId}` }));
 vi.mock('../../components/home', () => ({
-  HomeActionHub: ({ onLogHealth, onOpenMira, onOpenCare }: { onLogHealth: () => void; onOpenMira: () => void; onOpenCare: () => void }) => (
+  HomeActionHub: ({ onLogHealth, onAddWater, onReviewMedication, onOpenMira, onOpenCare }: { onLogHealth: () => void; onAddWater: () => void; onReviewMedication: () => void; onOpenMira: () => void; onOpenCare: () => void }) => (
     <section>
       <h2>Record how you feel</h2>
       <button onClick={onLogHealth}>Log symptoms and pain</button>
+      <button onClick={onAddWater}>Add water</button>
+      <button onClick={onReviewMedication}>Medicine</button>
       <button onClick={onOpenMira}>Ask Mira</button>
       <button onClick={onOpenCare}>Open Care</button>
     </section>
@@ -54,45 +56,43 @@ describe('Patient Home critical rendering', () => {
     });
   });
 
-  it('renders the target Home hierarchy and retains compatibility tools', async () => {
+  it('renders the compact Home Hub and opens full-page tools with Back to Home navigation', async () => {
+    const user = userEvent.setup();
     const { container } = render(<Dashboard userId="patient-1" onNavigate={vi.fn()} />);
 
     expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening), Tayo/ })).toBeInTheDocument();
-    expect(document.body).toHaveTextContent('Hydration for patient-1');
-    expect(document.body).toHaveTextContent('Medication for patient-1');
-    expect(document.body).toHaveTextContent('Daily mood for patient-1');
+    expect(screen.getByTestId('todays-health')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Record how you feel' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Health tools & records' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Need urgent help?' })).toBeInTheDocument();
+
+    // Heavy tools stay unmounted on Home until tapped
     expect(document.body).not.toHaveTextContent('Care Vault for patient-1');
     expect(document.body).not.toHaveTextContent('Pattern report for patient-1');
-    expect(screen.getByRole('button', { name: /Log symptoms and pain/i })).toBeInTheDocument();
-    expect(screen.getByText('More health tools')).toBeInTheDocument();
-    expect(container.querySelectorAll('details')).toHaveLength(7);
-    container.querySelectorAll('details').forEach(details => expect(details.open).toBe(false));
-    expect(container.querySelector('#water-intake-tracker-module')).toBeInTheDocument();
-    expect(container.querySelector('#medication-reminder-card')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('More health tools'));
-    await userEvent.click(screen.getByText('Pain trends'));
-    expect(container.querySelector('#pain-trends-chart-card')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Care Vault'));
-    expect(container.querySelector('#care-vault-section')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Generated reports'));
-    expect(document.body).toHaveTextContent('Pattern report for patient-1');
+    expect(document.body).not.toHaveTextContent('Pain trends for patient-1');
 
-    const ordered = [
-      screen.getByRole('heading', { name: /Good (morning|afternoon|evening)/i }),
-      screen.getByTestId('todays-health'),
-      screen.getByText('Daily mood for patient-1'),
-      container.querySelector('#water-intake-tracker-module') as HTMLElement,
-      container.querySelector('#medication-reminder-card') as HTMLElement,
-      screen.getByTestId('appointment'),
-      screen.getByRole('heading', { name: 'Record how you feel' }),
-      screen.getByRole('heading', { name: 'Need urgent help?' }),
-      screen.getByTestId('recent-health'),
-    ];
-    ordered.slice(1).forEach((element, index) => {
-      expect(ordered[index].compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    });
-    expect(container.querySelector('#daily-check-in-card')?.parentElement).toHaveClass('xl:flex', 'xl:flex-col', 'xl:gap-8');
-    expect(container.querySelector('#water-intake-tracker-module')).toHaveClass('order-2', 'xl:order-none');
+    // Open Hydration full page from Quick Actions and return Home
+    await user.click(screen.getByRole('button', { name: 'Add water' }));
+    expect(container.querySelector('#water-intake-tracker-module')).toBeInTheDocument();
+    expect(document.body).toHaveTextContent('Hydration for patient-1');
+    await user.click(screen.getByRole('button', { name: /Back to Home/i }));
+    expect(screen.getByRole('heading', { name: 'Health tools & records' })).toBeInTheDocument();
+
+    // Open Pain & Trends full page and return Home
+    await user.click(screen.getByRole('button', { name: /Pain & Trends/i }));
+    expect(container.querySelector('#pain-trends-chart-card')).toBeInTheDocument();
+    expect(document.body).toHaveTextContent('Pain trends for patient-1');
+    await user.click(screen.getByRole('button', { name: /Back to Home/i }));
+
+    // Open Care Vault full page and return Home
+    await user.click(screen.getByRole('button', { name: /Care Vault/i }));
+    expect(container.querySelector('#care-vault-section')).toBeInTheDocument();
+    expect(document.body).toHaveTextContent('Care Vault for patient-1');
+    await user.click(screen.getByRole('button', { name: /Back to Home/i }));
+
+    // Open Doctor Report full page
+    await user.click(screen.getByRole('button', { name: /Doctor Report/i }));
+    expect(document.body).toHaveTextContent('Pattern report for patient-1');
   });
 
   it('preserves the symptom save contract', async () => {
@@ -144,7 +144,7 @@ describe('Patient Home critical rendering', () => {
     document.body.appendChild(emergency);
 
     render(<Dashboard userId="patient-1" onNavigate={onNavigate} />);
-    await userEvent.click(screen.getByTestId('appointment'));
+    await userEvent.click(screen.getByRole('button', { name: /Appointments/i }));
     await userEvent.click(screen.getByRole('button', { name: 'Ask Mira' }));
     await userEvent.click(screen.getByRole('button', { name: 'Open Care' }));
     await userEvent.click(screen.getByRole('button', { name: 'Get help' }));
