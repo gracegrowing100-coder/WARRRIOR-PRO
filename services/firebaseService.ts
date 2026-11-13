@@ -1,18 +1,18 @@
 import { isRecord, mergeMedicalRecords, type MedicalRecordData } from './medicalRecords';
 
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  getDoc, 
+import {
+  collection,
+  doc,
+  setDoc,
+  getDoc,
   getDocFromServer,
-  getDocs, 
-  updateDoc, 
+  getDocs,
+  updateDoc,
   deleteDoc,
-  query, 
-  where, 
-  orderBy, 
-  onSnapshot, 
+  query,
+  where,
+  orderBy,
+  onSnapshot,
   serverTimestamp,
   addDoc,
   increment,
@@ -371,7 +371,7 @@ export const firebaseService = {
   subscribeToMessages(chatId: string, callback: (messages: any[]) => void) {
     const path = `chats/${chatId}/messages`;
     const q = query(collection(db, path), orderBy('timestamp', 'asc'));
-    
+
     // Check if we need to seed initial friendly conversation if cache and cloud are empty
     const cached = localStorage.getItem(`warrior_chat_${chatId}`);
     if (!cached) {
@@ -419,7 +419,7 @@ export const firebaseService = {
         const seeds = this.getDefaultChatSeeds(chatId);
         callback(seeds);
       }
-      return () => {};
+      return () => { };
     }
   },
 
@@ -527,9 +527,9 @@ export const firebaseService = {
   },
 
   async sendMessage(
-    chatId: string, 
-    text: string, 
-    mediaUrl: string | null = null, 
+    chatId: string,
+    text: string,
+    mediaUrl: string | null = null,
     mediaType: 'image' | 'video' | 'audio' | 'document' | null = null,
     replyTo: { id: string; senderName: string; text: string } | null = null,
     audioDuration?: number
@@ -537,7 +537,7 @@ export const firebaseService = {
     const path = `chats/${chatId}/messages`;
     const user = auth.currentUser;
     const senderName = user ? (user.displayName || user.email?.split('@')[0] || 'Warrior') : 'Warrior';
-    
+
     const msgObj = {
       id: 'msg-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
       text,
@@ -644,7 +644,7 @@ export const firebaseService = {
   // --- Admin Moderation: Remove Inappropriate Message ---
   async removeMessageAsAdmin(chatId: string, messageId: string, adminName: string, reason: string = 'Violation of community guidelines') {
     const placeholderText = `🚫 [Message removed by Admin (${adminName}): ${reason}]`;
-    
+
     // Update local cache
     const cachedChat = localStorage.getItem(`warrior_chat_${chatId}`);
     if (cachedChat) {
@@ -759,7 +759,7 @@ export const firebaseService = {
         console.warn("Typing subscription error (fallback):", err);
       });
     } catch (error) {
-      return () => {};
+      return () => { };
     }
   },
 
@@ -786,14 +786,14 @@ export const firebaseService = {
         console.warn("Group settings subscription fallback:", err);
       });
     } catch (error) {
-      return () => {};
+      return () => { };
     }
   },
 
   async toggleGroupAdmin(chatId: string, targetUserId: string, isAdmin: boolean) {
     const cached = localStorage.getItem(`group_settings_${chatId}`);
     let settings = cached ? JSON.parse(cached) : { admins: ['dr-sarah-uid', 'current-user-uid'], mutedUsers: [] };
-    
+
     if (isAdmin) {
       if (!settings.admins.includes(targetUserId)) settings.admins.push(targetUserId);
     } else {
@@ -813,7 +813,7 @@ export const firebaseService = {
   async toggleMuteUserInGroup(chatId: string, targetUserId: string, isMuted: boolean) {
     const cached = localStorage.getItem(`group_settings_${chatId}`);
     let settings = cached ? JSON.parse(cached) : { admins: ['dr-sarah-uid', 'current-user-uid'], mutedUsers: [] };
-    
+
     if (isMuted) {
       if (!settings.mutedUsers.includes(targetUserId)) settings.mutedUsers.push(targetUserId);
     } else {
@@ -867,7 +867,7 @@ export const firebaseService = {
     const path = 'posts';
     const user = auth.currentUser;
     const authorName = user ? (user.displayName || 'Warrior') : 'Warrior';
-    
+
     const postObj = {
       id: Math.random().toString(36).substring(2, 9),
       title,
@@ -1200,7 +1200,7 @@ export const firebaseService = {
       d.setDate(now.getDate() - i);
       const dateStr = d.toLocaleDateString('sv');
       const label = d.toLocaleDateString('en-US', { weekday: 'short' });
-      
+
       promises.push((async () => {
         const log = await this.getWaterLog(userId, dateStr);
         return {
@@ -1432,14 +1432,14 @@ export const firebaseService = {
 
   async addSymptomLog(userId: string, painLevel: number, symptoms: string[], triggers: string[], waterIntake: number, dateStr: string) {
     const owner = getCacheEntryOwner(userId);
-    const data = { 
+    const data = {
       userId: owner,
-      painLevel, 
-      symptoms, 
-      triggers, 
-      waterIntake, 
-      dateStr, 
-      timestamp: serverTimestamp() 
+      painLevel,
+      symptoms,
+      triggers,
+      waterIntake,
+      dateStr,
+      timestamp: serverTimestamp()
     };
 
     const cacheKey = getHealthCacheKey('warrior_symptom_logs', userId);
@@ -1450,11 +1450,11 @@ export const firebaseService = {
     // Date-only matching once let account B update account A's cached clinical
     // values while the cache kept attributing them to account A.
     const existingIndex = logs.findIndex((l: any) => l.dateStr === dateStr && isOwnedCacheEntry(l, owner));
-    
-    const localData = { 
-      ...data, 
-      id: Math.random().toString(36).substring(2, 9), 
-      timestamp: new Date().toISOString() 
+
+    const localData = {
+      ...data,
+      id: Math.random().toString(36).substring(2, 9),
+      timestamp: new Date().toISOString()
     };
 
     if (existingIndex !== -1) {
@@ -1476,18 +1476,18 @@ export const firebaseService = {
       const res = await getDocs(q);
       if (!res.empty) {
         const docId = res.docs[0].id;
-        await setDoc(doc(db, `${path}/${docId}`), { 
-          painLevel, 
-          symptoms, 
-          triggers, 
-          waterIntake, 
-          dateStr, 
-          updatedAt: serverTimestamp() 
+        await setDoc(doc(db, `${path}/${docId}`), {
+          painLevel,
+          symptoms,
+          triggers,
+          waterIntake,
+          dateStr,
+          updatedAt: serverTimestamp()
         }, { merge: true });
       } else {
         await addDoc(collection(db, path), data);
       }
-      
+
       // Sync into pain logs as well so 30-day pain visualization is always updated
       await this.addPainLog(userId, painLevel, dateStr, triggers);
       await this.saveWaterLog(userId, dateStr, waterIntake, 3.0);
@@ -1510,7 +1510,7 @@ export const firebaseService = {
       // LocalStorage fallback for offline/guest
       const cached = localStorage.getItem('warrior_streak_info');
       let streakInfo = cached ? JSON.parse(cached) : { streak: 0, lastActiveDate: '' };
-      
+
       if (streakInfo.lastActiveDate === todayStr) {
         return streakInfo.streak;
       } else if (streakInfo.lastActiveDate === yesterdayStr) {
@@ -1534,10 +1534,10 @@ export const firebaseService = {
         const userData = docSnap.data();
         let currentStreak = userData.streak || 0;
         const lastActiveDate = userData.lastActiveDate || '';
-        
+
         let nextStreak = currentStreak;
         let shouldUpdate = false;
-        
+
         if (lastActiveDate === todayStr) {
           return currentStreak;
         } else if (lastActiveDate === yesterdayStr) {
@@ -1547,7 +1547,7 @@ export const firebaseService = {
           nextStreak = 1;
           shouldUpdate = true;
         }
-        
+
         if (shouldUpdate) {
           await updateDoc(docRef, {
             streak: nextStreak,
@@ -1706,10 +1706,14 @@ export const firebaseService = {
     }
     try {
       const snapshot = await getDoc(doc(db, 'users/' + userId + '/careVault/medicalHistory'));
-      const data = snapshot.exists() ? snapshot.data() : {};
-      if (!isRecord(data)) throw new Error('Invalid medical records');
-      try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch { /* Cloud read remains usable. */ }
-      return { data, state: snapshot.exists() ? 'recorded' : 'empty' };
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (!isRecord(data)) throw new Error('Invalid medical records');
+        try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch { /* Cloud read remains usable. */ }
+        return { data, state: 'recorded' };
+      }
+      const cached = readCache();
+      return { data: cached ?? {}, state: cached ? 'cached' : 'empty' };
     } catch {
       const cached = readCache();
       return cached ? { data: cached, state: 'cached' } : { data: {}, state: 'unavailable' };

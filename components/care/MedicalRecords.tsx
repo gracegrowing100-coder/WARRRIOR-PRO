@@ -417,7 +417,10 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
       const item = section.stringList ? editor.draft.value.trim()
         : mergeMedicalRecords(isRecord(oldItem) ? oldItem : {}, changes);
       const next = [...items];
-      if (editor.index === undefined) next.push(section.stringList ? item : { ...item as MedicalRecordData, id: crypto.randomUUID() });
+      const generatedId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `rec-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      if (editor.index === undefined) next.push(section.stringList ? item : { ...item as MedicalRecordData, id: generatedId });
       else next[editor.index] = item;
       patch = { [section.key]: next };
     }
@@ -594,69 +597,6 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
         >
           {section.itemLabel ? 'Add ' + section.itemLabel : 'Edit ' + section.title.toLowerCase()}
         </Button>
-
-        {/* Inline Section Editor Form */}
-        {editing && editor && (
-          <form
-            onSubmit={saveEditor}
-            noValidate
-            className="space-y-4 rounded-3xl border-2 border-wa-crimson/40 bg-surface p-5 sm:p-6 shadow-md mt-4 ring-4 ring-wa-rose/30"
-          >
-            <div className="flex items-center justify-between border-b border-wa-line-soft pb-3">
-              <h4
-                ref={editorRef}
-                tabIndex={-1}
-                className="text-heading-3 text-foreground font-display focus-visible:outline focus-visible:outline-focus"
-              >
-                {editor.index === undefined && section.itemLabel ? 'Add ' + section.itemLabel : 'Edit ' + section.title.toLowerCase()}
-              </h4>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              {fieldsFor(section).map(field => (
-                <FormField key={field.key} label={field.label} required={field.required} error={fieldErrors[field.key]}>
-                  {field.type === 'multiline' ? (
-                    <Textarea
-                      disabled={saving}
-                      value={editor.draft[field.key]}
-                      onChange={event => setEditor({ ...editor, draft: { ...editor.draft, [field.key]: event.target.value } })}
-                    />
-                  ) : field.type === 'boolean' ? (
-                    <SelectInput
-                      disabled={saving}
-                      value={editor.draft[field.key]}
-                      onChange={event => setEditor({ ...editor, draft: { ...editor.draft, [field.key]: event.target.value } })}
-                    >
-                      <option value="">Not recorded</option>
-                      <option value="true">Yes</option>
-                      <option value="false">No</option>
-                    </SelectInput>
-                  ) : (
-                    <TextInput
-                      disabled={saving}
-                      type={field.type === 'number' ? 'number' : 'text'}
-                      step={field.type === 'number' ? 'any' : undefined}
-                      min={field.type === 'number' ? 0 : undefined}
-                      value={editor.draft[field.key]}
-                      onChange={event => setEditor({ ...editor, draft: { ...editor.draft, [field.key]: event.target.value } })}
-                    />
-                  )}
-                </FormField>
-              ))}
-            </div>
-
-            {error && <Alert tone="danger" title="Not saved" live="assertive">{error}</Alert>}
-
-            <div className="flex flex-wrap gap-3 pt-2">
-              <Button type="submit" loading={saving} loadingLabel="Saving information…">
-                Save information
-              </Button>
-              <Button variant="secondary" disabled={saving} onClick={closeEditor}>
-                Cancel editing
-              </Button>
-            </div>
-          </form>
-        )}
       </section>
     );
   };
@@ -813,6 +753,40 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
           <p className="text-small text-foreground-secondary">
             Daily pain, symptoms, hydration, and check-ins remain in Health History. Medication entries here describe history and do not change your Home medication schedule.
           </p>
+
+          {/* Quick Add Medical Record Bar */}
+          <div className="rounded-3xl border border-wa-line bg-wa-surface p-4 shadow-xs space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-display text-xs font-extrabold uppercase tracking-wider text-wa-plum">
+                Quick add to your medical records
+              </span>
+              <span className="text-[11px] text-wa-plum-muted">Tap any category to add</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: 'Diagnosis & allergies', key: 'background' },
+                { label: 'Lab result (PCV / E/U/Cr)', key: 'labs' },
+                { label: 'Medication', key: 'medications' },
+                { label: 'Hospitalization', key: 'hospitalizations' },
+                { label: 'Care team & ER note', key: 'care' },
+              ].map((quick) => {
+                const targetSection = recordSections.find((s) => s.key === quick.key);
+                if (!targetSection) return null;
+                return (
+                  <button
+                    key={quick.key}
+                    type="button"
+                    disabled={saving || Boolean(editor)}
+                    onClick={() => beginEdit(targetSection)}
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-wa-line bg-wa-ground px-3.5 text-xs font-bold text-wa-plum transition-colors hover:border-wa-crimson hover:bg-wa-rose/40 disabled:opacity-50 cursor-pointer"
+                  >
+                    <Plus size={14} className="text-wa-crimson" aria-hidden="true" />
+                    {quick.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           {/* Category Filter Pills (When records are present) */}
           {hasInfo && (
@@ -1013,6 +987,65 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
         <p className="text-small text-foreground-secondary leading-relaxed">
           Resetting will remove all diagnoses, medications, procedures, labs, and care notes entered in this profile.
         </p>
+      </Modal>
+
+      {/* Add / Edit Medical Record Modal */}
+      <Modal
+        open={Boolean(editor)}
+        onOpenChange={open => {
+          if (!open && !saving) closeEditor();
+        }}
+        title={editor ? (editor.index === undefined && editor.section.itemLabel ? 'Add ' + editor.section.itemLabel : 'Edit ' + editor.section.title.toLowerCase()) : 'Edit record'}
+        description={editor ? (sectionGuides[editor.section.key]?.purpose || editor.section.title) : undefined}
+        size="md"
+      >
+        {editor && (
+          <form onSubmit={saveEditor} noValidate className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {fieldsFor(editor.section).map(field => (
+                <FormField key={field.key} label={field.label} required={field.required} error={fieldErrors[field.key]}>
+                  {field.type === 'multiline' ? (
+                    <Textarea
+                      disabled={saving}
+                      value={editor.draft[field.key]}
+                      onChange={event => setEditor({ ...editor, draft: { ...editor.draft, [field.key]: event.target.value } })}
+                    />
+                  ) : field.type === 'boolean' ? (
+                    <SelectInput
+                      disabled={saving}
+                      value={editor.draft[field.key]}
+                      onChange={event => setEditor({ ...editor, draft: { ...editor.draft, [field.key]: event.target.value } })}
+                    >
+                      <option value="">Not recorded</option>
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
+                    </SelectInput>
+                  ) : (
+                    <TextInput
+                      disabled={saving}
+                      type={field.type === 'number' ? 'number' : 'text'}
+                      step={field.type === 'number' ? 'any' : undefined}
+                      min={field.type === 'number' ? 0 : undefined}
+                      value={editor.draft[field.key]}
+                      onChange={event => setEditor({ ...editor, draft: { ...editor.draft, [field.key]: event.target.value } })}
+                    />
+                  )}
+                </FormField>
+              ))}
+            </div>
+
+            {error && <Alert tone="danger" title="Not saved" live="assertive">{error}</Alert>}
+
+            <div className="flex flex-wrap justify-end gap-3 pt-2">
+              <Button type="button" variant="secondary" disabled={saving} onClick={closeEditor}>
+                Cancel editing
+              </Button>
+              <Button type="submit" loading={saving} loadingLabel="Saving information…">
+                Save information
+              </Button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );
