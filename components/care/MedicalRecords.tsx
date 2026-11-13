@@ -610,75 +610,89 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
   const immunizationsList = itemsFor(recordSections[8]);
 
   return (
-    <div className="space-y-6" data-semantic>
-      {/* Hero Header Card */}
-      <div className="rounded-3xl border border-wa-line-soft bg-surface p-5 sm:p-6 shadow-xs space-y-4">
-        <PageHeader
-          title="Medical records"
-          description="Patient-maintained information about your health background and care. These entries are not clinician-verified records."
-        />
+    <div className="space-y-5 pb-6" data-semantic>
+      {/* Layer 1: Unified Plum Hero + Floating Clinical Snapshot Card */}
+      <header className="relative overflow-hidden rounded-[28px] bg-[var(--wa-hero)] px-5 pt-5 pb-12 text-white sm:px-6 sm:pt-6 sm:pb-14">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-8 h-44 w-44 rounded-full bg-wa-coral/15 blur-2xl" />
+        <div className="relative space-y-2">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-wa-on-plum-soft">
+            <ShieldCheck size={13} className="text-emerald-300" aria-hidden="true" />
+            <span>Self-Managed Vault · Private &amp; PDF Exportable</span>
+          </div>
+          <h1 className="font-display text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+            Medical records
+          </h1>
+          <p className="max-w-xl text-xs leading-relaxed text-wa-on-plum-muted sm:text-sm">
+            Patient-maintained genotype, steady-state PCV, E/U/Cr labs, and emergency care notes. Not clinician-verified records.
+          </p>
+        </div>
+      </header>
 
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-wa-rose text-wa-crimson">
-            <HeartPulse size={13} />
-            Self-Managed Vault
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-wa-ground text-wa-muted border border-wa-line-soft">
-            <ShieldCheck size={13} className="text-emerald-600" />
-            Device-First Private Storage
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-wa-ground text-wa-muted border border-wa-line-soft">
-            <FileText size={13} className="text-wa-water" />
-            PDF Exportable
-          </span>
+      {/* Floating Surface Snapshot + Quick Add Card */}
+      <div className="-mt-10 relative z-10 rounded-[28px] border border-wa-line bg-wa-surface p-4 text-wa-plum shadow-[0_12px_30px_rgb(59_15_44/0.12)] sm:p-5 space-y-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+          <div className="rounded-[18px] border border-wa-line-soft bg-wa-ground/70 p-3 dark:bg-white/5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-wa-crimson">Clinical Profile</span>
+            <p className="mt-1 truncate font-display text-sm font-bold text-wa-plum">
+              {hasInfo ? 'Genotype & Info' : 'Not started'}
+            </p>
+          </div>
+
+          <div className="rounded-[18px] border border-wa-line-soft bg-wa-ground/70 p-3 dark:bg-white/5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-wa-water-ink dark:text-wa-water-bright">Blood Tests</span>
+            <p className="mt-1 truncate font-display text-sm font-bold text-wa-plum">
+              {labsList.length > 0 ? `${labsList.length} Lab Record${labsList.length === 1 ? '' : 's'}` : 'None recorded'}
+            </p>
+          </div>
+
+          <div className="rounded-[18px] border border-wa-line-soft bg-wa-ground/70 p-3 dark:bg-white/5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-wa-plum-muted">Active Regimen</span>
+            <p className="mt-1 truncate font-display text-sm font-bold text-wa-plum">
+              {activeMedsCount > 0 ? `${activeMedsCount} Active` : 'None recorded'}
+            </p>
+          </div>
+
+          <div className="rounded-[18px] border border-wa-line-soft bg-wa-ground/70 p-3 dark:bg-white/5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Vaccine Shield</span>
+            <p className="mt-1 truncate font-display text-sm font-bold text-wa-plum">
+              {immunizationsList.length > 0 ? `${immunizationsList.length} Logged` : 'None recorded'}
+            </p>
+          </div>
         </div>
 
-        {/* Quick Clinical Snapshot Summary (Shows category stats without duplicating text queries) */}
-        {hasInfo && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-wa-line-soft">
-            <div className="rounded-2xl bg-wa-rose/40 dark:bg-wa-rose/20 p-3.5 border border-wa-rose/80">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-wa-crimson">Clinical Profile</span>
-              <p className="mt-1 text-sm font-bold text-wa-plum truncate">
-                Genotype & Background
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-teal-50 dark:bg-teal-950/30 p-3.5 border border-teal-200/80">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-teal-700 dark:text-teal-300">Blood Tests</span>
-              <p className="mt-1 text-sm font-bold text-teal-950 dark:text-teal-100 truncate">
-                {labsList.length > 0 ? `${labsList.length} Lab Record${labsList.length === 1 ? '' : 's'}` : 'None recorded'}
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-purple-50 dark:bg-purple-950/30 p-3.5 border border-purple-200/80">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300">Active Regimen</span>
-              <p className="mt-1 text-sm font-bold text-purple-950 dark:text-purple-100 truncate">
-                {activeMedsCount > 0 ? `${activeMedsCount} Active Prescription${activeMedsCount > 1 ? 's' : ''}` : 'None recorded'}
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 p-3.5 border border-emerald-200/80">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Vaccine Shield</span>
-              <p className="mt-1 text-sm font-bold text-emerald-950 dark:text-emerald-100 truncate">
-                {immunizationsList.length > 0 ? `${immunizationsList.length} Vaccine${immunizationsList.length === 1 ? '' : 's'} Logged` : 'None recorded'}
-              </p>
-            </div>
+        <div className="border-t border-wa-line-soft pt-3 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-display text-xs font-extrabold uppercase tracking-wider text-wa-plum">
+              Quick add to your records
+            </span>
+            <span className="text-[11px] text-wa-plum-muted">Tap any category</span>
           </div>
-        )}
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: 'Diagnosis & allergies', key: 'background' },
+              { label: 'Lab result (PCV / E/U/Cr)', key: 'labs' },
+              { label: 'Medication', key: 'medications' },
+              { label: 'Hospitalization', key: 'hospitalizations' },
+              { label: 'Care team & ER note', key: 'care' },
+            ].map((quick) => {
+              const targetSection = recordSections.find((s) => s.key === quick.key);
+              if (!targetSection) return null;
+              return (
+                <button
+                  key={quick.key}
+                  type="button"
+                  disabled={saving || Boolean(editor)}
+                  onClick={() => beginEdit(targetSection)}
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-wa-line bg-wa-ground px-3.5 text-xs font-bold text-wa-plum transition-colors hover:border-wa-crimson hover:bg-wa-rose/40 disabled:opacity-50 cursor-pointer"
+                >
+                  <Plus size={14} className="text-wa-crimson" aria-hidden="true" />
+                  {quick.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
-
-      {/* Active Editor Notice Banner */}
-      {editor && (
-        <div className="flex items-center justify-between gap-3 rounded-2xl bg-wa-rose p-3.5 px-4 text-wa-crimson border border-wa-crimson/30 shadow-xs">
-          <div className="flex items-center gap-2.5 text-sm font-bold">
-            <span className="flex h-2.5 w-2.5 rounded-full bg-wa-crimson animate-pulse" />
-            <span>Currently editing {editor.section.title}. Form is open below.</span>
-          </div>
-          <Button variant="ghost" size="sm" onClick={closeEditor}>
-            Cancel
-          </Button>
-        </div>
-      )}
 
       {readState === 'loading' ? (
         <div role="status" aria-label="Loading medical records">
@@ -741,66 +755,15 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
             </Alert>
           )}
 
-          {/* Privacy & Consent Ethics Card */}
-          <div className="rounded-3xl border border-wa-line-soft bg-surface p-5 sm:p-6 shadow-xs space-y-2.5">
-            <div className="flex items-center gap-2.5 text-wa-plum">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40">
-                <ShieldCheck size={20} />
-              </div>
-              <h3 className="text-base font-bold font-display">Consent & Privacy Ethics</h3>
-            </div>
-            <p className="text-small text-foreground-secondary leading-relaxed">
-              Your medical records belong exclusively to you. All details in this vault are maintained by you to support clinical appointments, emergency triage, and care continuity. Your data is stored securely on your account and device, never shared with third parties or advertisers without your consent, and can be exported as a PDF or deleted whenever you choose.
-            </p>
-          </div>
-
-          <p className="text-small text-foreground-secondary">
-            Daily pain, symptoms, hydration, and check-ins remain in Health History. Medication entries here describe history and do not change your Home medication schedule.
-          </p>
-
-          {/* Quick Add Medical Record Bar */}
-          <div className="rounded-3xl border border-wa-line bg-wa-surface p-4 shadow-xs space-y-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-display text-xs font-extrabold uppercase tracking-wider text-wa-plum">
-                Quick add to your medical records
-              </span>
-              <span className="text-[11px] text-wa-plum-muted">Tap any category to add</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { label: 'Diagnosis & allergies', key: 'background' },
-                { label: 'Lab result (PCV / E/U/Cr)', key: 'labs' },
-                { label: 'Medication', key: 'medications' },
-                { label: 'Hospitalization', key: 'hospitalizations' },
-                { label: 'Care team & ER note', key: 'care' },
-              ].map((quick) => {
-                const targetSection = recordSections.find((s) => s.key === quick.key);
-                if (!targetSection) return null;
-                return (
-                  <button
-                    key={quick.key}
-                    type="button"
-                    disabled={saving || Boolean(editor)}
-                    onClick={() => beginEdit(targetSection)}
-                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-wa-line bg-wa-ground px-3.5 text-xs font-bold text-wa-plum transition-colors hover:border-wa-crimson hover:bg-wa-rose/40 disabled:opacity-50 cursor-pointer"
-                  >
-                    <Plus size={14} className="text-wa-crimson" aria-hidden="true" />
-                    {quick.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Category Filter Pills (When records are present) */}
+          {/* Layer 2: Structured Category Filter & Layered Section Cards */}
           {hasInfo && (
             <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
               <button
                 type="button"
                 onClick={() => setSelectedCategory('all')}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${selectedCategory === 'all'
-                    ? 'bg-wa-plum text-white shadow-xs'
-                    : 'bg-wa-surface text-wa-muted border border-wa-line-soft hover:bg-wa-ground'
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${selectedCategory === 'all'
+                    ? 'bg-[var(--wa-hero)] text-white shadow-xs'
+                    : 'bg-wa-surface text-wa-plum-muted border border-wa-line hover:bg-wa-ground hover:text-wa-plum'
                   }`}
               >
                 <Layers size={13} />
@@ -811,9 +774,9 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
                   key={g.category}
                   type="button"
                   onClick={() => setSelectedCategory(g.category)}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${selectedCategory === g.category
-                      ? 'bg-wa-plum text-white shadow-xs'
-                      : 'bg-wa-surface text-wa-muted border border-wa-line-soft hover:bg-wa-ground'
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${selectedCategory === g.category
+                      ? 'bg-[var(--wa-hero)] text-white shadow-xs'
+                      : 'bg-wa-surface text-wa-plum-muted border border-wa-line hover:bg-wa-ground hover:text-wa-plum'
                     }`}
                 >
                   <g.icon size={13} />
@@ -824,7 +787,7 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
           )}
 
           {/* Category Groups - All groups stay in DOM to guarantee accessibility & test compatibility */}
-          <div className="space-y-4">
+          <div className="space-y-3.5">
             {groups.map((group, index) => {
               const isFiltered = selectedCategory !== 'all' && selectedCategory !== group.category;
 
@@ -832,32 +795,32 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
                 <details
                   key={group.title}
                   open={selectedCategory === group.category || index === 0 ? true : undefined}
-                  className={`group rounded-3xl border border-wa-line-soft bg-surface shadow-xs transition-shadow hover:shadow-sm overflow-hidden ${isFiltered ? 'hidden' : ''
+                  className={`group rounded-3xl border border-wa-line bg-wa-surface shadow-xs transition-shadow hover:shadow-sm overflow-hidden ${isFiltered ? 'hidden' : ''
                     }`}
                 >
-                  <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 sm:px-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus hover:bg-wa-ground/40 transition-colors">
+                  <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 sm:px-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus hover:bg-wa-ground/50 transition-colors">
                     <div className="flex items-center gap-3.5 min-w-0">
                       <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${group.badgeColor} shadow-xs`}>
                         <group.icon size={22} aria-hidden="true" />
                       </div>
                       <div className="min-w-0">
-                        <h2 className="text-heading-2 text-foreground font-display">{group.title}</h2>
-                        <p className="text-xs text-foreground-secondary truncate hidden sm:block mt-0.5">
+                        <h2 className="text-heading-2 text-wa-plum font-display">{group.title}</h2>
+                        <p className="text-xs text-wa-plum-muted truncate hidden sm:block mt-0.5">
                           {group.description}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2.5 shrink-0">
-                      <span className="hidden md:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-wa-ground text-wa-muted border border-wa-line-soft">
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-wa-ground text-wa-plum border border-wa-line-soft">
                         {itemsCountForGroup(group)}
                       </span>
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full text-foreground-secondary group-open:rotate-180 transition-transform duration-200">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full text-wa-plum-muted group-open:rotate-180 transition-transform duration-200">
                         <ChevronDown size={20} aria-hidden="true" />
                       </div>
                     </div>
                   </summary>
 
-                  <div className="space-y-6 border-t border-wa-line-soft p-4 sm:p-6 bg-wa-ground/30">
+                  <div className="space-y-5 border-t border-wa-line-soft p-4 sm:p-6 bg-wa-ground/40">
                     {recordSections.filter(section => group.keys.includes(section.key)).map(renderSection)}
                   </div>
                 </details>
@@ -865,10 +828,10 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
             })}
           </div>
 
-          {/* Health Summary Export & Vault Management Card */}
+          {/* Layer 3: Health Summary Export & Vault Management Card */}
           <section
             aria-labelledby="medical-summary-title"
-            className="rounded-3xl border border-wa-line-soft bg-surface p-5 sm:p-6 shadow-xs space-y-4"
+            className="rounded-3xl border border-wa-line bg-wa-surface p-5 sm:p-6 shadow-xs space-y-4"
           >
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="space-y-1">
@@ -876,9 +839,9 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-wa-rose text-wa-crimson">
                     <Download size={18} />
                   </div>
-                  <h2 id="medical-summary-title" className="text-heading-2 text-foreground font-display">Health summary</h2>
+                  <h2 id="medical-summary-title" className="text-heading-2 text-wa-plum font-display">Health summary</h2>
                 </div>
-                <p className="max-w-prose text-small text-foreground-secondary leading-relaxed">
+                <p className="max-w-prose text-small text-wa-plum-muted leading-relaxed">
                   Download the information shown in these sections. The summary contains no generated advice and is not a clinician-approved care plan. Review existing entries before sharing it.
                 </p>
               </div>
@@ -929,6 +892,19 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
             </div>
             {error && !editor && !deletion && <Alert tone="danger" title="Download unavailable">{error}</Alert>}
           </section>
+
+          {/* Compact Privacy & Scope Footer Card */}
+          <div className="rounded-3xl border border-wa-line-soft bg-wa-ground/70 p-4 sm:p-5 space-y-2">
+            <div className="flex items-center gap-2 text-wa-plum">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
+                <ShieldCheck size={16} />
+              </div>
+              <h3 className="text-sm font-bold font-display">Consent & Privacy Ethics</h3>
+            </div>
+            <p className="text-xs text-wa-plum-muted leading-relaxed">
+              Your medical records belong exclusively to you and can be exported as a PDF or deleted whenever you choose. Daily pain, symptoms, hydration, and check-ins remain in Health History; medication entries here describe history and do not change your Home medication schedule.
+            </p>
+          </div>
         </>
       )}
 
