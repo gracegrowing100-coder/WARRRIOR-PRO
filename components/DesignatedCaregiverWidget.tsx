@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, MessageSquare, AlertTriangle, Edit3, ShieldAlert, Check, UserCheck, Copy, ExternalLink, Send } from 'lucide-react';
+import { Phone, MessageSquare, AlertTriangle, Edit3, ShieldAlert, Check, UserCheck, Copy, ExternalLink, Send, Activity, Droplets, Pill, Eye } from 'lucide-react';
 import { Button, Modal } from './ui';
 
 interface CaregiverInfo {
@@ -34,9 +34,29 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [copiedAlert, setCopiedAlert] = useState(false);
   const [showSosModal, setShowSosModal] = useState(false);
+  const [showCompanionView, setShowCompanionView] = useState(false);
   const [sosSentStatus, setSosSentStatus] = useState<string | null>(null);
   const storageKey = userId ? `warrior_designated_caregiver_${userId}` : 'warrior_designated_caregiver';
   const hasCaregiver = Boolean(caregiver.name.trim() && caregiver.phone.trim());
+
+  // Read today's logged hydration & medication signals for Trusted Companion Health Linking
+  const getTodayCompanionSignals = () => {
+    try {
+      const waterRaw = localStorage.getItem(userId ? `warrior_water_${userId}` : 'warrior_water');
+      const waterMl = waterRaw ? Number(JSON.parse(waterRaw)?.amount ?? 0) : 0;
+      const medsRaw = localStorage.getItem(userId ? `warrior_meds_${userId}` : 'warrior_meds');
+      const medsList = medsRaw ? JSON.parse(medsRaw) : [];
+      const takenCount = Array.isArray(medsList) ? medsList.filter((m: any) => m?.taken).length : 0;
+      const totalMeds = Array.isArray(medsList) ? medsList.length : 0;
+      return {
+        waterLiters: waterMl > 0 ? `${(waterMl / 1000).toFixed(1)}L` : 'Not logged today',
+        medsSummary: totalMeds > 0 ? `${takenCount}/${totalMeds} doses taken` : 'Schedule on Home',
+      };
+    } catch {
+      return { waterLiters: 'Not logged today', medsSummary: 'Schedule on Home' };
+    }
+  };
+  const companionSignals = getTodayCompanionSignals();
 
   useEffect(() => {
     try {
@@ -71,7 +91,8 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
 
   const buildSosMessage = () => {
     const extra = caregiver.customSosText.trim() ? `\nMessage: ${caregiver.customSosText.trim()}` : '';
-    return `[EMERGENCY SCD SOS ALERT]\nFrom: Warrior AI Sickle Cell Care\nCurrent Pain Level: ${currentPainLevel}/10${extra}\nTime: ${new Date().toLocaleTimeString()}`;
+    const notesLine = caregiver.notes.trim() ? `\nCare Notes: ${caregiver.notes.trim()}` : '';
+    return `[WARRIOR.AI TRUSTED COMPANION & SOS ALERT]\nCaregiver: ${caregiver.name || 'Trusted Companion'}\nCurrent Pain Level: ${currentPainLevel}/10\nHydration Today: ${companionSignals.waterLiters}\nMedications: ${companionSignals.medsSummary}${notesLine}${extra}\nTime: ${new Date().toLocaleTimeString()}`;
   };
 
   const triggerSosBroadcast = () => {
@@ -255,14 +276,93 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
             </button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => void copySosSummary()}
-            className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-wa-line bg-wa-ground px-4 text-xs font-bold text-wa-plum transition-colors hover:bg-wa-rose/30 cursor-pointer"
-          >
-            <Copy size={14} aria-hidden="true" />
-            {copiedAlert ? 'Emergency alert text copied!' : 'Copy emergency alert summary'}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void copySosSummary()}
+              className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-full border border-wa-line bg-wa-ground px-4 text-xs font-bold text-wa-plum transition-colors hover:bg-wa-rose/30 cursor-pointer"
+            >
+              <Copy size={14} aria-hidden="true" />
+              {copiedAlert ? 'Emergency alert text copied!' : 'Copy emergency alert summary'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCompanionView(!showCompanionView)}
+              aria-expanded={showCompanionView}
+              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full border border-wa-line bg-wa-rose/50 px-4 text-xs font-bold text-wa-crimson transition-colors hover:bg-wa-rose cursor-pointer"
+            >
+              <Eye size={14} aria-hidden="true" />
+              <span>{showCompanionView ? 'Hide Companion Live View' : 'Companion Live View'}</span>
+            </button>
+          </div>
+
+          {/* Trusted Companion Health Linking — Two-Way Live Snapshot Preview */}
+          {showCompanionView && (
+            <div className="mt-3 rounded-[22px] border border-wa-line bg-wa-ground/80 p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                    Trusted Companion Health Linking &bull; Live Snapshot
+                  </span>
+                  <h4 className="mt-1 font-display text-sm font-bold text-wa-plum">
+                    What {caregiver.name} receives during check-ins &amp; SOS
+                  </h4>
+                </div>
+                <span className="text-[11px] font-mono text-wa-plum-muted">
+                  Synced on device
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                <div className="rounded-2xl border border-wa-line-soft bg-wa-surface p-3">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-wa-plum-muted">
+                    <Activity size={13} className="text-wa-crimson" />
+                    <span>Pain Signal</span>
+                  </div>
+                  <p className="mt-1 font-display text-base font-extrabold text-wa-plum">
+                    {currentPainLevel}/10
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-wa-line-soft bg-wa-surface p-3">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-wa-plum-muted">
+                    <Droplets size={13} className="text-wa-water" />
+                    <span>Hydration Today</span>
+                  </div>
+                  <p className="mt-1 font-display text-base font-extrabold text-wa-plum">
+                    {companionSignals.waterLiters}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-wa-line-soft bg-wa-surface p-3">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-wa-plum-muted">
+                    <Pill size={13} className="text-emerald-600" />
+                    <span>Daily Meds</span>
+                  </div>
+                  <p className="mt-1 font-display text-sm font-extrabold text-wa-plum">
+                    {companionSignals.medsSummary}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <a
+                  href={`https://wa.me/${cleanPhone(caregiver.phone)}?text=${encodeURIComponent(buildSosMessage())}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[var(--wa-hero)] px-3.5 text-xs font-bold text-white transition hover:opacity-90"
+                >
+                  <ExternalLink size={13} aria-hidden="true" />
+                  <span>Share Live Snapshot on WhatsApp</span>
+                </a>
+                <a
+                  href={`sms:${cleanPhone(caregiver.phone)}?body=${encodeURIComponent(buildSosMessage())}`}
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-wa-line bg-wa-surface px-3.5 text-xs font-bold text-wa-plum transition hover:border-wa-crimson"
+                >
+                  <MessageSquare size={13} aria-hidden="true" />
+                  <span>Send Snapshot via SMS</span>
+                </a>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

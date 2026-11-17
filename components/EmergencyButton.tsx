@@ -29,6 +29,7 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({
 
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [copiedSnapshot, setCopiedSnapshot] = useState(false);
   
   // Emergency information starts empty and is filled only from the patient's
   // own stored record. Missing information stays missing; no sample contacts,
@@ -68,6 +69,20 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setEmergencyInfo(prev => ({ ...prev, [name]: value }));
+  };
+
+  const buildResponderSummaryText = () => {
+    return `[WARRIOR.AI EMERGENCY SOS PROFILE]\nGenotype: ${emergencyInfo.genotype || 'N/A'} | Blood Type: ${emergencyInfo.bloodType || 'N/A'}\nAllergies: ${emergencyInfo.allergies || 'None reported'}\nMedications: ${emergencyInfo.currentMeds || 'None reported'}\nResponder Notes: ${emergencyInfo.customNotes || 'No custom notes provided.'}\nCaregiver: ${emergencyInfo.primaryCaregiverName || 'N/A'} (${emergencyInfo.primaryCaregiverPhone || 'N/A'})`;
+  };
+
+  const handleCopyResponderSnapshot = async () => {
+    try {
+      await navigator.clipboard?.writeText(buildResponderSummaryText());
+      setCopiedSnapshot(true);
+      setTimeout(() => setCopiedSnapshot(false), 2000);
+    } catch {
+      // ignore clipboard errors
+    }
   };
 
   return (
@@ -217,6 +232,42 @@ export const EmergencyButton: React.FC<EmergencyButtonProps> = ({
                           </div>
                         )}
                       </div>
+
+                      {/* Trusted Companion WhatsApp & SMS SOS Handoff */}
+                      {emergencyInfo.primaryCaregiverPhone && (
+                        <div className="pt-2 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              window.open(
+                                `https://wa.me/${emergencyInfo.primaryCaregiverPhone.replace(/[^0-9+]/g, '')}?text=${encodeURIComponent(buildResponderSummaryText())}`,
+                                '_blank',
+                                'noopener,noreferrer'
+                              );
+                            }}
+                            className="flex-1 min-h-10 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold text-center transition cursor-pointer"
+                          >
+                            WhatsApp SOS to Companion
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              window.location.href = `sms:${emergencyInfo.primaryCaregiverPhone.replace(/[^0-9+]/g, '')}?body=${encodeURIComponent(buildResponderSummaryText())}`;
+                            }}
+                            className="flex-1 min-h-10 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-extrabold text-center transition cursor-pointer"
+                          >
+                            SMS SOS Draft
+                          </button>
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => void handleCopyResponderSnapshot()}
+                        className="w-full py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 text-xs font-bold text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition cursor-pointer"
+                      >
+                        {copiedSnapshot ? 'Copied Emergency Profile!' : 'Copy Emergency Profile for Companion / ER'}
+                      </button>
                     </div>
 
                     {/* Edit Trigger */}

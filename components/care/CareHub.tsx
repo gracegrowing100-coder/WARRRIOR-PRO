@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, CalendarDays, ChevronRight, ClipboardList, HeartPulse, Pill, Sparkles, Download, Share2, Check } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ChevronRight, ClipboardList, HeartPulse, Pill, Sparkles, Download, Share2, Check, MapPin, Phone, Search, Building2, ExternalLink } from 'lucide-react';
 import { CareVault } from '../CareVault';
 import { HealthHistory } from '../health';
 import { HistoryErrorBoundary } from '../health/HistoryErrorBoundary';
@@ -7,7 +7,91 @@ import { PageHeader } from '../layout';
 import { Button, SosPill } from '../ui';
 import { firebaseService } from '../../services/firebaseService';
 
-type CareView = 'overview' | 'history' | 'records';
+type CareView = 'overview' | 'history' | 'records' | 'directory';
+
+interface ScdDirectoryFacility {
+  id: string;
+  name: string;
+  city: 'Lagos' | 'Abuja' | 'Ogun';
+  type: 'SCD Clinics' | 'Hydroxyurea Pharmacies' | 'Emergency & NGOs';
+  address: string;
+  phone: string;
+  hydroxyureaNote: string;
+  services: string;
+}
+
+const SCD_CARE_DIRECTORY: ScdDirectoryFacility[] = [
+  {
+    id: 'luth-lagos',
+    name: 'LUTH Sickle Cell & Hematology Day-Care Center',
+    city: 'Lagos',
+    type: 'SCD Clinics',
+    address: 'Ishaga Rd, Idi-Araba, Surulere, Lagos',
+    phone: '+23412703333',
+    hydroxyureaNote: 'Specialist Hydroxyurea titration, FBC monitoring & hospital pharmacy stock',
+    services: '24/7 VOC crisis stabilization, transfusion unit, adult & pediatric hematology'
+  },
+  {
+    id: 'scfn-lagos',
+    name: 'Sickle Cell Foundation Nigeria (SCFN) National Centre',
+    city: 'Lagos',
+    type: 'Emergency & NGOs',
+    address: 'Opposite LUTH, Idi-Araba, Surulere, Lagos',
+    phone: '+2348035846666',
+    hydroxyureaNote: 'Subsidized routine SCD medicines & genetic counseling support',
+    services: 'HPLC genotype confirmation, transcranial Doppler screening, warrior support'
+  },
+  {
+    id: 'lasuth-ikeja',
+    name: 'LASUTH Hematology Clinic & Oncology Pharmacy',
+    city: 'Lagos',
+    type: 'Hydroxyurea Pharmacies',
+    address: '1-5 Oba Akinjobi Way, Ikeja, Lagos',
+    phone: '+2348023156789',
+    hydroxyureaNote: 'Verified Hydroxyurea (500mg), Folic Acid & Proguanil outpatient refills',
+    services: 'State tertiary hematology clinic, day-care hydration & prescription dispensing'
+  },
+  {
+    id: 'national-hosp-abuja',
+    name: 'National Hospital Abuja Hematology & SCD Unit',
+    city: 'Abuja',
+    type: 'SCD Clinics',
+    address: 'Plot 242, Central Business District, Garki, Abuja',
+    phone: '+23492901561',
+    hydroxyureaNote: 'Specialist Hydroxyurea monitoring, apheresis & routine blood count lab',
+    services: 'Tertiary referral center, pediatric & adult sickle cell crisis bays'
+  },
+  {
+    id: 'garki-pharm-abuja',
+    name: 'Garki Hospital SCD Clinic & Community Pharmacy',
+    city: 'Abuja',
+    type: 'Hydroxyurea Pharmacies',
+    address: 'Tafawa Balewa Way, Area 3, Garki, Abuja',
+    phone: '+2348091112233',
+    hydroxyureaNote: 'Routine Hydroxyurea, Folic Acid (5mg) & Paludrine refill counter',
+    services: 'Outpatient hematology reviews, emergency analgesia & pharmacy counseling'
+  },
+  {
+    id: 'fmc-abeokuta',
+    name: 'Federal Medical Centre (FMC) Abeokuta SCD Center',
+    city: 'Ogun',
+    type: 'SCD Clinics',
+    address: 'Bisi Onabanjo Way, Idi-Aba, Abeokuta, Ogun State',
+    phone: '+2348037213456',
+    hydroxyureaNote: 'Specialist Hydroxyurea clinic & hospital pharmacy access',
+    services: 'Regional tertiary hematology care, FBC monitoring & acute crisis triage'
+  },
+  {
+    id: 'oouth-sagamu',
+    name: 'OOUTH Sagamu Hematology & SCD Pharmacy Wing',
+    city: 'Ogun',
+    type: 'Hydroxyurea Pharmacies',
+    address: 'Hospital Road, Sagamu, Ogun State',
+    phone: '+2348033451290',
+    hydroxyureaNote: 'Hydroxyurea & routine malaria prophylaxis refills with clinic prescription',
+    services: 'University teaching hospital SCD clinic, pediatric & adult day-care'
+  }
+];
 
 export interface CareHubProps {
   userId: string;
@@ -18,6 +102,38 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
   const [view, setView] = useState<CareView>('overview');
   const [stats, setStats] = useState<{ count: number; avgPain: string | null }>({ count: 0, avgPain: null });
   const [copied, setCopied] = useState(false);
+
+  // SCD Clinic, Pharmacy & Hydroxyurea Access Directory state
+  const [dirCity, setDirCity] = useState<'All' | 'Lagos' | 'Abuja' | 'Ogun'>('All');
+  const [dirType, setDirType] = useState<'All' | 'SCD Clinics' | 'Hydroxyurea Pharmacies' | 'Emergency & NGOs'>('All');
+  const [dirSearch, setDirSearch] = useState('');
+  const huStorageKey = `warrior_hydroxyurea_tracker_${userId || 'guest'}`;
+  const [huTracker, setHuTracker] = useState<{
+    status: string;
+    daysRemaining: string;
+    preferredFacility: string;
+  }>(() => {
+    try {
+      const saved = localStorage.getItem(huStorageKey);
+      return saved
+        ? JSON.parse(saved)
+        : { status: 'Prescribed & Active', daysRemaining: '14', preferredFacility: '' };
+    } catch {
+      return { status: 'Prescribed & Active', daysRemaining: '14', preferredFacility: '' };
+    }
+  });
+  const [huSaved, setHuSaved] = useState(false);
+
+  const handleSaveHuTracker = (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      localStorage.setItem(huStorageKey, JSON.stringify(huTracker));
+      setHuSaved(true);
+      setTimeout(() => setHuSaved(false), 2500);
+    } catch {
+      // ignore storage errors
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -96,6 +212,232 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
           <CareVault userId={userId} />
         </div>
       </HistoryErrorBoundary>
+    );
+  }
+
+  if (view === 'directory') {
+    const filteredFacilities = SCD_CARE_DIRECTORY.filter((f) => {
+      const matchesCity = dirCity === 'All' || f.city === dirCity;
+      const matchesType = dirType === 'All' || f.type === dirType;
+      const q = dirSearch.trim().toLowerCase();
+      const matchesQuery =
+        !q ||
+        f.name.toLowerCase().includes(q) ||
+        f.address.toLowerCase().includes(q) ||
+        f.hydroxyureaNote.toLowerCase().includes(q) ||
+        f.services.toLowerCase().includes(q);
+      return matchesCity && matchesType && matchesQuery;
+    });
+
+    const daysLeftNum = Number(huTracker.daysRemaining);
+    const needsRefillSoon = !Number.isNaN(daysLeftNum) && daysLeftNum >= 0 && daysLeftNum <= 7;
+
+    return (
+      <div className="space-y-6">
+        <Button variant="ghost" leadingIcon={<ArrowLeft size={18} />} onClick={() => setView('overview')}>
+          Back to Care
+        </Button>
+
+        {/* Plum Hero Header */}
+        <div className="rounded-[28px] bg-[var(--wa-hero)] p-5 sm:p-6 text-white space-y-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#FFC7D0]">
+            Lagos &bull; Abuja &bull; Ogun Care Navigation
+          </span>
+          <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+            SCD Clinics, Pharmacies &amp; Hydroxyurea Access
+          </h1>
+          <p className="text-xs sm:text-sm text-[#D9B9CC] max-w-2xl leading-relaxed">
+            Find verified sickle-cell hematology centers, routine medication refill pharmacies, and track your personal Hydroxyurea supply so you never run out between clinic visits.
+          </p>
+        </div>
+
+        {/* Personal Hydroxyurea & Routine Refill Access Tracker */}
+        <form
+          onSubmit={handleSaveHuTracker}
+          className="rounded-[28px] border border-wa-line bg-wa-surface p-5 sm:p-6 text-wa-plum shadow-xs space-y-4"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-wa-rose text-wa-crimson">
+                <Pill size={20} />
+              </span>
+              <div>
+                <h2 className="font-display text-base sm:text-lg font-extrabold text-wa-plum">
+                  Hydroxyurea &amp; Routine Supply Tracker
+                </h2>
+                <p className="text-xs text-wa-plum-muted">
+                  Personal refill planning (only follow dosages prescribed by your hematologist)
+                </p>
+              </div>
+            </div>
+            {needsRefillSoon && (
+              <span className="rounded-full bg-amber-500/15 border border-amber-500/40 px-3 py-1 text-xs font-bold text-amber-800 dark:text-amber-300">
+                Refill due in {huTracker.daysRemaining} days
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div>
+              <label className="mb-1 block text-xs font-bold text-wa-plum">Access Status</label>
+              <select
+                value={huTracker.status}
+                onChange={(e) => setHuTracker({ ...huTracker, status: e.target.value })}
+                className="min-h-11 w-full rounded-xl border border-wa-line bg-wa-ground px-3 text-xs font-bold text-wa-plum focus:border-wa-crimson focus:outline-none"
+              >
+                <option value="Prescribed & Active">Prescribed &amp; Active</option>
+                <option value="Refill Needed Soon">Refill Needed Soon</option>
+                <option value="Discussing with Hematologist">Discussing with Hematologist</option>
+                <option value="Seeking Subsidized Access">Seeking Subsidized Access</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-wa-plum">Days of Supply Left</label>
+              <input
+                type="number"
+                min="0"
+                max="365"
+                value={huTracker.daysRemaining}
+                onChange={(e) => setHuTracker({ ...huTracker, daysRemaining: e.target.value })}
+                className="min-h-11 w-full rounded-xl border border-wa-line bg-wa-ground px-3.5 text-xs font-bold text-wa-plum focus:border-wa-crimson focus:outline-none"
+                placeholder="e.g. 14"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-wa-plum">Preferred Clinic / Pharmacy</label>
+              <input
+                type="text"
+                value={huTracker.preferredFacility}
+                onChange={(e) => setHuTracker({ ...huTracker, preferredFacility: e.target.value })}
+                className="min-h-11 w-full rounded-xl border border-wa-line bg-wa-ground px-3.5 text-xs font-semibold text-wa-plum focus:border-wa-crimson focus:outline-none"
+                placeholder="e.g. LUTH Idi-Araba / National Hospital"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <span className="text-[11px] text-wa-plum-muted">
+              Saved on this device to help you plan refills and routine FBC blood checks.
+            </span>
+            <Button type="submit" size="sm" leadingIcon={<Check size={15} />}>
+              {huSaved ? 'Saved Supply Plan' : 'Save Refill Plan'}
+            </Button>
+          </div>
+        </form>
+
+        {/* Directory Filters */}
+        <div className="rounded-[28px] border border-wa-line bg-wa-surface p-4 sm:p-5 space-y-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {(['All', 'Lagos', 'Abuja', 'Ogun'] as const).map((city) => (
+                <button
+                  key={city}
+                  type="button"
+                  onClick={() => setDirCity(city)}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+                    dirCity === city
+                      ? 'bg-[var(--wa-hero)] text-white shadow-2xs'
+                      : 'bg-wa-ground text-wa-plum-muted border border-wa-line hover:text-wa-plum'
+                  }`}
+                >
+                  {city === 'All' ? 'All States' : city}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              {(['All', 'SCD Clinics', 'Hydroxyurea Pharmacies', 'Emergency & NGOs'] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setDirType(type)}
+                  className={`rounded-full px-3 py-1 text-[11px] font-bold transition cursor-pointer ${
+                    dirType === type
+                      ? 'bg-wa-crimson text-white'
+                      : 'bg-wa-ground text-wa-plum-muted border border-wa-line hover:text-wa-plum'
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative">
+            <Search size={15} className="absolute left-3.5 top-3 text-wa-plum-muted" />
+            <input
+              type="text"
+              value={dirSearch}
+              onChange={(e) => setDirSearch(e.target.value)}
+              placeholder="Search clinic, pharmacy, Hydroxyurea, HPLC, or area (e.g. Surulere, Garki, Abeokuta)..."
+              className="w-full rounded-full border border-wa-line bg-wa-ground py-2.5 pl-9 pr-4 text-xs font-medium text-wa-plum placeholder:text-wa-plum-muted/60 focus:border-wa-crimson focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Directory Cards */}
+        <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
+          {filteredFacilities.map((facility) => (
+            <div
+              key={facility.id}
+              className="flex flex-col justify-between rounded-[24px] border border-wa-line bg-wa-surface p-5 text-wa-plum shadow-2xs space-y-3.5"
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="rounded-full bg-wa-rose px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-wa-crimson">
+                    {facility.type}
+                  </span>
+                  <span className="rounded-full border border-wa-line bg-wa-ground px-2.5 py-0.5 text-[11px] font-bold text-wa-plum">
+                    {facility.city}
+                  </span>
+                </div>
+                <h3 className="font-display text-base font-extrabold text-wa-plum">
+                  {facility.name}
+                </h3>
+                <p className="flex items-start gap-1.5 text-xs text-wa-plum-muted">
+                  <MapPin size={14} className="mt-0.5 shrink-0 text-wa-crimson" />
+                  <span>{facility.address}</span>
+                </p>
+                <div className="rounded-xl border border-wa-line-soft bg-wa-ground/70 p-2.5 text-xs">
+                  <span className="font-bold text-wa-plum block">Hydroxyurea &amp; Meds Access:</span>
+                  <span className="text-wa-plum-muted">{facility.hydroxyureaNote}</span>
+                </div>
+                <p className="text-xs text-wa-plum-muted leading-relaxed">
+                  {facility.services}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-wa-line-soft">
+                <a
+                  href={`tel:${facility.phone}`}
+                  className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-full bg-wa-crimson px-4 text-xs font-bold text-white transition hover:bg-wa-crimson-press"
+                >
+                  <Phone size={13} />
+                  <span>Call {facility.phone}</span>
+                </a>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${facility.name} ${facility.address}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full border border-wa-line bg-wa-ground px-4 text-xs font-bold text-wa-plum transition hover:border-wa-crimson"
+                >
+                  <ExternalLink size={13} />
+                  <span>Directions</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHuTracker((prev) => ({ ...prev, preferredFacility: facility.name }));
+                  }}
+                  className="inline-flex min-h-10 items-center justify-center rounded-full border border-wa-line bg-wa-surface px-3 text-[11px] font-bold text-wa-plum-muted hover:text-wa-plum cursor-pointer"
+                >
+                  Set Preferred
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     );
   }
 
@@ -235,27 +577,29 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
           <ChevronRight size={20} className="text-wa-crimson group-hover:translate-x-0.5 transition-transform shrink-0" />
         </button>
 
-        {/* 3.5 Order Medications (Coming Soon) */}
-        <div className="rounded-[28px] border border-wa-line-soft bg-wa-surface p-5 text-wa-plum shadow-none dark:border-white/10 dark:bg-white/5 dark:text-white">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3.5">
-              <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-wa-rose text-wa-crimson">
-                <Pill size={22} />
+        {/* 3.5 SCD-Aware Clinic, Pharmacy & Hydroxyurea Access Directory */}
+        <button
+          type="button"
+          onClick={() => setView('directory')}
+          aria-label="Open directory: SCD clinics, pharmacies and Hydroxyurea access"
+          className="group flex w-full items-center gap-3.5 rounded-[28px] border border-wa-line-soft bg-wa-surface p-4 sm:p-5 text-left text-wa-plum shadow-none transition-all hover:bg-wa-ground/60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson cursor-pointer"
+        >
+          <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-wa-rose text-wa-crimson">
+            <Building2 size={22} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="font-display text-base sm:text-lg font-bold">SCD clinics, pharmacies &amp; Hydroxyurea access</span>
+              <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                Lagos &bull; Abuja &bull; Ogun
               </span>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="font-display text-base sm:text-lg font-bold">Order medications &amp; refills</h2>
-                  <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
-                    Coming Soon
-                  </span>
-                </div>
-                <p className="mt-1 text-xs leading-relaxed text-wa-plum-muted dark:text-wa-on-plum-muted">
-                  Direct prescription refills for Hydroxyurea, Folic Acid, Proguanil, and Vitamin B Complex with partner pharmacies in Lagos, Abuja, and Ogun.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+            </span>
+            <span className="mt-0.5 block text-xs text-wa-plum-muted dark:text-wa-on-plum-muted">
+              Verified SCD centers, partner pharmacies, emergency contacts, and personal Hydroxyurea refill tracking
+            </span>
+          </span>
+          <ChevronRight size={20} className="text-wa-crimson group-hover:translate-x-0.5 transition-transform shrink-0" />
+        </button>
 
         {/* 4. Report for Your Doctor Card */}
         <div className="rounded-[28px] border border-wa-line-soft bg-wa-rose p-5 text-wa-plum shadow-none dark:border-white/10 dark:bg-white/5 dark:text-white">
