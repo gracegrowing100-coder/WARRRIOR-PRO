@@ -248,6 +248,33 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
       ? 'All marked taken today'
       : `${pendingMedications.length} pending`;
 
+  // Explainable plain-language factor bullets (Sec. 4.1 — self-monitoring support, not a clinical prediction)
+  const explainableFactors: string[] = [];
+  if (snapshot.painLevel !== null) {
+    if (snapshot.painLevel >= 7) {
+      explainableFactors.push(`Pain (${snapshot.painLevel}/10): High pain logged today—prioritize warmth, rest, prescribed analgesia, and contact your care team or use Emergency SOS if symptoms worsen.`);
+    } else if (snapshot.painLevel >= 4) {
+      explainableFactors.push(`Pain (${snapshot.painLevel}/10): Moderate discomfort logged—keep warm, avoid cold drafts, and sip fluids steadily.`);
+    } else {
+      explainableFactors.push(`Pain (${snapshot.painLevel}/10): Low pain logged today—continue pacing your activity and hydration.`);
+    }
+  }
+  if (snapshot.waterAmount !== null && snapshot.waterGoal !== null) {
+    const remaining = Math.max(0, snapshot.waterGoal - snapshot.waterAmount);
+    if (remaining > 0) {
+      explainableFactors.push(`Hydration (${snapshot.waterAmount.toFixed(1)}L/${snapshot.waterGoal.toFixed(1)}L): ${remaining.toFixed(1)}L remaining toward your daily target to support blood flow.`);
+    } else {
+      explainableFactors.push(`Hydration (${snapshot.waterAmount.toFixed(1)}L/${snapshot.waterGoal.toFixed(1)}L): Daily fluid target reached.`);
+    }
+  }
+  if (snapshot.medications.length > 0) {
+    if (pendingMedications.length > 0) {
+      explainableFactors.push(`Medicines (${pendingMedications.length} due): Taking prescribed doses on schedule supports your daily care plan.`);
+    } else {
+      explainableFactors.push(`Medicines: All scheduled doses marked taken for today.`);
+    }
+  }
+
   return (
     <>
       <Card
@@ -271,7 +298,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                     : 'bg-wa-sun-soft text-wa-sun-ink dark:text-amber-300'
                 }`}>
                   {snapshot.hasCheckIn ? <CheckCircle2 size={13} aria-hidden="true" /> : <CircleDashed size={13} aria-hidden="true" />}
-                  {snapshot.hasCheckIn ? 'Checked in' : 'Check-in due'}
+                  {snapshot.hasCheckIn ? 'Check-in recorded' : 'Check-in due'}
                 </span>
               </div>
               <p className="mt-0.5 text-xs text-wa-plum-muted">
@@ -282,10 +309,11 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
               <button
                 type="button"
                 data-ui-control
+                aria-label="Start daily check-in"
                 onClick={onStartCheckIn}
                 className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-wa-crimson px-3.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-wa-crimson-press focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
               >
-                Check in
+                Start daily check-in
                 <ArrowRight size={14} aria-hidden="true" />
               </button>
             ) : null}
@@ -299,7 +327,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                   <dt>Pain</dt>
                 </div>
                 <dd className="mt-1.5 font-display text-lg font-extrabold tabular-nums text-wa-plum sm:text-xl">
-                  {snapshot.painLevel === null ? 'Not logged' : `${snapshot.painLevel} / 10`}
+                  {snapshot.painLevel === null ? 'Not recorded' : `${snapshot.painLevel} / 10`}
                 </dd>
               </div>
               {onLogPain ? (
@@ -323,8 +351,8 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                 </div>
                 {snapshot.waterAmount !== null && snapshot.waterGoal !== null ? (
                   <dd className="mt-1.5">
-                    <span className="block font-display text-lg font-extrabold tabular-nums text-wa-plum sm:text-xl">
-                      {snapshot.waterAmount.toFixed(1)}L <span className="text-xs font-semibold text-wa-plum-muted">/ {snapshot.waterGoal.toFixed(1)}L</span>
+                    <span className="block font-display text-base font-extrabold tabular-nums text-wa-plum sm:text-lg">
+                      {waterValueText}
                     </span>
                     <span
                       role="progressbar"
@@ -340,7 +368,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                   </dd>
                 ) : (
                   <dd className="mt-1.5 font-display text-base font-bold text-wa-plum">
-                    {snapshot.hydrationState === 'unavailable' ? 'Unavailable' : 'Not logged'}
+                    {snapshot.hydrationState === 'unavailable' ? 'Unavailable' : 'Not recorded'}
                   </dd>
                 )}
               </div>
@@ -381,6 +409,28 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
               </button>
             </div>
           </dl>
+
+          {/* Explainable Daily Self-Monitoring Guide ("Why today's signals matter") */}
+          {explainableFactors.length > 0 && (
+            <div className="rounded-[18px] border border-wa-line-soft bg-wa-ground/60 p-3.5 space-y-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-display text-xs font-extrabold uppercase tracking-wider text-wa-plum">
+                  Why today&apos;s signals matter
+                </span>
+                <span className="text-[10px] font-semibold text-wa-plum-muted">
+                  Self-monitoring support &bull; Not a clinical prediction
+                </span>
+              </div>
+              <ul className="space-y-1 text-xs text-wa-plum-muted leading-relaxed">
+                {explainableFactors.map((factor) => (
+                  <li key={factor} className="flex items-start gap-1.5">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-wa-crimson" aria-hidden="true" />
+                    <span>{factor}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </Card>
 
