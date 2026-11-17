@@ -25,6 +25,7 @@ interface ChatMessage {
 
 const SUPPORTED_LANGUAGES: { id: SupportedLanguage; label: string; flag: string; nativeName: string }[] = [
   { id: 'en', label: 'English', flag: '🇬🇧', nativeName: 'English' },
+  { id: 'pcm', label: 'Pidgin', flag: '🇳🇬', nativeName: 'Naija Pidgin' },
   { id: 'yo', label: 'Yorùbá', flag: '🇳🇬', nativeName: 'Yorùbá' },
   { id: 'ha', label: 'Hausa', flag: '🇳🇬', nativeName: 'Hausa' },
   { id: 'ig', label: 'Igbo', flag: '🇳🇬', nativeName: 'Asụsụ Igbo' }
@@ -198,6 +199,7 @@ export const OfflineWarriorAI: React.FC<{
     if (selectedLang === 'yo') utterance.lang = 'yo-NG';
     else if (selectedLang === 'ha') utterance.lang = 'ha-NG';
     else if (selectedLang === 'ig') utterance.lang = 'ig-NG';
+    else if (selectedLang === 'pcm') utterance.lang = 'en-NG';
     else utterance.lang = 'en-US';
 
     utterance.onend = () => {
@@ -297,6 +299,13 @@ export const OfflineWarriorAI: React.FC<{
       { label: "💊 Hydroxyurea Facts", query: "How does Hydroxyurea work and what are its safety rules?" },
       { label: "🧬 Genotype Marriage", query: "Can AS and AS marry? Explain the genotype chances." },
       { label: "❄️ Harmattan & Cold Care", query: "How do I protect against sickle cell crisis during Harmattan or cold drafts?" }
+    ],
+    pcm: [
+      { label: "🚨 Crisis Care Now-Now", query: "Abeg wetin I go do sharp-sharp when sickle cell bone pain crisis start?" },
+      { label: "💧 Daily Water Target", query: "How many sachet or liter of wata I suppose drink every day?" },
+      { label: "🍲 Naija Food for Blood", query: "Which Naija soup and food dey help build blood well-well?" },
+      { label: "💊 Hydroxyurea Sense", query: "How Hydroxyurea dey work and wetin I suppose know about am?" },
+      { label: "🧬 Genotype & Marriage", query: "AS and AS fit marry? Abeg explain how the genotype take dey work." }
     ],
     yo: [
       { label: "🚨 Ìṣòro Ìrora (Crisis)", query: "Kí ni mo gbọ́dọ̀ ṣe nígbà tí ìrora ẹ̀jẹ̀ dídì bá dé?" },

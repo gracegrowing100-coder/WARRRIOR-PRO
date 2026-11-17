@@ -82,6 +82,7 @@ const App: React.FC = () => {
   const handleLanguageChange = (newLang: SupportedLanguage) => {
     setLanguage(newLang);
     localStorage.setItem('warrior_language', newLang);
+    localStorage.setItem('warrior_mira_language', newLang);
   };
 
   // Dynamic unified dark mode state
@@ -311,6 +312,7 @@ const App: React.FC = () => {
                     aria-label="Select Language"
                   >
                     <option value="en">English</option>
+                    <option value="pcm">Nigerian Pidgin</option>
                     <option value="yo">Yorùbá</option>
                     <option value="ha">Hausa</option>
                     <option value="ig">Igbo</option>

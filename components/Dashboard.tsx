@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Bell, Calendar, CloudSun, FileText, LifeBuoy, Shield, ShieldCheck, Smile, TrendingUp, UserCheck } from 'lucide-react';
+import { ArrowLeft, Bell, Calendar, CloudSun, FileText, LifeBuoy, Shield, ShieldCheck, Smile, TrendingUp, UserCheck, Volume2, VolumeX } from 'lucide-react';
 import { Page } from '../App';
 import { WaterIntakeTracker } from './WaterIntakeTracker';
 import { MedicationReminder } from './MedicationReminder';
@@ -443,14 +443,42 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
               </div>
             </section>
 
-            <div className="rounded-[24px] bg-wa-rose p-5 flex gap-3.5 items-start text-wa-plum border border-wa-line-soft dark:border-white/10">
-              <Spark className="w-6 h-6 text-wa-crimson shrink-0 mt-0.5" />
-              <div className="min-w-0">
-                <div className="font-display font-bold text-[14px] text-wa-plum dark:text-white">{t.warriorTipTitle}</div>
-                <div className="text-[13px] leading-relaxed mt-0.5 text-wa-plum/90 dark:text-white/90">
-                  {t.warriorTipBody}
+            <div className="rounded-[24px] bg-wa-rose p-5 flex gap-3.5 items-start justify-between text-wa-plum border border-wa-line-soft dark:border-white/10">
+              <div className="flex gap-3.5 items-start min-w-0">
+                <Spark className="w-6 h-6 text-wa-crimson shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <div className="font-display font-bold text-[14px] text-wa-plum dark:text-white">{t.warriorTipTitle}</div>
+                  <div className="text-[13px] leading-relaxed mt-0.5 text-wa-plum/90 dark:text-white/90">
+                    {t.warriorTipBody}
+                  </div>
                 </div>
               </div>
+              <button
+                type="button"
+                aria-label="Listen to warrior tip"
+                onClick={() => {
+                  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+                  window.speechSynthesis.cancel();
+                  const utterance = new SpeechSynthesisUtterance(`${t.warriorTipTitle}. ${t.warriorTipBody}`);
+                  utterance.rate = 0.95;
+                  utterance.lang =
+                    language === 'yo'
+                      ? 'yo-NG'
+                      : language === 'ha'
+                      ? 'ha-NG'
+                      : language === 'ig'
+                      ? 'ig-NG'
+                      : language === 'pcm'
+                      ? 'en-NG'
+                      : 'en-US';
+                  window.speechSynthesis.speak(utterance);
+                }}
+                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-wa-line bg-wa-surface px-3 text-xs font-bold text-wa-plum shadow-2xs transition hover:border-wa-crimson hover:text-wa-crimson cursor-pointer"
+                title="Listen to guidance (Voice Note)"
+              >
+                <Volume2 size={14} className="text-wa-crimson" aria-hidden="true" />
+                <span>Listen</span>
+              </button>
             </div>
           </div>
 

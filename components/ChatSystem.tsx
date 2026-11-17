@@ -181,6 +181,22 @@ const INAPPROPRIATE_REASONS = [
   'Privacy violation or sharing sensitive medical data'
 ];
 
+const UNVERIFIED_MEDICAL_PATTERNS = [
+  /stop\s+hydroxyurea/i,
+  /stop\s+taking\s+(your\s+)?med/i,
+  /miracle\s+cure/i,
+  /herbal\s+cure/i,
+  /cures?\s+sickle\s+cell/i,
+  /skip\s+(the\s+)?(doctor|hospital|clinic)/i,
+  /double\s+(your\s+)?dose/i,
+  /overdose/i,
+];
+
+const containsUnverifiedMedicalAdvice = (text?: string | null): boolean => {
+  if (!text) return false;
+  return UNVERIFIED_MEDICAL_PATTERNS.some((pattern) => pattern.test(text));
+};
+
 // Audio synthesizer for authentic WhatsApp notification sounds
 const playTone = (type: 'send' | 'receive' | 'call' | 'alert') => {
   try {
@@ -256,6 +272,69 @@ const ChatSystem: React.FC = () => {
   const [modReason, setModReason] = useState(INAPPROPRIATE_REASONS[0]);
   const [customModReason, setCustomModReason] = useState('');
   const [showModModal, setShowModModal] = useState(false);
+
+  // Guardian / Minor Safe Mode & Member Safety Controls
+  const [guardianSafeMode, setGuardianSafeMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('warrior_guardian_safe_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [hiddenSenders, setHiddenSenders] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('warrior_hidden_senders');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [flaggedMessageIds, setFlaggedMessageIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('warrior_flagged_messages');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [safetyFeedback, setSafetyFeedback] = useState<string | null>(null);
+
+  const toggleGuardianSafeMode = () => {
+    const next = !guardianSafeMode;
+    setGuardianSafeMode(next);
+    try {
+      localStorage.setItem('warrior_guardian_safe_mode', String(next));
+    } catch {
+      // ignore storage errors
+    }
+    setSafetyFeedback(
+      next
+        ? 'Guardian / Minor Safe Mode enabled: flagged posts & unverified remedy claims are hidden.'
+        : 'Guardian / Minor Safe Mode turned off.'
+    );
+  };
+
+  const handleHideSender = (senderId: string, senderName: string) => {
+    if (!senderId || senderId === currentUserId) return;
+    const next = Array.from(new Set([...hiddenSenders, senderId]));
+    setHiddenSenders(next);
+    try {
+      localStorage.setItem('warrior_hidden_senders', JSON.stringify(next));
+    } catch {
+      // ignore storage errors
+    }
+    setSafetyFeedback(`Muted & hid messages from ${senderName}.`);
+  };
+
+  const handleClearHiddenSenders = () => {
+    setHiddenSenders([]);
+    try {
+      localStorage.removeItem('warrior_hidden_senders');
+    } catch {
+      // ignore storage errors
+    }
+    setSafetyFeedback('Restored all muted community members.');
+  };
 
   // Camera & Storage Upload state
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
@@ -423,10 +502,17 @@ const ChatSystem: React.FC = () => {
     return matchesSearch && matchesCat;
   });
 
-  // Filter messages in chat search
-  const visibleMessages = inChatSearch.trim()
-    ? messages.filter(m => m.text?.toLowerCase().includes(inChatSearch.toLowerCase()))
-    : messages;
+  // Filter messages in chat search, muted senders, and Guardian Safe Mode
+  const visibleMessages = messages.filter(m => {
+    if (hiddenSenders.includes(m.senderId)) return false;
+    if (guardianSafeMode && (flaggedMessageIds.includes(m.id) || containsUnverifiedMedicalAdvice(m.text))) {
+      return false;
+    }
+    if (inChatSearch.trim()) {
+      return m.text?.toLowerCase().includes(inChatSearch.toLowerCase());
+    }
+    return true;
+  });
 
   // Compress image
   const compressImage = (base64Str: string, maxW = 800, maxH = 800): Promise<string> => {
@@ -776,12 +862,26 @@ const ChatSystem: React.FC = () => {
 
     const reasonFinal = customModReason.trim() || modReason;
     playTone('alert');
-    await firebaseService.removeMessageAsAdmin(
-      activeChatId,
-      selectedMessageForMod.id,
-      currentUserName,
-      reasonFinal
-    );
+
+    const nextFlagged = Array.from(new Set([...flaggedMessageIds, selectedMessageForMod.id]));
+    setFlaggedMessageIds(nextFlagged);
+    try {
+      localStorage.setItem('warrior_flagged_messages', JSON.stringify(nextFlagged));
+    } catch {
+      // ignore storage errors
+    }
+
+    if (isCurrentUserAdmin) {
+      await firebaseService.removeMessageAsAdmin(
+        activeChatId,
+        selectedMessageForMod.id,
+        currentUserName,
+        reasonFinal
+      );
+      setSafetyFeedback(`Message removed by moderator (${reasonFinal}).`);
+    } else {
+      setSafetyFeedback(`Message reported for review (${reasonFinal}).`);
+    }
 
     setShowModModal(false);
     setSelectedMessageForMod(null);
@@ -1108,56 +1208,61 @@ const ChatSystem: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* 3. ADMIN MODERATION MODAL: REMOVE INAPPROPRIATE MESSAGE */}
+      {/* 3. COMMUNITY REPORT & MODERATION MODAL */}
       <AnimatePresence>
         {showModModal && selectedMessageForMod && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 select-none"
+            className="fixed inset-0 z-50 bg-[#3B0F2C]/60 backdrop-blur-sm flex items-center justify-center p-4 select-none"
           >
             <motion.div 
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.95 }}
-              className="bg-slate-900 border-2 border-red-500/40 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col"
+              className="bg-wa-surface border border-wa-line rounded-[28px] w-full max-w-md overflow-hidden shadow-2xl flex flex-col text-wa-plum"
             >
-              <div className="p-4 bg-red-950/40 border-b border-red-500/20 flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center border border-red-500/30">
+              <div className="p-4 bg-wa-rose/60 border-b border-wa-line-soft flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-wa-crimson text-white flex items-center justify-center shadow-2xs">
                   <ShieldAlert size={18} />
                 </div>
                 <div>
-                  <h3 className="text-xs font-black text-white">Administrator Moderation</h3>
-                  <p className="text-[10px] text-red-300 font-mono">Remove Inappropriate Message</p>
+                  <h3 className="text-sm font-display font-bold text-wa-plum">
+                    {isCurrentUserAdmin ? 'Report or Remove Message' : 'Report Message to Moderators'}
+                  </h3>
+                  <p className="text-[11px] text-wa-plum-muted">
+                    Community Safety &amp; Medical Misinformation Protection
+                  </p>
                 </div>
               </div>
 
               <div className="p-5 space-y-4">
                 {/* Target Message Preview */}
-                <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 space-y-1">
-                  <span className="text-[9px] font-mono text-gray-400 block font-bold">
+                <div className="p-3 bg-wa-ground rounded-2xl border border-wa-line space-y-1">
+                  <span className="text-[10px] font-mono text-wa-plum-muted block font-bold">
                     Author: {selectedMessageForMod.senderName}
                   </span>
-                  <p className="text-xs text-gray-300 italic line-clamp-2">
+                  <p className="text-xs text-wa-plum italic line-clamp-2">
                     "{selectedMessageForMod.text || '[Media Attachment]'}"
                   </p>
                 </div>
 
                 {/* Reason Selection */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-gray-400 font-mono tracking-wider block">
-                    Select Violation Reason:
+                  <label className="text-[10px] font-bold uppercase text-wa-plum-muted font-mono tracking-wider block">
+                    Select Safety or Clinical Concern:
                   </label>
                   <div className="space-y-1.5">
                     {INAPPROPRIATE_REASONS.map((r) => (
                       <button
                         key={r}
+                        type="button"
                         onClick={() => setModReason(r)}
-                        className={`w-full text-left p-2.5 rounded-xl text-xs font-semibold border transition ${
+                        className={`w-full text-left p-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
                           modReason === r 
-                            ? 'bg-red-500/20 border-red-500 text-white' 
-                            : 'bg-slate-950 border-slate-800 text-gray-400 hover:bg-slate-800'
+                            ? 'bg-wa-rose border-wa-crimson text-wa-plum font-bold' 
+                            : 'bg-wa-ground border-wa-line text-wa-plum-muted hover:text-wa-plum'
                         }`}
                       >
                         {r}
@@ -1168,31 +1273,34 @@ const ChatSystem: React.FC = () => {
 
                 {/* Custom Note */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-gray-400 font-mono tracking-wider block">
-                    Custom Note (Optional):
+                  <label className="text-[10px] font-bold uppercase text-wa-plum-muted font-mono tracking-wider block">
+                    Additional Context (Optional):
                   </label>
                   <input 
                     type="text"
-                    placeholder="Provide specific guidance to the member..."
+                    placeholder="Add details for the safety review..."
                     value={customModReason}
                     onChange={(e) => setCustomModReason(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-red-500"
+                    className="w-full px-3 py-2 bg-wa-ground border border-wa-line rounded-xl text-xs text-wa-plum placeholder:text-wa-plum-muted/60 focus:outline-none focus:border-wa-crimson"
                   />
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-950 border-t border-slate-800 flex justify-end gap-2">
+              <div className="p-4 bg-wa-ground border-t border-wa-line-soft flex justify-end gap-2">
                 <button
+                  type="button"
                   onClick={() => setShowModModal(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-gray-300 rounded-xl text-xs font-bold transition"
+                  className="px-4 py-2 bg-wa-surface hover:bg-wa-rose/40 text-wa-plum border border-wa-line rounded-full text-xs font-bold transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleConfirmRemoveMessage}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-lg shadow-red-900/30"
+                  className="px-4 py-2 bg-wa-crimson hover:bg-[#9E0E26] text-white rounded-full text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
-                  <Trash2 size={13} /> Remove Message
+                  <ShieldAlert size={13} />
+                  {isCurrentUserAdmin ? 'Flag & Remove' : 'Submit Report'}
                 </button>
               </div>
             </motion.div>
@@ -1655,15 +1763,61 @@ const ChatSystem: React.FC = () => {
             ref={scrollRef} 
             className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar relative bg-wa-ground select-text"
           >
-            {/* Seeded preview notice */}
-            <div className="flex flex-col items-center select-none pt-1">
-              <div className="flex items-center gap-1.5 bg-[#FBE4E8] border border-[#F1E6EC] px-3.5 py-1 rounded-full shadow-2xs text-center">
-                <Shield size={12} className="text-[#C4122F]" />
-                <span className="text-[10px] font-bold text-[#C4122F] tracking-wider uppercase">SAMPLE COMMUNITY PREVIEW</span>
+            {/* Seeded preview + Community Moderation & Guardian Safe Mode Banner */}
+            <div className="rounded-2xl border border-wa-line bg-wa-surface p-3.5 shadow-2xs space-y-2.5 select-none">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 bg-wa-rose border border-wa-line-soft px-3 py-1 rounded-full">
+                    <Shield size={12} className="text-wa-crimson" />
+                    <span className="text-[10px] font-bold text-wa-crimson tracking-wider uppercase">
+                      SAMPLE COMMUNITY PREVIEW
+                    </span>
+                  </div>
+                  <span className="rounded-full bg-wa-ground border border-wa-line px-2.5 py-1 text-[10px] font-bold text-wa-plum uppercase tracking-wider">
+                    Moderated &bull; Clinical Safety Filter Active
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={toggleGuardianSafeMode}
+                    aria-pressed={guardianSafeMode}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold transition cursor-pointer border ${
+                      guardianSafeMode
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                        : 'bg-wa-ground text-wa-plum border-wa-line hover:border-wa-crimson'
+                    }`}
+                    title="Guardian / Minor Safe Mode filters flagged posts and unverified medical claims"
+                  >
+                    <ShieldCheck size={13} />
+                    <span>{guardianSafeMode ? 'Guardian / Minor Mode: ON' : 'Guardian / Minor Mode'}</span>
+                  </button>
+                  {hiddenSenders.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleClearHiddenSenders}
+                      className="inline-flex items-center gap-1 rounded-full bg-wa-ground border border-wa-line px-2.5 py-1 text-[10px] font-bold text-wa-plum-muted hover:text-wa-plum cursor-pointer"
+                    >
+                      <span>Unmute ({hiddenSenders.length})</span>
+                    </button>
+                  )}
+                </div>
               </div>
-              <p className="text-[10px] text-[#6E4A63] text-center max-w-sm mt-1 font-medium">
-                Seeded conversations and members are synthetic for clinical evaluation. No live emergency dispatcher is connected.
+              <p className="text-[11px] text-wa-plum-muted leading-relaxed">
+                Seeded conversations and members are synthetic for clinical evaluation. No live emergency dispatcher is connected. Never stop Hydroxyurea or prescribed medications based on group posts—use <strong className="text-wa-plum">Report</strong> or <strong className="text-wa-plum">Mute user</strong> on any message.
               </p>
+              {safetyFeedback && (
+                <div role="status" className="flex items-center justify-between gap-2 rounded-xl bg-wa-rose/60 px-3 py-1.5 text-[11px] font-semibold text-wa-plum border border-wa-line-soft">
+                  <span>{safetyFeedback}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSafetyFeedback(null)}
+                    className="text-wa-plum-muted hover:text-wa-plum font-bold cursor-pointer"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Quick Clinical Broadcasts bar */}
@@ -1744,15 +1898,26 @@ const ChatSystem: React.FC = () => {
                             <Copy size={12} />
                           </button>
                           
-                          {/* Admin Inappropriate Message Removal */}
-                          {isCurrentUserAdmin && !isUserRef && (
-                            <button 
-                              onClick={() => handleOpenModerationModal(msg)}
-                              className="p-1 hover:text-[#C4122F] text-[#B45309] transition flex items-center gap-0.5 text-[9px] font-bold"
-                              title="Admin: Remove Inappropriate Message"
-                            >
-                              <ShieldAlert size={12} />
-                            </button>
+                          {/* Report / Flag Message & Mute User (Available to all members) */}
+                          {!isUserRef && (
+                            <>
+                              <button 
+                                onClick={() => handleOpenModerationModal(msg)}
+                                className="p-1 hover:text-[#C4122F] text-[#B45309] transition flex items-center gap-0.5 text-[9px] font-bold cursor-pointer"
+                                title="Report or Flag Message"
+                                aria-label="Report message"
+                              >
+                                <ShieldAlert size={12} />
+                              </button>
+                              <button
+                                onClick={() => handleHideSender(msg.senderId, msg.senderName || 'Member')}
+                                className="p-1 hover:text-[#C4122F] text-[#6E4A63] transition flex items-center gap-0.5 text-[9px] font-bold cursor-pointer"
+                                title="Mute / Hide User"
+                                aria-label="Mute user"
+                              >
+                                <VolumeX size={12} />
+                              </button>
+                            </>
                           )}
 
                           {isUserRef && (
@@ -1864,6 +2029,16 @@ const ChatSystem: React.FC = () => {
                           <p className={`text-xs leading-relaxed whitespace-pre-wrap select-text break-words pr-2 ${isRemoved ? 'text-red-300 font-mono text-[11px]' : 'font-semibold'}`}>
                             {msg.text}
                           </p>
+                        )}
+
+                        {/* Automated Unverified Medical Advice Safety Banner */}
+                        {!isRemoved && (containsUnverifiedMedicalAdvice(msg.text) || flaggedMessageIds.includes(msg.id)) && (
+                          <div className="mt-2 rounded-xl bg-amber-500/15 border border-amber-500/40 px-2.5 py-1.5 text-[10px] font-semibold text-amber-900 dark:text-amber-200 flex items-start gap-1.5">
+                            <AlertTriangle size={13} className="shrink-0 mt-0.5 text-amber-600" />
+                            <span>
+                              Safety Notice: This post mentions medication changes or unverified remedies. Always consult your hematologist before changing your care plan.
+                            </span>
+                          </div>
                         )}
 
                         {/* Bubble footer (Timestamp + WhatsApp ticks) */}

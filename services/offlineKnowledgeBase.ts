@@ -1,13 +1,21 @@
 // Offline Knowledge Engine & Multilingual SCD AI Model
-// Operates 100% locally with zero network calls for instant offline responses in English, Yoruba, Hausa, and Igbo.
+// Operates 100% locally with zero network calls for instant offline responses in English, Nigerian Pidgin, Yoruba, Hausa, and Igbo.
 
-export type SupportedLanguage = 'en' | 'yo' | 'ha' | 'ig';
+export type SupportedLanguage = 'en' | 'pcm' | 'yo' | 'ha' | 'ig';
 
 export interface SCDTopic {
   keywords: string[];
   category: 'crisis' | 'hydration' | 'pain' | 'nutrition' | 'medication' | 'genotype' | 'emergency' | 'general';
   dangerLevel: 'emergency' | 'warning' | 'info';
   en: {
+    title: string;
+    summary: string;
+    actionableAdvice: string[];
+    redFlags?: string[];
+    suggestedTools?: string[];
+    localFoods?: string[];
+  };
+  pcm?: {
     title: string;
     summary: string;
     actionableAdvice: string[];
@@ -63,6 +71,24 @@ export const OFFLINE_SCD_TOPICS: SCDTopic[] = [
         "🚨 Painful erection lasting > 2 hours (Priapism in males)"
       ],
       suggestedTools: ["Emergency SOS Dispatcher", "Pain Tracker (VAS 0-10)", "Water Intake Tracker", "Designated Caregiver Ping"]
+    },
+    pcm: {
+      title: "Sharp-Sharp Care for Sickle Cell Pain Crisis (Emergency)",
+      summary: "Sickle cell crisis dey happen when red blood cells bend like sickle come block small blood vessels, make oxygen no fit reach body well and bone pain go start.",
+      actionableAdvice: [
+        "1. Drink Warm Water Now-Now: Drink 500ml to 1L of warm water or ORS electrolyte sharp-sharp.",
+        "2. Cover Body with Warm Cloth: Use warm blanket or warm towel for where dey pain you. NO EVER put ice block or cold water because cold dey make blood vessel tight pass.",
+        "3. Use the Pain Medicine Wey Doctor Write: Follow the exact pain relief plan wey your clinic give you.",
+        "4. Rest Well & Breathe Easy: Sidon gentle, take slow deep breath make oxygen enter your blood well."
+      ],
+      redFlags: [
+        "🚨 High Fever (>38.5°C) - fit be serious infection, go hospital sharp-sharp",
+        "🚨 Chest Pain or Hard Breathing (Acute Chest Syndrome)",
+        "🚨 Heavy belle pain or eye dey turn you / body pale (Splenic Sequestration)",
+        "🚨 One side of body weak or mouth bend / hard to talk (Stroke sign)",
+        "🚨 Manhood stand pass 2 hours with pain (Priapism)"
+      ],
+      suggestedTools: ["Emergency SOS Button", "Pain Tracker (0-10)", "Water Intake Tracker", "Alert Trusted Companion"]
     },
     yo: {
       title: "Ìtọ́jú Ìṣòro Ìrora Gíga (Agbákò Ẹ̀jẹ̀ Dídì / Vaso-occlusive Crisis)",
@@ -139,6 +165,25 @@ export const OFFLINE_SCD_TOPICS: SCDTopic[] = [
         "Watermelon & Cucumber slices",
         "Pap (Ogi/Akamu) with warm water",
         "Clear Pepper Soup with herbs (warming & hydrating)"
+      ],
+      suggestedTools: ["Daily Water Intake Tracker (3.0L Target)", "Hydration Reminders Timer"]
+    },
+    pcm: {
+      title: "Why Plenty Water Dey Important for Every Warrior",
+      summary: "Drinking plenty water na number one way to stop sickle cell pain crisis before e start. Taking 3 to 4 Liters (about 6 to 8 pure water sachets) every day dey help blood flow free inside body.",
+      actionableAdvice: [
+        "Drink at least 3.0 to 3.5 Liters of water every day (around 6-7 sachets or 10-14 cups).",
+        "Start your morning with 1 sachet or 2 cups of warm water before you chop anything.",
+        "Always carry water bottle for bag whether you dey go work, school, or hold-up.",
+        "Drink extra water when sun hot, when you sweat, or when fever wan start.",
+        "Warm zobo wey no get sugar, coconut water, and warm pepper soup water dey help well-well."
+      ],
+      localFoods: [
+        "Fresh Coconut Water (natural electrolytes)",
+        "Warm Zobo without sugar",
+        "Watermelon and Cucumber",
+        "Warm Pap (Akamu / Ogi)",
+        "Light Pepper Soup with scent leaf"
       ],
       suggestedTools: ["Daily Water Intake Tracker (3.0L Target)", "Hydration Reminders Timer"]
     },
@@ -223,6 +268,25 @@ export const OFFLINE_SCD_TOPICS: SCDTopic[] = [
       ],
       suggestedTools: ["Medication Log (Folic Acid / Hydroxyurea)", "Daily Health Tip Wisdom"]
     },
+    pcm: {
+      title: "Better Naija Food wey Dey Build Blood & Strength",
+      summary: "Sickle cell red blood cells deyhos only 10 to 20 days (normal own dey reach 120 days). Na why your body need correct food wey get folate, protein, and vitamins every day to make new blood.",
+      actionableAdvice: [
+        "Take your 5mg Folic Acid every day so your bone marrow go fit make fresh red blood cells.",
+        "Chop green vegetable soup well (Ugwu, Bitter leaf, Waterleaf, Efo) for natural vitamins.",
+        "Shine Eye for Iron Medicine: No just drink blood tonic wey get plenty iron unless doctor test your ferritin first.",
+        "Add good protein and healthy oil like Moi-Moi, Akara, fish, groundnut, and pear (avocado).",
+        "Comot hand from alcohol and smoking—dem dey dry blood and trigger crisis fast."
+      ],
+      localFoods: [
+        "Ugwu soup with fish",
+        "Moi-Moi and Akara (plenty beans protein)",
+        "Tiger Nut drink (Kunun Aya)",
+        "Moringa leaf inside soup",
+        "Warm Millet or Guinea Corn pap (Ogi Baba / Kunu)"
+      ],
+      suggestedTools: ["Medication Log (Folic Acid / Hydroxyurea)", "Daily Health Tip Wisdom"]
+    },
     yo: {
       title: "Oúnjẹ Aṣaralóore àti Fífi Agbára kún Ẹ̀jẹ̀",
       summary: "Sẹ́ẹ̀lì ẹ̀jẹ̀ Sickle Cell máa ń kú ní ọjọ́ 10 sí 20 péré (nígbà tí ẹ̀jẹ̀ déédéé máa ń wà fún ọjọ́ 120). Oúnjẹ tó ní Folic Acid, Zinc, àti Protein ló lè ran ọ̀rá egungun lọ́wọ́ láti tètè pèsè ẹ̀jẹ̀ tuntun.",
@@ -301,6 +365,22 @@ export const OFFLINE_SCD_TOPICS: SCDTopic[] = [
       ],
       suggestedTools: ["Medication Reminder & Adherence Log", "Doctor Consultation Report Generator"]
     },
+    pcm: {
+      title: "How to Take Your Daily Medicine & Hydroxyurea Safe-Safe",
+      summary: "Hydroxyurea na strong medicine wey doctor dey prescribe to help your body make Fetal Hemoglobin (HbF) so blood no go sickle quick and hospital admission go drop well-well.",
+      actionableAdvice: [
+        "Take your Hydroxyurea and Folic Acid at the same time every day just as your hematologist talk.",
+        "No stop or change your dose by yourself without talking to your clinic doctor.",
+        "Do your routine blood test (Full Blood Count) every 1 to 3 months as doctor schedule am.",
+        "Always drink one full cup of water whenever you swallow your medicine.",
+        "Keep your medicine for cool dry place wey sun and small pikin hand no go reach."
+      ],
+      redFlags: [
+        "🚨 Heavy vomiting, mouth sore, or bruise for skin wey you no sabi how e take come",
+        "🚨 If belle (pregnancy) enter while you dey take Hydroxyurea, see your doctor sharp-sharp"
+      ],
+      suggestedTools: ["Medication Reminder & Adherence Log", "Doctor Consultation Report Generator"]
+    },
     yo: {
       title: "Lílo Oògùn Dáadáa àti Àbájáde Hydroxyurea",
       summary: "Hydroxyurea jẹ́ oògùn pàtàkì tó ń dáàbò bo ara lẹ́nu àrùn ẹ̀jẹ̀ dídì. Ó ń sọ ẹ̀jẹ̀ di Fetal Hemoglobin (HbF) kí ẹ̀jẹ̀ má baà dì, ó sì ń dín ìrora kù ní ìdajì.",
@@ -364,6 +444,16 @@ export const OFFLINE_SCD_TOPICS: SCDTopic[] = [
       ],
       suggestedTools: ["Premarital Genotype Education & Punnett Square Simulator", "SCD Academy"]
     },
+    pcm: {
+      title: "Genotype Science (AA, AS, SS) & Marriage Planning",
+      summary: "Sickle cell na inherited blood condition wey pikin dey collect from both mama and papa. Knowing your true genotype from good hospital lab (HPLC) dey very important before marriage.",
+      actionableAdvice: [
+        "How Genotype Combination Dey Work:\n- AA + AA = 100% AA (No sickle cell risk)\n- AA + AS = 50% AA, 50% AS (No child go get SS)\n- AS + AS = 25% AA, 50% AS, 25% SS (Chance to born SS dey for EVERY belle)\n- AS + SS = 50% AS, 50% SS\n- SS + SS = 100% SS",
+        "Always check your genotype for proper hospital lab wey dey use HPLC machine, no rely on old paper.",
+        "Comot Bad Belief: Sickle cell NO be witch, Ogbanje, Abiku, or family curse. Na pure genetics and with good care warriors dey live long better life."
+      ],
+      suggestedTools: ["Premarital Genotype Education & Punnett Square Simulator", "SCD Academy"]
+    },
     yo: {
       title: "Ìmọ̀ Ẹ̀jẹ̀ Ìran (Genotype) àti Àyẹ̀wò Ìgbéyàwó",
       summary: "Àrùn ẹ̀jẹ̀ dídì (Sickle Cell) jẹ́ àbùdá tí a jogún láti ọ̀dọ̀ àwọn òbí méjèèjì. Mímọ Genotype rẹ nipasẹ àyẹ̀wò HPLC jẹ́ kókó fún ìpinnu ìgbéyàwó àti ìlera.",
@@ -416,13 +506,16 @@ export function processOfflineQuery(
 
   // Automatic Language Detection based on distinctive lexical tokens
   let detectedLang = userLanguage;
+  const pidginTokens = ['abeg', 'wetin', 'dey', 'how far', 'wahala', 'wata', 'sachet', 'no gree', 'make i', 'sharp sharp', 'now-now', 'pikin', 'belle', 'chop', 'sabi', 'una'];
   const yorubaTokens = ['bawo', 'eko', 'lori', 'se', 'omi', 'arun', 'rora', 'eje', 'didi', 'oogun', 'dokita', 'agbako', 'onje', 'abiku', 'iran', 'jowo'];
   const hausaTokens = ['sannu', 'yaya', 'jini', 'ruwa', 'ciwo', 'magani', 'likita', 'abinci', 'zazzabi', 'kanjamau', 'don', 'ina', 'sosai'];
   const igboTokens = ['kedu', 'otu', 'obara', 'mmiri', 'mgbu', 'ogwu', 'dokita', 'nri', 'ahu', 'onodu', 'biko', 'orịa', 'ogbanje', 'maka'];
 
   const containsToken = (tokens: string[]) => tokens.some(t => query.includes(t));
 
-  if (containsToken(yorubaTokens)) {
+  if (containsToken(pidginTokens)) {
+    detectedLang = 'pcm';
+  } else if (containsToken(yorubaTokens)) {
     detectedLang = 'yo';
   } else if (containsToken(hausaTokens)) {
     detectedLang = 'ha';
@@ -454,6 +547,7 @@ export function processOfflineQuery(
   let responseText = "";
   const greetings: Record<SupportedLanguage, string> = {
     en: "Warrior AI (Offline Companion):",
+    pcm: "Warrior AI (Naija Pidgin Companion):",
     yo: "Jagunjagun AI (Olùrànlọ́wọ́ Ìtọ́jú Lójoojúmọ́):",
     ha: "Jarumi AI (Mataimakin Kanjamau ba tare da Yanar Gizo ba):",
     ig: "Onye Nkwado Ọgụ Ọrịa (Warrior AI):"
@@ -461,6 +555,7 @@ export function processOfflineQuery(
 
   const safetyDisclaimer: Record<SupportedLanguage, string> = {
     en: "\n\n⚠️ *Clinical Safety Note: This offline tool provides clinical education and emergency self-care guidance. It does not replace immediate in-person hospital evaluation during severe crises.*",
+    pcm: "\n\n⚠️ *Safety Note: Dis offline guide na to help you take care of yourself and know wetin to do quick-quick. E no replace hospital doctor when crisis strong.*",
     yo: "\n\n⚠️ *Àkíyèsí Ààbò Ìlera: Èyí jẹ́ fún ìmọ̀ àti ìtọ́sọ́nà pàjáwìrì. Kò rọ́pò dọ́kítà ní ilé-ìwòsàn nígbà tí ìṣòro bá le púpọ̀.*",
     ha: "\n\n⚠️ *Gargadin Lafiya: Wannan bayani ne don ilimantarwa da agajin gaggawa. Ba zai maye gurbin ganin likita a asibiti ba yayin babban ciwo.*",
     ig: "\n\n⚠️ *Ihe Ịdọ Aka ná Ntị Ahụike: Nke a bụ maka nkụzi na enyemaka mberede. Ọ naghị anọchi anya ịhụ dọkịta n'ụlọ ọgwụ mgbe nsogbu siri ike.*"
@@ -470,7 +565,7 @@ export function processOfflineQuery(
   responseText += `${greetings[detectedLang]} ${localizedContent.summary}\n\n`;
 
   if (localizedContent.actionableAdvice && localizedContent.actionableAdvice.length > 0) {
-    responseText += `📌 **${detectedLang === 'yo' ? 'Àwọn Ìgbésẹ̀ Pàtàkì' : detectedLang === 'ha' ? 'Matakan Dauka' : detectedLang === 'ig' ? 'Ihe I Kwesịrị Ime' : 'Key Actionable Steps'}:**\n`;
+    responseText += `📌 **${detectedLang === 'pcm' ? 'Wetin You Fit Do Now-Now' : detectedLang === 'yo' ? 'Àwọn Ìgbésẹ̀ Pàtàkì' : detectedLang === 'ha' ? 'Matakan Dauka' : detectedLang === 'ig' ? 'Ihe I Kwesịrị Ime' : 'Key Actionable Steps'}:**\n`;
     localizedContent.actionableAdvice.forEach(adv => {
       responseText += `• ${adv}\n`;
     });
@@ -479,6 +574,7 @@ export function processOfflineQuery(
   if (userContext?.genotype) {
     const genotypeMsg: Record<SupportedLanguage, string> = {
       en: `\n🧬 *Personalized for Genotype ${userContext.genotype}: Consistent fluid hydration and daily folic acid are vital to maintain healthy red blood cell volume.*`,
+      pcm: `\n🧬 *For Your Genotype (${userContext.genotype}): Make sure say you drink water steady and take your Folic Acid every day to support your blood.*`,
       yo: `\n🧬 *Fún Genotype ${userContext.genotype} rẹ: Mumu omi púpọ̀ àti lílo Folic Acid lójoojúmọ́ ṣe kókó fún ẹ̀jẹ̀ rẹ.*`,
       ha: `\n🧬 *Don Nau'in Jininka ${userContext.genotype}: Shan ruwa akai-akai da Folic Acid na da muhimmanci sosai.*`,
       ig: `\n🧬 *Maka Genotype ${userContext.genotype} gị: Ịṅụ mmiri mgbe niile na Folic acid dị ezigbo mkpa maka ọbara gị.*`
@@ -487,14 +583,14 @@ export function processOfflineQuery(
   }
 
   if (localizedContent.redFlags && localizedContent.redFlags.length > 0) {
-    responseText += `\n\n🚨 **${detectedLang === 'yo' ? 'Àwọn Àmì Pàjáwìrì Tí Ó Nílò Ilé-Ìwòsàn Lẹ́sẹ̀kẹsẹ̀' : detectedLang === 'ha' ? 'Alamomin Hatsari na Gaggawa' : detectedLang === 'ig' ? 'Ihe Mgbaàmà Ndị Chọrọ Ụlọ Ọgwụ Ozugbo' : 'Emergency Red Flags (Seek Immediate Hospital Care)'}:**\n`;
+    responseText += `\n\n🚨 **${detectedLang === 'pcm' ? 'Danger Signs — Go Hospital Sharp-Sharp If You See Dis' : detectedLang === 'yo' ? 'Àwọn Àmì Pàjáwìrì Tí Ó Nílò Ilé-Ìwòsàn Lẹ́sẹ̀kẹsẹ̀' : detectedLang === 'ha' ? 'Alamomin Hatsari na Gaggawa' : detectedLang === 'ig' ? 'Ihe Mgbaàmà Ndị Chọrọ Ụlọ Ọgwụ Ozugbo' : 'Emergency Red Flags (Seek Immediate Hospital Care)'}:**\n`;
     localizedContent.redFlags.forEach(rf => {
       responseText += `${rf}\n`;
     });
   }
 
   if (localizedContent.localFoods && localizedContent.localFoods.length > 0) {
-    responseText += `\n🍲 **${detectedLang === 'yo' ? 'Oúnjẹ Àbínibí Tó Dáa Fún Ẹ̀jẹ̀' : detectedLang === 'ha' ? 'Abincin Gargajiya Mai Amfani' : detectedLang === 'ig' ? 'Nri Ọdịnala Na-enye Ọbara Ike' : 'Recommended Local Hydration & Blood Foods'}:**\n`;
+    responseText += `\n🍲 **${detectedLang === 'pcm' ? 'Better Naija Food & Water Wey Dey Help Blood' : detectedLang === 'yo' ? 'Oúnjẹ Àbínibí Tó Dáa Fún Ẹ̀jẹ̀' : detectedLang === 'ha' ? 'Abincin Gargajiya Mai Amfani' : detectedLang === 'ig' ? 'Nri Ọdịnala Na-enye Ọbara Ike' : 'Recommended Local Hydration & Blood Foods'}:**\n`;
     localizedContent.localFoods.forEach(food => {
       responseText += `• ${food}\n`;
     });
@@ -549,6 +645,40 @@ export const APP_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>>
     getHelpBtn: "Get help",
     warriorTipTitle: "Warrior tip",
     warriorTipBody: "Keep a small “flare bag” ready: water, warm socks, your medicines and your clinic card."
+  },
+  pcm: {
+    appName: "Warrior AI",
+    home: "Home",
+    play: "Games",
+    chat: "Chat",
+    care: "Care",
+    group: "Community",
+    act: "Advocacy",
+    profile: "My Profile",
+    offlineModeActive: "Offline Mode Dey Work (No Data Needed)",
+    emergencySos: "EMERGENCY SOS",
+    waterTarget: "Today Water Target",
+    painLog: "Pain & Crisis Record",
+    medReminders: "Medicine Reminder",
+    healthWisdom: "Daily Health Sense",
+    doctorReport: "Doctor Report",
+    peerSupport: "Warrior Community",
+    askWarriorAi: "Ask Warrior AI (Works Offline)",
+    selectLang: "Language",
+    crisisWarning: "Pain wan start? Tap Emergency SOS make help reach you sharp-sharp.",
+    streakDays: "Days Streak",
+    speakPrompt: "Tap to Talk (Voice)",
+    greetingMorning: "How una wake",
+    greetingAfternoon: "Well done today",
+    greetingEvening: "Good evening",
+    dailyCompanionSub: "Your daily health paddy. Do quick check-in for bottom here.",
+    dayLoggingStreak: "days wey you check in steady",
+    startLoggingStreak: "Start your daily check-in today",
+    needUrgentHelp: "You need urgent help?",
+    urgentHelpSub: "Open your emergency plan and alert your trusted person.",
+    getHelpBtn: "Get help now",
+    warriorTipTitle: "Warrior sense for today",
+    warriorTipBody: "Keep small 'crisis bag' ready near you: pure water/bottle, warm socks, your medicine, and your hospital card."
   },
   yo: {
     appName: "Warrior AI",

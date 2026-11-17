@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   MessageSquare, Heart, Share2, Plus, X, Search, 
   Phone, Mail, MapPin, Filter, ArrowUpDown, Users, 
-  ShieldAlert, Check, Sparkles, Clock, 
+  ShieldAlert, ShieldCheck, VolumeX, Check, Sparkles, Clock, 
   ExternalLink, Building2, CheckCircle2, ChevronRight, Bookmark
 } from 'lucide-react';
 import { firebaseService } from '../services/firebaseService';
@@ -305,6 +305,87 @@ export const Community: React.FC = () => {
       setCopiedPostId(post.id);
       setTimeout(() => setCopiedPostId(null), 2000);
     }
+  };
+
+  // Moderation, Reporting, Mute & Guardian Safe Mode state
+  const [guardianSafeMode, setGuardianSafeMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('warrior_guardian_safe_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [reportedPostIds, setReportedPostIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('warrior_reported_forum_posts');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [mutedAuthors, setMutedAuthors] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('warrior_muted_forum_authors');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [moderationNotice, setModerationNotice] = useState<string | null>(null);
+
+  const hasUnverifiedRemedyClaim = (text?: string): boolean => {
+    if (!text) return false;
+    return /stop\s+hydroxyurea|miracle\s+cure|herbal\s+cure|cures?\s+sickle\s+cell|skip\s+(the\s+)?(doctor|hospital)/i.test(text);
+  };
+
+  const toggleGuardianMode = () => {
+    const next = !guardianSafeMode;
+    setGuardianSafeMode(next);
+    try {
+      localStorage.setItem('warrior_guardian_safe_mode', String(next));
+    } catch {
+      // ignore storage errors
+    }
+    setModerationNotice(
+      next
+        ? 'Guardian / Minor Safe Mode enabled: flagged posts and unverified medical claims are hidden.'
+        : 'Guardian / Minor Safe Mode turned off.'
+    );
+  };
+
+  const handleReportPost = (postId: string, title: string) => {
+    const next = Array.from(new Set([...reportedPostIds, postId]));
+    setReportedPostIds(next);
+    try {
+      localStorage.setItem('warrior_reported_forum_posts', JSON.stringify(next));
+    } catch {
+      // ignore storage errors
+    }
+    setModerationNotice(`Reported "${title}" for clinical & community safety review.`);
+  };
+
+  const handleMuteAuthor = (authorName: string) => {
+    if (!authorName) return;
+    const next = Array.from(new Set([...mutedAuthors, authorName]));
+    setMutedAuthors(next);
+    try {
+      localStorage.setItem('warrior_muted_forum_authors', JSON.stringify(next));
+    } catch {
+      // ignore storage errors
+    }
+    setModerationNotice(`Muted posts from ${authorName}.`);
+  };
+
+  const handleRestoreModeration = () => {
+    setReportedPostIds([]);
+    setMutedAuthors([]);
+    try {
+      localStorage.removeItem('warrior_reported_forum_posts');
+      localStorage.removeItem('warrior_muted_forum_authors');
+    } catch {
+      // ignore storage errors
+    }
+    setModerationNotice('Restored hidden posts and muted authors.');
   };
 
   const handleAddPost = async () => {
@@ -868,13 +949,20 @@ export const Community: React.FC = () => {
                 <h4 className="font-display font-bold text-sm text-wa-plum">
                   Trusted Companion Health Linking
                 </h4>
-                <span className="rounded-full bg-wa-rose px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#C4122F]">
-                  Beta · Coming Soon
+                <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                  Live on Home
                 </span>
               </div>
               <p className="text-xs text-wa-plum-muted leading-relaxed">
-                Live two-way vitals and crisis alert syncing with a trusted family member or caregiver device. Use Emergency SOS on Home for instant alerts today.
+                Two-way linking between a warrior&apos;s device and a trusted family member or caregiver with Emergency SOS alerts on the Home screen.
               </p>
+              <button
+                type="button"
+                onClick={() => { window.location.hash = '#/home'; }}
+                className="inline-flex items-center gap-1 text-xs font-bold text-wa-crimson hover:underline cursor-pointer"
+              >
+                Open Trusted Companion &amp; SOS →
+              </button>
             </div>
           </div>
 
@@ -942,6 +1030,61 @@ export const Community: React.FC = () => {
       {/* ============================================================== */}
       {activeTab === 'forum' && (
         <div className="space-y-5">
+          {/* Community Moderation, Unverified Advice Filter & Guardian Mode Banner */}
+          <div className="bg-wa-surface p-4 sm:p-5 rounded-[24px] border border-wa-line shadow-2xs space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-wa-rose text-wa-crimson">
+                  <ShieldCheck size={16} />
+                </span>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-display font-bold text-wa-plum">
+                    Community Safety &amp; Guardian Protection
+                  </h3>
+                  <p className="text-[11px] text-wa-plum-muted">
+                    Peer stories offer lived encouragement—never replace your hematologist&apos;s plan or Hydroxyurea regimen.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleGuardianMode}
+                  aria-pressed={guardianSafeMode}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition cursor-pointer border ${
+                    guardianSafeMode
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                      : 'bg-wa-ground text-wa-plum border-wa-line hover:border-wa-crimson'
+                  }`}
+                >
+                  <ShieldCheck size={13} />
+                  <span>{guardianSafeMode ? 'Guardian / Minor Mode: ON' : 'Guardian / Minor Mode'}</span>
+                </button>
+                {(reportedPostIds.length > 0 || mutedAuthors.length > 0) && (
+                  <button
+                    type="button"
+                    onClick={handleRestoreModeration}
+                    className="inline-flex items-center gap-1 rounded-full bg-wa-ground border border-wa-line px-3 py-1.5 text-xs font-bold text-wa-plum-muted hover:text-wa-plum cursor-pointer"
+                  >
+                    <span>Restore hidden ({reportedPostIds.length + mutedAuthors.length})</span>
+                  </button>
+                )}
+              </div>
+            </div>
+            {moderationNotice && (
+              <div role="status" className="flex items-center justify-between gap-2 rounded-xl bg-wa-rose/60 px-3 py-2 text-xs font-semibold text-wa-plum border border-wa-line-soft">
+                <span>{moderationNotice}</span>
+                <button
+                  type="button"
+                  onClick={() => setModerationNotice(null)}
+                  className="text-wa-plum-muted hover:text-wa-plum font-bold cursor-pointer"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Category Filter Pills & Create Button Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-wa-surface p-3.5 rounded-[24px] border border-wa-line shadow-2xs">
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
@@ -972,8 +1115,12 @@ export const Community: React.FC = () => {
           {/* Posts List */}
           <div className="space-y-3.5">
             {posts
+              .filter(p => !reportedPostIds.includes(p.id) && !mutedAuthors.includes(p.authorName || ''))
+              .filter(p => !guardianSafeMode || !hasUnverifiedRemedyClaim(`${p.title} ${p.content}`))
               .filter(p => activeCategory === 'All' || p.tags?.includes(activeCategory))
-              .map(post => (
+              .map(post => {
+                const flaggedForAdvice = hasUnverifiedRemedyClaim(`${post.title} ${post.content}`);
+                return (
                 <div 
                   key={post.id} 
                   className="bg-wa-surface p-5 rounded-2xl shadow-2xs border border-wa-line space-y-3 hover:border-[#C4122F]/30 transition"
@@ -1009,27 +1156,60 @@ export const Community: React.FC = () => {
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-wa-line-soft">
-                    <button 
-                      type="button"
-                      onClick={() => handleLike(post.id)}
-                      className="flex items-center gap-1.5 text-xs font-semibold text-wa-plum-muted hover:text-[#C4122F] transition cursor-pointer"
-                    >
-                      <Heart size={15} className={post.likes && post.likes > 0 ? 'text-[#C4122F] fill-[#C4122F]' : ''} />
-                      <span>{post.likes || 0} Helpful</span>
-                    </button>
+                  {flaggedForAdvice && (
+                    <div className="rounded-xl bg-amber-500/15 border border-amber-500/40 px-3 py-2 text-xs font-semibold text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                      <ShieldAlert size={14} className="shrink-0 mt-0.5 text-amber-600" />
+                      <span>
+                        Safety Notice: This post mentions unverified remedies or medication changes. Consult your hematologist before altering your care plan.
+                      </span>
+                    </div>
+                  )}
 
-                    <button 
-                      type="button"
-                      onClick={() => handleSharePost(post)}
-                      className="flex items-center gap-1.5 text-xs font-semibold text-wa-plum-muted hover:text-wa-plum transition cursor-pointer"
-                    >
-                      <Share2 size={14} />
-                      <span>{copiedPostId === post.id ? 'Copied!' : 'Share'}</span>
-                    </button>
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-wa-line-soft">
+                    <div className="flex items-center gap-3">
+                      <button 
+                        type="button"
+                        onClick={() => handleLike(post.id)}
+                        className="flex items-center gap-1.5 text-xs font-semibold text-wa-plum-muted hover:text-[#C4122F] transition cursor-pointer"
+                      >
+                        <Heart size={15} className={post.likes && post.likes > 0 ? 'text-[#C4122F] fill-[#C4122F]' : ''} />
+                        <span>{post.likes || 0} Helpful</span>
+                      </button>
+
+                      <button 
+                        type="button"
+                        onClick={() => handleSharePost(post)}
+                        className="flex items-center gap-1.5 text-xs font-semibold text-wa-plum-muted hover:text-wa-plum transition cursor-pointer"
+                      >
+                        <Share2 size={14} />
+                        <span>{copiedPostId === post.id ? 'Copied!' : 'Share'}</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleMuteAuthor(post.authorName || 'Warrior')}
+                        className="flex items-center gap-1 text-[11px] font-semibold text-wa-plum-muted hover:text-wa-plum transition cursor-pointer"
+                        title="Mute posts from this author"
+                      >
+                        <VolumeX size={13} />
+                        <span>Mute user</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleReportPost(post.id, post.title)}
+                        className="flex items-center gap-1 text-[11px] font-semibold text-wa-plum-muted hover:text-wa-crimson transition cursor-pointer"
+                        title="Report post for moderation review"
+                      >
+                        <ShieldAlert size={13} />
+                        <span>Report</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              ))}
+              );
+              })}
           </div>
 
           {/* New Post Modal */}

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Cloud, CloudLightning, CloudRain, LocateFixed, MapPin, RefreshCw, Sun } from 'lucide-react';
+import { Cloud, CloudLightning, CloudRain, LocateFixed, MapPin, RefreshCw, Sun, Volume2 } from 'lucide-react';
 import { Spark } from '../brand';
 import {
   DEFAULT_LOCATION,
@@ -185,6 +185,23 @@ export const WeatherCard: React.FC = () => {
             Use Lagos instead
           </button>
         )}
+        <button
+          type="button"
+          data-ui-control
+          aria-label="Listen to weather tips"
+          onClick={() => {
+            if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const spoken = `${location.label}. ${data.temperature} degrees Celsius. ${advice.headline}. ${advice.tips.join(' ')}`;
+            const utterance = new SpeechSynthesisUtterance(spoken);
+            utterance.rate = 0.95;
+            window.speechSynthesis.speak(utterance);
+          }}
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-wa-sun-ink/30 bg-white/50 px-3.5 text-[13px] font-bold text-wa-plum focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson cursor-pointer"
+        >
+          <Volume2 size={15} aria-hidden="true" />
+          Listen
+        </button>
       </div>
       {locationNote ? <p role="status" className="text-[12px] text-wa-sun-ink">{locationNote}</p> : null}
 
