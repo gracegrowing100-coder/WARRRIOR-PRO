@@ -46,7 +46,7 @@ export const SafetyBanner: React.FC<SafetyBannerProps> = ({
             variant="onPlum"
             size="sm"
             onClick={onGetHelp}
-            className="bg-white text-wa-crimson hover:bg-white/90 whitespace-nowrap font-bold h-10 px-4 text-[13px]"
+            className="bg-white text-wa-crimson hover:bg-white/90 whitespace-nowrap font-bold h-11 px-4 text-[13px]"
             trailingIcon={<ArrowRight size={14} />}
           >
             {getHelpLabel}

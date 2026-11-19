@@ -58,11 +58,11 @@ export const WelcomeGuide: React.FC = () => {
         data-ui-control
         onClick={dismiss}
         aria-label="Hide welcome guide"
-        className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full text-wa-plum-muted hover:bg-wa-ground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
+        className="absolute right-3 top-3 inline-flex h-11 w-11 items-center justify-center rounded-full text-wa-plum-muted hover:bg-wa-ground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
       >
         <X size={18} aria-hidden="true" />
       </button>
-      <p className="text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">New here?</p>
+      <p className="text-xs font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">New here?</p>
       <h2 id="welcome-guide-title" className="mt-0.5 pr-10 font-display text-[18px] font-bold">
         Welcome! Here is how to get started
       </h2>

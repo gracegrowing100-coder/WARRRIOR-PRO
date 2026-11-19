@@ -435,7 +435,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
                 <Button
                   variant="danger"
                   size="sm"
-                  className="shrink-0"
+                  className="h-11 shrink-0"
                   onClick={() => document.getElementById('emergency-fab')?.click()}
                 >
                   {t.getHelpBtn}
@@ -473,7 +473,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
                       : 'en-US';
                   window.speechSynthesis.speak(utterance);
                 }}
-                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-wa-line bg-wa-surface px-3 text-xs font-bold text-wa-plum shadow-2xs transition hover:border-wa-crimson hover:text-wa-crimson cursor-pointer"
+                className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border border-wa-line bg-wa-surface px-3.5 text-xs font-bold text-wa-plum shadow-2xs transition hover:border-wa-crimson hover:text-wa-crimson cursor-pointer"
                 title="Listen to guidance (Voice Note)"
               >
                 <Volume2 size={14} className="text-wa-crimson" aria-hidden="true" />
@@ -488,7 +488,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
             </span>
             <div className="min-w-0">
               <h2 id="privacy-ethics-title" className="text-[12px] font-bold">Privacy &amp; Clinical Data Ethics</h2>
-              <p className="text-[11px] leading-relaxed text-wa-plum-muted dark:text-wa-on-plum-muted mt-0.5">
+              <p className="text-xs leading-relaxed text-wa-plum-muted dark:text-wa-on-plum-muted mt-0.5">
                 Your personal health logs, symptom records, and pain trends are stored with patient privacy safeguards. Your data is never sold or shared without your explicit consent.
               </p>
             </div>

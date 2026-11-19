@@ -82,7 +82,7 @@ export const HomeActionHub: React.FC<HomeActionHubProps> = ({
           >
             <Spark className="h-6 w-6 text-wa-crimson" />
           </span>
-          <span>Ask Mira<span className="block text-[11px] font-medium text-wa-plum-muted">AI helper</span></span>
+          <span>Ask Mira<span className="block text-xs font-medium text-wa-plum-muted">AI helper</span></span>
         </button>
       </div>
     </section>

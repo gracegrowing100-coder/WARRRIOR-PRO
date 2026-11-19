@@ -79,7 +79,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <span className="truncate text-sm sm:text-base font-bold tracking-tight text-wa-plum font-display leading-tight">
             {appName}
           </span>
-          <span className="truncate text-[10px] sm:text-caption text-foreground-secondary font-medium">
+          <span className="truncate text-xs sm:text-caption text-foreground-secondary font-medium">
             {connectivityLabel}
           </span>
         </div>
@@ -104,7 +104,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           aria-label="Display and language settings"
           aria-controls="app-header-settings"
           aria-expanded={settingsOpen}
-          className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-wa-surface border border-wa-line text-wa-plum hover:bg-wa-rose transition-colors shadow-xs sm:hidden"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-wa-surface border border-wa-line text-wa-plum hover:bg-wa-rose transition-colors shadow-xs sm:hidden"
           onClick={() => setSettingsOpen((open) => !open)}
         >
           <SlidersHorizontal size={17} aria-hidden="true" />

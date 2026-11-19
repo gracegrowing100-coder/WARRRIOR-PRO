@@ -295,7 +295,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                 <h2 id="todays-health-title" className="font-display text-base font-extrabold text-wa-plum sm:text-lg">
                   {snapshot.moodLabel || (hasTodayData ? "Today's snapshot" : 'Ready when you are')}
                 </h2>
-                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${
                   snapshot.hasCheckIn
                     ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
                     : 'bg-wa-ground text-wa-plum-muted ring-1 ring-wa-line'
@@ -314,7 +314,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                 data-ui-control
                 aria-label="Start daily check-in"
                 onClick={onStartCheckIn}
-                className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-wa-crimson px-3.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-wa-crimson-press focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
+                className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-wa-crimson px-3.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-wa-crimson-press focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
               >
                 Start daily check-in
                 <ArrowRight size={14} aria-hidden="true" />
@@ -342,7 +342,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                   type="button"
                   data-ui-control
                   onClick={onLogPain}
-                  className="mt-2.5 inline-flex min-h-9 w-full items-center justify-center gap-1 rounded-full bg-wa-rose px-2.5 text-xs font-bold text-wa-crimson transition-colors hover:bg-wa-crimson hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
+                  className="mt-2.5 inline-flex min-h-11 w-full items-center justify-center gap-1 rounded-full bg-wa-rose px-2.5 text-xs font-bold text-wa-crimson transition-colors hover:bg-wa-crimson hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
                 >
                   <Plus size={14} aria-hidden="true" />
                   Log pain
@@ -383,7 +383,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                 type="button"
                 data-ui-control
                 onClick={() => setWaterModalOpen(true)}
-                className="mt-2.5 inline-flex min-h-9 w-full items-center justify-center gap-1 rounded-full bg-wa-water-soft px-2.5 text-xs font-bold text-wa-water-ink transition-colors hover:bg-wa-water hover:text-white dark:text-wa-water-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-water"
+                className="mt-2.5 inline-flex min-h-11 w-full items-center justify-center gap-1 rounded-full bg-wa-water-soft px-2.5 text-xs font-bold text-wa-water-ink transition-colors hover:bg-wa-water hover:text-white dark:text-wa-water-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-water"
               >
                 <Plus size={14} aria-hidden="true" />
                 Add water
@@ -413,7 +413,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                 type="button"
                 data-ui-control
                 onClick={() => setMedsModalOpen(true)}
-                className="mt-2.5 inline-flex min-h-9 w-full items-center justify-center gap-1 rounded-full border border-wa-line bg-wa-surface px-2.5 text-xs font-bold text-wa-plum transition-colors hover:bg-wa-rose/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
+                className="mt-2.5 inline-flex min-h-11 w-full items-center justify-center gap-1 rounded-full border border-wa-line bg-wa-surface px-2.5 text-xs font-bold text-wa-plum transition-colors hover:bg-wa-rose/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
               >
                 <Check size={14} aria-hidden="true" />
                 Check meds
@@ -428,7 +428,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                 <span className="font-display text-xs font-extrabold uppercase tracking-wider text-wa-plum">
                   Why today&apos;s signals matter
                 </span>
-                <span className="text-[10px] font-semibold text-wa-plum-muted">
+                <span className="text-xs font-semibold text-wa-plum-muted">
                   Self-monitoring support &bull; Not a clinical prediction
                 </span>
               </div>
@@ -581,7 +581,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                       disabled={isBusy || !med.id}
                       onClick={() => void toggleMedicationTaken(med)}
                       aria-label={`Mark ${med.name || 'medication'} as ${isTaken ? 'not taken' : 'taken'}`}
-                      className={`inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson ${
+                      className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson ${
                         isTaken
                           ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                           : 'border border-wa-line bg-wa-surface text-wa-plum hover:border-wa-crimson hover:bg-wa-rose/30'
