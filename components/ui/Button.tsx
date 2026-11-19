@@ -88,7 +88,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           className={cn('inline-flex items-center justify-center gap-2', loading && 'invisible')}
         >
           {leadingIcon && <span aria-hidden="true" className="shrink-0">{leadingIcon}</span>}
-          {children && <span>{children}</span>}
+          {/* Flex keeps icons passed as children (svg is display:block in Tailwind preflight)
+              on the same line as their label instead of stacking above it. */}
+          {children && <span className="inline-flex min-w-0 items-center justify-center gap-2 text-center">{children}</span>}
           {trailingIcon && <span aria-hidden="true" className="shrink-0">{trailingIcon}</span>}
         </span>
         {loading && (

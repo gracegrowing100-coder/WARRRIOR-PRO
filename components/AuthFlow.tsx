@@ -731,7 +731,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({
             <Button
               variant="secondary"
               aria-label="Continue with Google"
-              className="w-full h-14 bg-white border border-wa-line flex items-center justify-center gap-3"
+              className="w-full h-14 gap-3 text-[15px] font-semibold"
               onClick={handleGoogleAuth}
             >
               <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
@@ -1196,7 +1196,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({
               type="button"
               variant="secondary"
               aria-label="Continue with Google"
-              className="w-full h-14 bg-white border border-wa-line flex items-center justify-center gap-3"
+              className="w-full h-14 gap-3 text-[15px] font-semibold"
               onClick={handleGoogleAuth}
             >
               <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
