@@ -298,10 +298,10 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                 <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
                   snapshot.hasCheckIn
                     ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                    : 'bg-wa-sun-soft text-wa-sun-ink dark:text-amber-300'
+                    : 'bg-wa-ground text-wa-plum-muted ring-1 ring-wa-line'
                 }`}>
                   {snapshot.hasCheckIn ? <CheckCircle2 size={13} aria-hidden="true" /> : <CircleDashed size={13} aria-hidden="true" />}
-                  {snapshot.hasCheckIn ? 'Check-in recorded' : 'Check-in due'}
+                  {snapshot.hasCheckIn ? 'Check-in recorded' : 'Not yet today'}
                 </span>
               </div>
               <p className="mt-0.5 text-xs text-wa-plum-muted">
@@ -329,9 +329,13 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                   <HeartPulse size={15} className="text-wa-crimson" aria-hidden="true" />
                   <dt>Pain</dt>
                 </div>
-                <dd className="mt-1.5 font-display text-lg font-extrabold tabular-nums text-wa-plum sm:text-xl">
-                  {snapshot.painLevel === null ? 'Not recorded' : `${snapshot.painLevel} / 10`}
-                </dd>
+                {snapshot.painLevel === null ? (
+                  <dd className="mt-1.5 text-sm font-semibold text-wa-plum-muted">Not recorded</dd>
+                ) : (
+                  <dd className="mt-1.5 font-display text-lg font-extrabold tabular-nums text-wa-plum sm:text-xl">
+                    {`${snapshot.painLevel} / 10`}
+                  </dd>
+                )}
               </div>
               {onLogPain ? (
                 <button
@@ -370,8 +374,8 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                     </span>
                   </dd>
                 ) : (
-                  <dd className="mt-1.5 font-display text-base font-bold text-wa-plum">
-                    {snapshot.hydrationState === 'unavailable' ? 'Unavailable' : 'Not recorded'}
+                  <dd className="mt-1.5 text-sm font-semibold text-wa-plum-muted">
+                    {snapshot.hydrationState === 'unavailable' ? "Couldn't load right now" : 'Not recorded'}
                   </dd>
                 )}
               </div>
@@ -393,7 +397,11 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                   <dt>Medicines</dt>
                 </div>
                 <dd className="mt-1.5">
-                  <span className="block font-display text-base font-bold text-wa-plum">{medicationSummary}</span>
+                  <span className={snapshot.medications.length === 0
+                    ? 'block text-sm font-semibold text-wa-plum-muted'
+                    : 'block font-display text-base font-bold text-wa-plum'}>
+                    {medicationSummary}
+                  </span>
                   {nextMedication ? (
                     <span className="mt-0.5 block truncate text-xs text-wa-plum-muted">
                       {[nextMedication.name, nextMedication.time].filter(Boolean).join(' · ')}
