@@ -387,9 +387,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
               <h2 className="font-display text-[16px] font-bold text-wa-plum dark:text-white">
                 Health tools &amp; records
               </h2>
-              <span className="text-[12px] font-medium text-wa-plum-muted">
-                Tap any icon to open
-              </span>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {toolTiles.map((tile) => (

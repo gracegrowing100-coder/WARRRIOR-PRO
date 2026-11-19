@@ -18,8 +18,7 @@ export const HomeActionHub: React.FC<HomeActionHubProps> = ({
 }) => {
   return (
     <section aria-label="Quick actions" className="w-full">
-      <h2 className="font-display text-[16px] font-bold text-wa-plum dark:text-white">Quick actions</h2>
-      <p className="mb-3 mt-0.5 text-[13px] text-wa-plum-muted dark:text-wa-on-plum-muted">Tap an icon to get started.</p>
+      <h2 className="mb-3 font-display text-[16px] font-bold text-wa-plum dark:text-white">Quick actions</h2>
       <div className="grid grid-cols-4 gap-2">
         <button
           type="button"
