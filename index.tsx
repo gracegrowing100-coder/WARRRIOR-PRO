@@ -15,11 +15,4 @@ root.render(
   </React.StrictMode>
 );
 
-// Register Offline-First Service Worker in production/supported browsers
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator && (import.meta as { env?: { PROD?: boolean } }).env?.PROD) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
-      // Service worker registration is optional enhancement
-    });
-  });
-}
+// Service worker registration lives in index.html (it also unregisters stale workers on localhost).

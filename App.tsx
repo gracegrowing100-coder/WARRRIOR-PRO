@@ -206,7 +206,7 @@ const App: React.FC = () => {
         if (el) el.scrollIntoView({ behavior: 'smooth' });
       }, 200);
     } else if (lower.includes('sos') || lower.includes('emergency')) {
-      const sosBtn = document.getElementById('emergency-sos-action-button');
+      const sosBtn = document.getElementById('emergency-fab');
       if (sosBtn) sosBtn.click();
     } else if (lower.includes('chat') || lower.includes('peer')) {
       navigate('chat');

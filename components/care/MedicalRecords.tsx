@@ -623,7 +623,7 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
             Medical records
           </h1>
           <p className="max-w-xl text-xs leading-relaxed text-wa-on-plum-muted sm:text-sm">
-            Patient-maintained genotype, steady-state PCV, E/U/Cr labs, and emergency care notes. Not clinician-verified records.
+            Patient-maintained information: genotype, steady-state PCV, E/U/Cr labs, and emergency care notes. Not clinician-verified records.
           </p>
         </div>
       </header>
@@ -703,10 +703,10 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
           {readState === 'unavailable' && (
             <Alert
               tone="warning"
-              title="Cloud records unavailable — device-only mode active"
-              action={<Button variant="secondary" size="sm" onClick={() => setReload(value => value + 1)}>Retry cloud sync</Button>}
+              title="Medical records unavailable"
+              action={<Button variant="secondary" size="sm" onClick={() => setReload(value => value + 1)}>Try again</Button>}
             >
-              Your account records could not be loaded from the cloud right now. You can still add and save medical records below on this device.
+              Your account records could not be loaded right now. You can still add records below; they will be saved on this device.
             </Alert>
           )}
 

@@ -14,82 +14,61 @@ interface ScdDirectoryFacility {
   name: string;
   city: 'Lagos' | 'Abuja' | 'Ogun';
   type: 'SCD Clinics' | 'Hydroxyurea Pharmacies' | 'Emergency & NGOs';
-  address: string;
-  phone: string;
-  hydroxyureaNote: string;
-  services: string;
+  area: string;
+  askAbout: string;
 }
 
+// Starting list of public institutions only. Phone numbers, opening hours and medicine stock
+// are intentionally NOT stored here: they have not been verified and change often. Patients are
+// directed to Google Maps for current contact details and told to confirm before travelling.
 const SCD_CARE_DIRECTORY: ScdDirectoryFacility[] = [
   {
     id: 'luth-lagos',
-    name: 'LUTH Sickle Cell & Hematology Day-Care Center',
+    name: 'Lagos University Teaching Hospital (LUTH)',
     city: 'Lagos',
     type: 'SCD Clinics',
-    address: 'Ishaga Rd, Idi-Araba, Surulere, Lagos',
-    phone: '+23412703333',
-    hydroxyureaNote: 'Specialist Hydroxyurea titration, FBC monitoring & hospital pharmacy stock',
-    services: '24/7 VOC crisis stabilization, transfusion unit, adult & pediatric hematology'
+    area: 'Idi-Araba, Surulere, Lagos',
+    askAbout: 'Ask the haematology clinic about sickle cell follow-up and hydroxyurea prescribing.'
   },
   {
     id: 'scfn-lagos',
-    name: 'Sickle Cell Foundation Nigeria (SCFN) National Centre',
+    name: 'Sickle Cell Foundation Nigeria',
     city: 'Lagos',
     type: 'Emergency & NGOs',
-    address: 'Opposite LUTH, Idi-Araba, Surulere, Lagos',
-    phone: '+2348035846666',
-    hydroxyureaNote: 'Subsidized routine SCD medicines & genetic counseling support',
-    services: 'HPLC genotype confirmation, transcranial Doppler screening, warrior support'
+    area: 'Idi-Araba, Surulere, Lagos',
+    askAbout: 'Ask about genotype testing, counselling and patient support programmes.'
   },
   {
     id: 'lasuth-ikeja',
-    name: 'LASUTH Hematology Clinic & Oncology Pharmacy',
+    name: 'Lagos State University Teaching Hospital (LASUTH)',
     city: 'Lagos',
-    type: 'Hydroxyurea Pharmacies',
-    address: '1-5 Oba Akinjobi Way, Ikeja, Lagos',
-    phone: '+2348023156789',
-    hydroxyureaNote: 'Verified Hydroxyurea (500mg), Folic Acid & Proguanil outpatient refills',
-    services: 'State tertiary hematology clinic, day-care hydration & prescription dispensing'
+    type: 'SCD Clinics',
+    area: 'Ikeja, Lagos',
+    askAbout: 'Ask the haematology clinic and hospital pharmacy about hydroxyurea refills.'
   },
   {
     id: 'national-hosp-abuja',
-    name: 'National Hospital Abuja Hematology & SCD Unit',
+    name: 'National Hospital Abuja',
     city: 'Abuja',
     type: 'SCD Clinics',
-    address: 'Plot 242, Central Business District, Garki, Abuja',
-    phone: '+23492901561',
-    hydroxyureaNote: 'Specialist Hydroxyurea monitoring, apheresis & routine blood count lab',
-    services: 'Tertiary referral center, pediatric & adult sickle cell crisis bays'
-  },
-  {
-    id: 'garki-pharm-abuja',
-    name: 'Garki Hospital SCD Clinic & Community Pharmacy',
-    city: 'Abuja',
-    type: 'Hydroxyurea Pharmacies',
-    address: 'Tafawa Balewa Way, Area 3, Garki, Abuja',
-    phone: '+2348091112233',
-    hydroxyureaNote: 'Routine Hydroxyurea, Folic Acid (5mg) & Paludrine refill counter',
-    services: 'Outpatient hematology reviews, emergency analgesia & pharmacy counseling'
+    area: 'Central Business District, Abuja',
+    askAbout: 'Ask the haematology department about sickle cell clinic days and referrals.'
   },
   {
     id: 'fmc-abeokuta',
-    name: 'Federal Medical Centre (FMC) Abeokuta SCD Center',
+    name: 'Federal Medical Centre Abeokuta',
     city: 'Ogun',
     type: 'SCD Clinics',
-    address: 'Bisi Onabanjo Way, Idi-Aba, Abeokuta, Ogun State',
-    phone: '+2348037213456',
-    hydroxyureaNote: 'Specialist Hydroxyurea clinic & hospital pharmacy access',
-    services: 'Regional tertiary hematology care, FBC monitoring & acute crisis triage'
+    area: 'Idi-Aba, Abeokuta, Ogun State',
+    askAbout: 'Ask the haematology clinic about sickle cell follow-up and medicine access.'
   },
   {
     id: 'oouth-sagamu',
-    name: 'OOUTH Sagamu Hematology & SCD Pharmacy Wing',
+    name: 'Olabisi Onabanjo University Teaching Hospital (OOUTH)',
     city: 'Ogun',
-    type: 'Hydroxyurea Pharmacies',
-    address: 'Hospital Road, Sagamu, Ogun State',
-    phone: '+2348033451290',
-    hydroxyureaNote: 'Hydroxyurea & routine malaria prophylaxis refills with clinic prescription',
-    services: 'University teaching hospital SCD clinic, pediatric & adult day-care'
+    type: 'SCD Clinics',
+    area: 'Sagamu, Ogun State',
+    askAbout: 'Ask the haematology clinic and hospital pharmacy about hydroxyurea refills.'
   }
 ];
 
@@ -223,9 +202,8 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
       const matchesQuery =
         !q ||
         f.name.toLowerCase().includes(q) ||
-        f.address.toLowerCase().includes(q) ||
-        f.hydroxyureaNote.toLowerCase().includes(q) ||
-        f.services.toLowerCase().includes(q);
+                f.area.toLowerCase().includes(q) ||
+        f.askAbout.toLowerCase().includes(q);
       return matchesCity && matchesType && matchesQuery;
     });
 
@@ -247,7 +225,7 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
             SCD Clinics, Pharmacies &amp; Hydroxyurea Access
           </h1>
           <p className="text-xs sm:text-sm text-[#D9B9CC] max-w-2xl leading-relaxed">
-            Find verified sickle-cell hematology centers, routine medication refill pharmacies, and track your personal Hydroxyurea supply so you never run out between clinic visits.
+            A starting list of public hospitals with haematology services, plus a personal tracker for your Hydroxyurea supply. Always confirm details before you travel.
           </p>
         </div>
 
@@ -346,7 +324,7 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5">
-              {(['All', 'SCD Clinics', 'Hydroxyurea Pharmacies', 'Emergency & NGOs'] as const).map((type) => (
+              {(['All', 'SCD Clinics', 'Emergency & NGOs'] as const).map((type) => (
                 <button
                   key={type}
                   type="button"
@@ -369,13 +347,25 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
               type="text"
               value={dirSearch}
               onChange={(e) => setDirSearch(e.target.value)}
-              placeholder="Search clinic, pharmacy, Hydroxyurea, HPLC, or area (e.g. Surulere, Garki, Abeokuta)..."
+              placeholder="Search hospital or area (e.g. Surulere, Ikeja, Abeokuta)..."
               className="w-full rounded-full border border-wa-line bg-wa-ground py-2.5 pl-9 pr-4 text-xs font-medium text-wa-plum placeholder:text-wa-plum-muted/60 focus:border-wa-crimson focus:outline-none"
             />
           </div>
         </div>
 
+        <div role="note" className="flex items-start gap-2.5 rounded-[20px] border border-amber-500/40 bg-amber-500/10 p-4 text-xs text-wa-plum">
+          <Phone size={15} className="mt-0.5 shrink-0 text-wa-crimson" />
+          <p className="leading-relaxed">
+            <strong>Confirm before you travel.</strong> This list has not been checked with each hospital. Clinic days and medicine stock change often, so open Google Maps for current phone numbers. In an emergency, call <a href="tel:112" className="font-bold underline">112</a> or go to the nearest emergency unit.
+          </p>
+        </div>
+
         {/* Directory Cards */}
+        {filteredFacilities.length === 0 && (
+          <p className="rounded-[20px] border border-wa-line bg-wa-surface p-4 text-xs text-wa-plum-muted">
+            No hospitals match this search yet. Try another area, or search Google Maps for haematology clinics near you.
+          </p>
+        )}
         <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
           {filteredFacilities.map((facility) => (
             <div
@@ -396,33 +386,22 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
                 </h3>
                 <p className="flex items-start gap-1.5 text-xs text-wa-plum-muted">
                   <MapPin size={14} className="mt-0.5 shrink-0 text-wa-crimson" />
-                  <span>{facility.address}</span>
+                  <span>{facility.area}</span>
                 </p>
-                <div className="rounded-xl border border-wa-line-soft bg-wa-ground/70 p-2.5 text-xs">
-                  <span className="font-bold text-wa-plum block">Hydroxyurea &amp; Meds Access:</span>
-                  <span className="text-wa-plum-muted">{facility.hydroxyureaNote}</span>
-                </div>
-                <p className="text-xs text-wa-plum-muted leading-relaxed">
-                  {facility.services}
+                <p className="rounded-xl border border-wa-line-soft bg-wa-ground/70 p-2.5 text-xs text-wa-plum-muted leading-relaxed">
+                  {facility.askAbout}
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-wa-line-soft">
                 <a
-                  href={`tel:${facility.phone}`}
-                  className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-full bg-wa-crimson px-4 text-xs font-bold text-white transition hover:bg-wa-crimson-press"
-                >
-                  <Phone size={13} />
-                  <span>Call {facility.phone}</span>
-                </a>
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${facility.name} ${facility.address}`)}`}
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${facility.name} ${facility.area}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full border border-wa-line bg-wa-ground px-4 text-xs font-bold text-wa-plum transition hover:border-wa-crimson"
+                  className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-full bg-wa-crimson px-4 text-xs font-bold text-white transition hover:bg-wa-crimson-press"
                 >
                   <ExternalLink size={13} />
-                  <span>Directions</span>
+                  <span>Contact &amp; directions</span>
                 </a>
                 <button
                   type="button"
@@ -595,7 +574,7 @@ export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) 
               </span>
             </span>
             <span className="mt-0.5 block text-xs text-wa-plum-muted dark:text-wa-on-plum-muted">
-              Verified SCD centers, partner pharmacies, emergency contacts, and personal Hydroxyurea refill tracking
+              Public SCD care centres to ask about, plus personal Hydroxyurea refill tracking
             </span>
           </span>
           <ChevronRight size={20} className="text-wa-crimson group-hover:translate-x-0.5 transition-transform shrink-0" />

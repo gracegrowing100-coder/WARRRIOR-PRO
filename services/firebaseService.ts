@@ -1026,15 +1026,10 @@ export const firebaseService = {
       localStorage.setItem(cacheKey, JSON.stringify(meds));
       return { state: 'recorded' as const, data: newMed };
     } catch (error) {
-      try {
-        handleFirestoreError(error, OperationType.CREATE, path);
-      } catch { /* Fall back to device-only cache when Firestore write fails. */ }
-      const cached = localStorage.getItem(cacheKey);
-      const meds = cached ? JSON.parse(cached) : [];
-      const newMed = { id: Math.random().toString(36).substring(2, 9), ...data };
-      meds.push(newMed);
-      localStorage.setItem(cacheKey, JSON.stringify(meds));
-      return { state: 'device-only' as const, data: newMed };
+      // Signed-in medicines are only cached after the cloud create succeeds. A device-only
+      // entry with a random id would be silently dropped the next time the cloud list loads.
+      handleFirestoreError(error, OperationType.CREATE, path);
+      throw error;
     }
   },
 
@@ -1464,9 +1459,9 @@ export const firebaseService = {
     }
     localStorage.setItem(cacheKey, JSON.stringify(logs));
 
+    // Guests keep the symptom entry only. Home reads today's pain from symptom logs as a
+    // fallback, and writing waterIntake here would overwrite the day's hydration total.
     if (!userId) {
-      await this.addPainLog(userId, painLevel, dateStr, triggers);
-      await this.saveWaterLog(userId, dateStr, waterIntake, 3.0);
       await this.updateStreak(userId);
       return;
     }
@@ -1495,9 +1490,7 @@ export const firebaseService = {
     } catch (error) {
       try {
         handleFirestoreError(error, OperationType.CREATE, path);
-      } catch { /* Local cache is already saved for offline/device-only use. */ }
-      await this.addPainLog(userId, painLevel, dateStr, triggers);
-      await this.saveWaterLog(userId, dateStr, waterIntake, 3.0);
+      } catch { /* Local symptom cache is already saved; linked writes stop here. */ }
     }
   },
 
@@ -1713,7 +1706,12 @@ export const firebaseService = {
         return { data, state: 'recorded' };
       }
       const cached = readCache();
-      return { data: cached ?? {}, state: cached ? 'cached' : 'empty' };
+      // Never overwrite device-only records; only seed an empty cache when none exists.
+      if (!cached) {
+        try { localStorage.setItem(cacheKey, '{}'); } catch { /* Read result is still valid. */ }
+      }
+      const hasCachedRecords = Boolean(cached && Object.keys(cached).length > 0);
+      return { data: cached ?? {}, state: hasCachedRecords ? 'cached' : 'empty' };
     } catch {
       const cached = readCache();
       return cached ? { data: cached, state: 'cached' } : { data: {}, state: 'unavailable' };

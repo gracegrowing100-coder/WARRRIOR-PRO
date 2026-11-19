@@ -42,14 +42,19 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
   // Read today's logged hydration & medication signals for Trusted Companion Health Linking
   const getTodayCompanionSignals = () => {
     try {
-      const waterRaw = localStorage.getItem(userId ? `warrior_water_${userId}` : 'warrior_water');
-      const waterMl = waterRaw ? Number(JSON.parse(waterRaw)?.amount ?? 0) : 0;
+      // Keys and units must match firebaseService: water is cached per day in litres
+      // under water_{uid}_{YYYY-MM-DD}; a medicine is taken today when lastTakenDate === today.
+      const today = new Date().toLocaleDateString('sv');
+      const waterRaw = localStorage.getItem(userId ? `water_${userId}_${today}` : `water_${today}`);
+      const waterLiters = waterRaw ? Number(JSON.parse(waterRaw)?.amount ?? 0) : 0;
       const medsRaw = localStorage.getItem(userId ? `warrior_meds_${userId}` : 'warrior_meds');
       const medsList = medsRaw ? JSON.parse(medsRaw) : [];
-      const takenCount = Array.isArray(medsList) ? medsList.filter((m: any) => m?.taken).length : 0;
+      const takenCount = Array.isArray(medsList)
+        ? medsList.filter((m: { lastTakenDate?: string } | null) => m?.lastTakenDate === today).length
+        : 0;
       const totalMeds = Array.isArray(medsList) ? medsList.length : 0;
       return {
-        waterLiters: waterMl > 0 ? `${(waterMl / 1000).toFixed(1)}L` : 'Not logged today',
+        waterLiters: Number.isFinite(waterLiters) && waterLiters > 0 ? `${waterLiters.toFixed(1)}L` : 'Not logged today',
         medsSummary: totalMeds > 0 ? `${takenCount}/${totalMeds} doses taken` : 'Schedule on Home',
       };
     } catch {

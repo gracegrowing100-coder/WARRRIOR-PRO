@@ -58,6 +58,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
   const [quickMedDosage, setQuickMedDosage] = useState('');
   const [quickMedTime, setQuickMedTime] = useState('08:00');
   const [isSavingQuickMed, setIsSavingQuickMed] = useState(false);
+  const [quickMedError, setQuickMedError] = useState<string | null>(null);
 
   const loadSnapshot = useCallback(async () => {
     setLoading(true);
@@ -170,6 +171,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
     const trimmedDosage = dosage.trim();
     if (!trimmedName || !trimmedDosage) return;
     setIsSavingQuickMed(true);
+    setQuickMedError(null);
     try {
       const result = await firebaseService.addMedication(userId, {
         name: trimmedName,
@@ -187,6 +189,7 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
       window.dispatchEvent(new CustomEvent('warrior-streak-updated'));
     } catch (err) {
       console.error('Could not add medication:', err);
+      setQuickMedError('Medicine could not be saved. Check your connection and try again.');
     } finally {
       setIsSavingQuickMed(false);
     }
@@ -648,6 +651,11 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
                 Add
               </Button>
             </form>
+            {quickMedError && (
+              <p role="alert" className="mt-2 text-xs font-semibold text-status-danger-text">
+                {quickMedError}
+              </p>
+            )}
           </div>
         </div>
       </Modal>
