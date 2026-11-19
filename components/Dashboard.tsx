@@ -11,7 +11,7 @@ import { MoodHydrationTrendsChart } from './MoodHydrationTrendsChart';
 import { ScheduledRemindersManager } from './ScheduledRemindersManager';
 import { PatternInsightsDoctorReport } from './PatternInsightsDoctorReport';
 import { SymptomPainCheckIn } from './health';
-import { HomeActionHub, RecentHealthSummary, TodaysHealthCard, UpcomingAppointmentCard } from './home';
+import { RecentHealthSummary, TodaysHealthCard, UpcomingAppointmentCard } from './home';
 import { WeatherCard } from './home/WeatherCard';
 import { WelcomeGuide } from './home/WelcomeGuide';
 import { Spark } from './brand';
@@ -367,20 +367,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
               onLogPain={() => setIsModalOpen(true)}
               onStartCheckIn={() => openTool('checkin')}
               onReviewMeds={() => openTool('medication')}
+              onOpenHydration={() => openTool('hydration')}
             />
           </div>
 
           <WelcomeGuide />
 
           {/* Step 2: Primary Quick Action Icons */}
-          <HomeActionHub
-            onLogHealth={() => setIsModalOpen(true)}
-            onAddWater={() => openTool('hydration')}
-            onReviewMedication={() => openTool('medication')}
-            onOpenMira={() => onNavigate('chat')}
-            onOpenCare={() => onNavigate('care')}
-          />
-
           {/* Step 3: Health Tools & Records Icon Grid (each opens full page with Back to Home) */}
           <section aria-label="Health tools and records" className="space-y-3">
             <div className="flex items-center justify-between px-1">

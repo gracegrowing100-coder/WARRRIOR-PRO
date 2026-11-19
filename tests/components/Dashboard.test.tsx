@@ -26,17 +26,13 @@ vi.mock('../../components/MoodHydrationTrendsChart', () => ({ MoodHydrationTrend
 vi.mock('../../components/ScheduledRemindersManager', () => ({ ScheduledRemindersManager: ({ userId }: { userId: string }) => `Reminders for ${userId}` }));
 vi.mock('../../components/PatternInsightsDoctorReport', () => ({ PatternInsightsDoctorReport: ({ userId }: { userId: string }) => `Pattern report for ${userId}` }));
 vi.mock('../../components/home', () => ({
-  HomeActionHub: ({ onLogHealth, onAddWater, onReviewMedication, onOpenMira, onOpenCare }: { onLogHealth: () => void; onAddWater: () => void; onReviewMedication: () => void; onOpenMira: () => void; onOpenCare: () => void }) => (
-    <section>
-      <h2>Record how you feel</h2>
-      <button onClick={onLogHealth}>Log symptoms and pain</button>
-      <button onClick={onAddWater}>Add water</button>
-      <button onClick={onReviewMedication}>Medicine</button>
-      <button onClick={onOpenMira}>Ask Mira</button>
-      <button onClick={onOpenCare}>Open Care</button>
+  TodaysHealthCard: ({ onLogPain, onOpenHydration }: { onLogPain?: () => void; onOpenHydration?: () => void }) => (
+    <section data-testid="todays-health">
+      Today&apos;s Health
+      <button onClick={onLogPain}>Log symptoms and pain</button>
+      <button onClick={onOpenHydration}>Add water</button>
     </section>
   ),
-  TodaysHealthCard: () => <section data-testid="todays-health">Today&apos;s Health</section>,
   RecentHealthSummary: () => <section data-testid="recent-health">Recent health summary</section>,
   UpcomingAppointmentCard: ({ onOpenCare }: { onOpenCare: () => void }) => <button data-testid="appointment" onClick={onOpenCare}>Appointment</button>,
 }));
@@ -62,7 +58,6 @@ describe('Patient Home critical rendering', () => {
 
     expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening), Tayo/ })).toBeInTheDocument();
     expect(screen.getByTestId('todays-health')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Record how you feel' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Health tools & records' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Need urgent help?' })).toBeInTheDocument();
 
@@ -71,7 +66,7 @@ describe('Patient Home critical rendering', () => {
     expect(document.body).not.toHaveTextContent('Pattern report for patient-1');
     expect(document.body).not.toHaveTextContent('Pain trends for patient-1');
 
-    // Open Hydration full page from Quick Actions and return Home
+    // Open the full hydration page from Today's Health and return Home
     await user.click(screen.getByRole('button', { name: 'Add water' }));
     expect(container.querySelector('#water-intake-tracker-module')).toBeInTheDocument();
     expect(document.body).toHaveTextContent('Hydration for patient-1');
@@ -145,13 +140,10 @@ describe('Patient Home critical rendering', () => {
 
     render(<Dashboard userId="patient-1" onNavigate={onNavigate} />);
     await userEvent.click(screen.getByRole('button', { name: /Appointments/i }));
-    await userEvent.click(screen.getByRole('button', { name: 'Ask Mira' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Open Care' }));
     await userEvent.click(screen.getByRole('button', { name: 'Get help' }));
 
-    expect(onNavigate).toHaveBeenNthCalledWith(1, 'care');
-    expect(onNavigate).toHaveBeenNthCalledWith(2, 'chat');
-    expect(onNavigate).toHaveBeenNthCalledWith(3, 'care');
+    expect(onNavigate).toHaveBeenCalledTimes(1);
+    expect(onNavigate).toHaveBeenCalledWith('care');
     expect(emergencyClick).toHaveBeenCalledTimes(1);
     emergency.remove();
   });

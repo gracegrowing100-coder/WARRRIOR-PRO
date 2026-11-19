@@ -9,6 +9,7 @@ interface TodaysHealthCardProps {
   onStartCheckIn?: () => void;
   onLogPain?: () => void;
   onReviewMeds?: () => void;
+  onOpenHydration?: () => void;
 }
 
 interface TodaySnapshot {
@@ -44,7 +45,7 @@ const formatUpdatedTime = (value: string | null) => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refreshKey = 0, onStartCheckIn, onLogPain, onReviewMeds }) => {
+export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refreshKey = 0, onStartCheckIn, onLogPain, onReviewMeds, onOpenHydration }) => {
   const [snapshot, setSnapshot] = useState<TodaySnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -453,15 +454,29 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
         description="Quickly add water by container type"
         size="sm"
         footer={
-          <Button
-            variant="primary"
-            onClick={addWater}
-            disabled={isAddingWater}
-            loading={isAddingWater}
-            loadingLabel="Adding..."
-          >
-            Add {(quantity * calculateAmount(selectedUnit, 1)).toFixed(1)}L
-          </Button>
+          <div className="flex w-full items-center justify-between gap-2">
+            {onOpenHydration ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setWaterModalOpen(false);
+                  onOpenHydration();
+                }}
+              >
+                Full water tracker
+              </Button>
+            ) : <span />}
+            <Button
+              variant="primary"
+              onClick={addWater}
+              disabled={isAddingWater}
+              loading={isAddingWater}
+              loadingLabel="Adding…"
+            >
+              Add {(quantity * calculateAmount(selectedUnit, 1)).toFixed(1)}L
+            </Button>
+          </div>
         }
       >
         <div className="space-y-4">
