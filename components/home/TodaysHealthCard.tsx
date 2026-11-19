@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowRight, Check, CheckCircle2, CircleDashed, Clock, Droplets, HeartPulse, Pill, Plus, RefreshCw } from 'lucide-react';
+import { ArrowRight, Check, CheckCircle2, CircleDashed, Droplets, HeartPulse, Pill, Plus, RefreshCw } from 'lucide-react';
 import { firebaseService } from '../../services/firebaseService';
 import { Alert, Button, Card, ChoiceChip, Modal, Skeleton } from '../ui';
+import { MedicineCheckInModal, type MedicationSummary } from './MedicineCheckInModal';
 
 interface TodaysHealthCardProps {
   userId: string;
@@ -28,14 +29,6 @@ interface PainLog {
   painLevel?: number;
 }
 
-interface MedicationSummary {
-  id?: string;
-  name?: string;
-  dosage?: string;
-  time?: string;
-  lastTakenDate?: string;
-}
-
 const getTodayKey = () => new Date().toLocaleDateString('sv');
 
 const formatUpdatedTime = (value: string | null) => {
@@ -54,12 +47,6 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
   const [quantity, setQuantity] = useState(1);
   const [isAddingWater, setIsAddingWater] = useState(false);
   const [medsModalOpen, setMedsModalOpen] = useState(false);
-  const [medBusyId, setMedBusyId] = useState<string | null>(null);
-  const [quickMedName, setQuickMedName] = useState('');
-  const [quickMedDosage, setQuickMedDosage] = useState('');
-  const [quickMedTime, setQuickMedTime] = useState('08:00');
-  const [isSavingQuickMed, setIsSavingQuickMed] = useState(false);
-  const [quickMedError, setQuickMedError] = useState<string | null>(null);
 
   const loadSnapshot = useCallback(async () => {
     setLoading(true);
@@ -141,58 +128,6 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
       console.error('Could not add water:', error);
     } finally {
       setIsAddingWater(false);
-    }
-  };
-
-  const toggleMedicationTaken = async (med: MedicationSummary) => {
-    if (!med.id) return;
-    const today = getTodayKey();
-    const currentlyTaken = med.lastTakenDate === today;
-    const updatedDate = currentlyTaken ? '' : today;
-    setMedBusyId(med.id);
-    try {
-      await firebaseService.updateMedication(userId, med.id, { lastTakenDate: updatedDate });
-      setSnapshot((prev) => prev ? {
-        ...prev,
-        medications: prev.medications.map((m) => (m.id === med.id ? { ...m, lastTakenDate: updatedDate } : m)),
-      } : prev);
-      if (!currentlyTaken) {
-        try { await firebaseService.updateStreak(userId); } catch { /* Optional streak sync */ }
-      }
-      window.dispatchEvent(new CustomEvent('warrior-streak-updated'));
-    } catch (err) {
-      console.error('Could not update medication status:', err);
-    } finally {
-      setMedBusyId(null);
-    }
-  };
-
-  const handleQuickAddMed = async (name: string, dosage: string, time = '08:00') => {
-    const trimmedName = name.trim();
-    const trimmedDosage = dosage.trim();
-    if (!trimmedName || !trimmedDosage) return;
-    setIsSavingQuickMed(true);
-    setQuickMedError(null);
-    try {
-      const result = await firebaseService.addMedication(userId, {
-        name: trimmedName,
-        dosage: trimmedDosage,
-        time,
-        frequency: 'Once Daily',
-        lastTakenDate: '',
-      });
-      setSnapshot((prev) => prev ? {
-        ...prev,
-        medications: [...prev.medications, result.data as MedicationSummary],
-      } : prev);
-      setQuickMedName('');
-      setQuickMedDosage('');
-      window.dispatchEvent(new CustomEvent('warrior-streak-updated'));
-    } catch (err) {
-      console.error('Could not add medication:', err);
-      setQuickMedError('Medicine could not be saved. Check your connection and try again.');
-    } finally {
-      setIsSavingQuickMed(false);
     }
   };
 
@@ -534,154 +469,14 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
         </div>
       </Modal>
 
-      {/* Quick Check-in Medicines Modal */}
-      <Modal
+      <MedicineCheckInModal
         open={medsModalOpen}
         onOpenChange={setMedsModalOpen}
-        title="Today's medicines"
-        description="Tap any medicine to mark it taken today, or quick-add a daily medicine."
-        size="sm"
-        footer={
-          <div className="flex w-full items-center justify-between gap-2">
-            {onReviewMeds ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setMedsModalOpen(false);
-                  onReviewMeds();
-                }}
-              >
-                Full schedule
-              </Button>
-            ) : <span />}
-            <Button variant="primary" size="sm" onClick={() => setMedsModalOpen(false)}>
-              Done
-            </Button>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          {snapshot.medications.length > 0 ? (
-            <ul className="space-y-2.5">
-              {snapshot.medications.map((med, index) => {
-                const isTaken = med.lastTakenDate === getTodayKey();
-                const isBusy = medBusyId === med.id;
-                return (
-                  <li
-                    key={med.id || `${med.name}-${index}`}
-                    className={`flex items-center justify-between gap-3 rounded-2xl border p-3 transition-colors ${
-                      isTaken
-                        ? 'border-emerald-500/30 bg-emerald-500/10'
-                        : 'border-wa-line bg-wa-ground/70 dark:bg-white/5'
-                    }`}
-                  >
-                    <div className="min-w-0">
-                      <p className={`truncate text-sm font-bold ${isTaken ? 'line-through text-wa-plum-muted' : 'text-wa-plum'}`}>
-                        {med.name || 'Medication'}
-                      </p>
-                      <p className="mt-0.5 flex items-center gap-1.5 text-xs text-wa-plum-muted">
-                        {med.dosage ? <span>{med.dosage}</span> : null}
-                        {med.time ? (
-                          <span className="inline-flex items-center gap-1">
-                            <Clock size={12} aria-hidden="true" />
-                            {med.time}
-                          </span>
-                        ) : null}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      data-ui-control
-                      disabled={isBusy || !med.id}
-                      onClick={() => void toggleMedicationTaken(med)}
-                      aria-label={`Mark ${med.name || 'medication'} as ${isTaken ? 'not taken' : 'taken'}`}
-                      className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson ${
-                        isTaken
-                          ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                          : 'border border-wa-line bg-wa-surface text-wa-plum hover:border-wa-crimson hover:bg-wa-rose/30'
-                      }`}
-                    >
-                      <Check size={14} aria-hidden="true" />
-                      {isTaken ? 'Taken' : 'Take'}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-wa-line bg-wa-ground/60 p-4 text-center dark:bg-white/5">
-              <p className="text-sm font-bold text-wa-plum">No medicines scheduled yet</p>
-              <p className="mt-1 text-xs text-wa-plum-muted">
-                Tap a common sickle cell medicine below or add your own.
-              </p>
-            </div>
-          )}
-
-          <div className="space-y-2.5 border-t border-wa-line-soft pt-3">
-            <p className="text-xs font-bold uppercase tracking-wider text-wa-plum-muted">
-              Quick add medicine
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                { name: 'Hydroxyurea', dosage: '500mg' },
-                { name: 'Folic Acid', dosage: '5mg' },
-                { name: 'Proguanil', dosage: '100mg' },
-                { name: 'Vitamin B Complex', dosage: '1 tablet' },
-              ].map((preset) => (
-                <button
-                  key={preset.name}
-                  type="button"
-                  disabled={isSavingQuickMed}
-                  onClick={() => void handleQuickAddMed(preset.name, preset.dosage, '08:00')}
-                  className="inline-flex min-h-8 items-center gap-1 rounded-full border border-wa-line bg-wa-surface px-2.5 text-xs font-semibold text-wa-plum transition-colors hover:border-wa-crimson hover:bg-wa-rose/30 disabled:opacity-50"
-                >
-                  <Plus size={12} aria-hidden="true" />
-                  {preset.name}
-                </button>
-              ))}
-            </div>
-            <form
-              className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-[1fr_90px_auto]"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void handleQuickAddMed(quickMedName, quickMedDosage, quickMedTime);
-              }}
-            >
-              <input
-                type="text"
-                value={quickMedName}
-                onChange={(e) => setQuickMedName(e.target.value)}
-                placeholder="Medicine name"
-                aria-label="Medicine name"
-                className="min-h-10 rounded-xl border border-wa-line bg-wa-surface px-3 text-sm text-wa-plum placeholder:text-wa-plum-muted focus:border-wa-crimson focus:outline-none"
-              />
-              <input
-                type="text"
-                value={quickMedDosage}
-                onChange={(e) => setQuickMedDosage(e.target.value)}
-                placeholder="Dosage"
-                aria-label="Dosage"
-                className="min-h-10 rounded-xl border border-wa-line bg-wa-surface px-3 text-sm text-wa-plum placeholder:text-wa-plum-muted focus:border-wa-crimson focus:outline-none"
-              />
-              <Button
-                type="submit"
-                variant="primary"
-                size="sm"
-                disabled={isSavingQuickMed || !quickMedName.trim() || !quickMedDosage.trim()}
-                className="min-h-10"
-              >
-                Add
-              </Button>
-            </form>
-            {quickMedError && (
-              <p role="alert" className="mt-2 text-xs font-semibold text-status-danger-text">
-                {quickMedError}
-              </p>
-            )}
-          </div>
-        </div>
-      </Modal>
+        userId={userId}
+        medications={snapshot.medications}
+        onMedicationsChange={(medications) => setSnapshot((prev) => (prev ? { ...prev, medications } : prev))}
+        onReviewMeds={onReviewMeds}
+      />
     </>
   );
 };
