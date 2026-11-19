@@ -87,7 +87,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
   const [refreshPain, setRefreshPain] = useState<number>(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPainLevel, setCurrentPainLevel] = useState<number>(3);
-  const [streakDays, setStreakDays] = useState<number>(12);
+  const [streakDays, setStreakDays] = useState<number>(0);
   const [activeTool, setActiveTool] = useState<HomeToolView>(null);
 
   const fetchProfileAndStats = async (active = true) => {
