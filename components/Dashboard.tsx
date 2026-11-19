@@ -342,20 +342,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
                 <path fillRule="evenodd" d="M50 6C50 6 82 42 82 63A32 32 0 0 1 18 63C18 42 50 6 50 6ZM50 40L44.5 56.5L28 62L44.5 67.5L50 84L55.5 67.5L72 62L55.5 56.5Z" />
               </svg>
             </div>
-            <div className="relative flex items-start justify-between gap-4">
-              <div>
+            <div className="relative">
+              <div className="flex min-h-11 items-center justify-between gap-3">
                 <p className="text-xs font-semibold text-wa-on-plum-muted sm:text-small">
                   {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
                 </p>
-                <h1 className="mt-0.5 text-[1.65rem] font-extrabold leading-tight tracking-[-0.02em] text-white sm:text-[2.1rem] lg:text-[2.4rem] font-display">
-                  {greeting}, {firstName}
-                </h1>
-                <div className="mt-2.5 inline-flex items-center gap-1.5 h-[28px] px-3 rounded-full bg-wa-coral/20 text-[#FFC7D0] text-[12px] font-semibold">
-                  <Spark className="w-3 h-3 text-wa-coral" />
-                  <span>{streakDays > 0 ? `${streakDays}-${t.dayLoggingStreak}` : t.startLoggingStreak}</span>
-                </div>
+                <SosPill className="md:hidden" onClick={() => document.getElementById('emergency-fab')?.click()} />
               </div>
-              <SosPill className="md:hidden" onClick={() => document.getElementById('emergency-fab')?.click()} />
+              <h1 className="mt-1 text-[1.65rem] font-extrabold leading-tight tracking-[-0.02em] text-white text-balance sm:text-[2.1rem] lg:text-[2.4rem] font-display">
+                {greeting}, {firstName}
+              </h1>
+              <div className="mt-3 inline-flex min-h-7 items-center gap-1.5 rounded-full bg-wa-coral/20 px-3 py-1 text-[12px] font-semibold text-[#FFC7D0]">
+                <Spark className="w-3 h-3 shrink-0 text-wa-coral" />
+                <span>{streakDays > 0 ? `${streakDays}-${t.dayLoggingStreak}` : t.startLoggingStreak}</span>
+              </div>
             </div>
           </header>
 
