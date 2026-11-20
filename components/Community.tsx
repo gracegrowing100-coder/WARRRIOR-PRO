@@ -3,7 +3,7 @@ import {
   MessageSquare, Heart, Share2, Plus, X, Search, 
   Phone, Mail, MapPin, Filter, ArrowUpDown, Users, 
   ShieldAlert, ShieldCheck, VolumeX, Check, Sparkles, Clock, 
-  ExternalLink, Building2, CheckCircle2, ChevronRight, Bookmark
+  ExternalLink, Building2, CheckCircle2, ChevronRight, Bookmark, AlertTriangle
 } from 'lucide-react';
 import { firebaseService } from '../services/firebaseService';
 import { auth } from '../firebase-init';
@@ -13,13 +13,7 @@ interface SupportCenter {
   center_name: string;
   category: 'Specialized Clinics' | 'Support Groups' | 'NGOs';
   description?: string;
-  phone: string;
-  email: string;
   address: string;
-  geocoordinates: {
-    latitude: number;
-    longitude: number;
-  };
   city: 'Lagos' | 'Abuja' | 'Ogun';
 }
 
@@ -29,10 +23,7 @@ const SUPPORT_CENTERS: SupportCenter[] = [
     center_name: 'Sickle Cell Foundation of Nigeria (SCFN)',
     category: 'NGOs',
     description: 'Pioneering non-governmental organization dedicated to sickle cell care, newborn screening, prenatal diagnosis, and genetic counseling across West Africa.',
-    phone: '+2348035846666',
-    email: 'info@sicklecellfoundation.com',
     address: 'National Sickle Cell Centre, opposite LUTH, Idi-Araba, Surulere, Lagos, Nigeria',
-    geocoordinates: { latitude: 6.5135, longitude: 3.3610 },
     city: 'Lagos'
   },
   {
@@ -40,10 +31,7 @@ const SUPPORT_CENTERS: SupportCenter[] = [
     center_name: 'LUTH Sickle Cell Specialized Center',
     category: 'Specialized Clinics',
     description: 'Premier academic hematology day-care and inpatient emergency facility offering hydroxyurea optimization, transfusion medicine, and VOC rapid management.',
-    phone: '+23412703333',
-    email: 'clinical@luth.org.ng',
     address: 'LUTH Complex, Ishaga Rd, Idi-Araba, Surulere, Lagos, Nigeria',
-    geocoordinates: { latitude: 6.5152, longitude: 3.3639 },
     city: 'Lagos'
   },
   {
@@ -51,10 +39,7 @@ const SUPPORT_CENTERS: SupportCenter[] = [
     center_name: 'Abuja National Hospital Hematology Unit',
     category: 'Specialized Clinics',
     description: 'Federal tertiary clinical referral center equipped with apheresis, routine hemoglobin surveillance, pediatric hematology, and emergency VOC crisis bays.',
-    phone: '+23492901561',
-    email: 'contact@nationalhospital.gov.ng',
     address: 'Plot 242, Garki-II, Abuja, Nigeria',
-    geocoordinates: { latitude: 9.0223, longitude: 7.4722 },
     city: 'Abuja'
   },
   {
@@ -62,10 +47,7 @@ const SUPPORT_CENTERS: SupportCenter[] = [
     center_name: 'Abuja Warriors Mutual Help Circle',
     category: 'Support Groups',
     description: 'Community-led peer collective providing lived-experience crisis buddy systems, nutrition workshops, hospital visitation, and mutual warrior aid.',
-    phone: '+2348129994444',
-    email: 'abujawarriors@gmail.com',
     address: 'Area 11 Community Center, Garki, Abuja, Nigeria',
-    geocoordinates: { latitude: 9.0305, longitude: 7.4811 },
     city: 'Abuja'
   },
   {
@@ -73,10 +55,7 @@ const SUPPORT_CENTERS: SupportCenter[] = [
     center_name: 'FMC Abeokuta Sickle Cell Specialized Center',
     category: 'Specialized Clinics',
     description: 'Regional tertiary referral center providing dedicated hematology clinics, pediatric crisis stabilization, hydroxyurea monitoring, and comprehensive care for Ogun State.',
-    phone: '+2348037213456',
-    email: 'clinical@fmcabeokuta.org.ng',
     address: 'Bisi Onabanjo Way, Idi-Aba, Abeokuta, Ogun State, Nigeria',
-    geocoordinates: { latitude: 7.1557, longitude: 3.3458 },
     city: 'Ogun'
   },
   {
@@ -84,10 +63,7 @@ const SUPPORT_CENTERS: SupportCenter[] = [
     center_name: 'OOUTH Sagamu Hematology & Day-Care Clinic',
     category: 'Specialized Clinics',
     description: 'University teaching hospital delivering comprehensive sickle cell clinical management, newborn screening, day-care hydration, and emergency VOC pain protocol management.',
-    phone: '+2348033451290',
-    email: 'hematology@oouth.org.ng',
     address: 'Hospital Complex, Sagamu - Ikenne Rd, Sagamu, Ogun State, Nigeria',
-    geocoordinates: { latitude: 6.8402, longitude: 3.6521 },
     city: 'Ogun'
   },
   {
@@ -95,10 +71,7 @@ const SUPPORT_CENTERS: SupportCenter[] = [
     center_name: 'Ogun State Sickle Cell Warriors Support Network',
     category: 'Support Groups',
     description: 'Grassroots patient and caregiver mutual support community offering monthly support circles, peer hydration buddies, caregiver relief, and crisis transport aid across Ogun State.',
-    phone: '+2348028887766',
-    email: 'ogunwarriors@gmail.com',
     address: 'Community Health Wing, Sacred Heart Hospital, Lantoro, Abeokuta, Ogun State, Nigeria',
-    geocoordinates: { latitude: 7.1475, longitude: 3.3520 },
     city: 'Ogun'
   },
   {
@@ -106,19 +79,15 @@ const SUPPORT_CENTERS: SupportCenter[] = [
     center_name: 'Sickle Cell Aid Foundation (SCAF) - Ogun',
     category: 'NGOs',
     description: 'Advocacy and compassionate care NGO coordinating free genotype testing, educational awareness campaigns, and subsidized routine medications for vulnerable warriors.',
-    phone: '+2348123456780',
-    email: 'contact@scaf.org.ng',
     address: 'Kuto Area Civic Center, Abeokuta, Ogun State, Nigeria',
-    geocoordinates: { latitude: 7.1412, longitude: 3.3475 },
     city: 'Ogun'
   }
 ];
 
-// Major location coordinates for relative distance calculation
-const CITY_EPICENTERS = {
-  Lagos: { latitude: 6.4550, longitude: 3.3840 },
-  Abuja: { latitude: 9.0765, longitude: 7.3986 },
-  Ogun: { latitude: 7.1557, longitude: 3.3458 }
+const CATEGORY_LABELS: Record<SupportCenter['category'], string> = {
+  'Specialized Clinics': 'Clinic',
+  'Support Groups': 'Support group',
+  NGOs: 'NGO',
 };
 
 interface ForumPost {
@@ -167,7 +136,6 @@ export const Community: React.FC = () => {
   // --- Support Directory States ---
   const [selectedCity, setSelectedCity] = useState<'Lagos' | 'Abuja' | 'Ogun'>('Lagos');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('All');
-  const [sortBy, setSortBy] = useState<'distance' | 'name'>('distance');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // --- Forum States ---
@@ -413,373 +381,206 @@ export const Community: React.FC = () => {
     setShowNewPost(false);
   };
 
-  // --- Haversine Formula for Real-Time distance calculation ---
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371; // earth radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  };
+  // Directory entries carry no phone numbers or distances: neither was verified, and the
+  // distance was measured from a fixed city point, not from the patient.
+  const processedCenters = SUPPORT_CENTERS
+    .filter(center => {
+      if (center.city !== selectedCity) return false;
+      if (selectedCategoryFilter !== 'All' && center.category !== selectedCategoryFilter) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return (
+          center.center_name.toLowerCase().includes(q) ||
+          center.address.toLowerCase().includes(q) ||
+          (center.description && center.description.toLowerCase().includes(q))
+        );
+      }
+      return true;
+    })
+    .sort((a, b) => a.center_name.localeCompare(b.center_name));
 
-  const currentEpicenter = CITY_EPICENTERS[selectedCity];
-
-  // Process centers list: add distances, filter, sort
-  const processedCenters = SUPPORT_CENTERS.map(center => {
-    const dist = calculateDistance(
-      currentEpicenter.latitude, 
-      currentEpicenter.longitude, 
-      center.geocoordinates.latitude, 
-      center.geocoordinates.longitude
-    );
-    return { ...center, distance: parseFloat(dist.toFixed(1)) };
-  })
-  .filter(center => {
-    if (center.city !== selectedCity) return false;
-    if (selectedCategoryFilter !== 'All' && center.category !== selectedCategoryFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      return (
-        center.center_name.toLowerCase().includes(q) || 
-        center.address.toLowerCase().includes(q) ||
-        (center.description && center.description.toLowerCase().includes(q))
-      );
-    }
-    return true;
-  })
-  .sort((a, b) => {
-    if (sortBy === 'distance') {
-      return a.distance - b.distance;
-    } else {
-      return a.center_name.localeCompare(b.center_name);
-    }
-  });
-
-  const featuredCenter = processedCenters[0];
-  const remainingCenters = processedCenters.slice(1);
 
   return (
     <div className="space-y-5" data-semantic>
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-wa-line">
+      {/* Header */}
+      <header className="space-y-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-display text-wa-plum tracking-tight">Community & Support</h1>
-          <p className="text-xs sm:text-sm text-wa-plum-muted mt-0.5">Strength in connection, verified care in proximity.</p>
+          <h1 className="font-display text-2xl font-extrabold tracking-tight text-wa-plum sm:text-3xl">Community &amp; Support</h1>
+          <p className="mt-0.5 text-[13px] text-wa-plum-muted sm:text-sm">Find care near you and connect with other warriors.</p>
         </div>
 
-        {/* Tab Switcher Pills */}
-        <div role="tablist" aria-label="Community destinations" className="flex items-center gap-1 p-1 rounded-full bg-wa-surface border border-wa-line shadow-2xs max-w-fit">
-          <button 
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'support'}
-            onClick={() => setActiveTab('support')}
-            className={`px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'support' 
-                ? 'bg-[#3B0F2C] text-white shadow-xs' 
-                : 'text-wa-plum-muted hover:text-wa-plum hover:bg-wa-ground'
-            }`}
-          >
-            <MapPin size={13} className={activeTab === 'support' ? 'text-[#FBE4E8]' : 'text-[#C4122F]'} />
-            <span>Care Directory</span>
-          </button>
-          <button 
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'warrior_match'}
-            onClick={() => setActiveTab('warrior_match')}
-            className={`px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'warrior_match' 
-                ? 'bg-[#3B0F2C] text-white shadow-xs' 
-                : 'text-wa-plum-muted hover:text-wa-plum hover:bg-wa-ground'
-            }`}
-          >
-            <Users size={13} className={activeTab === 'warrior_match' ? 'text-[#FBE4E8]' : 'text-[#C4122F]'} />
-            <span>Peer Circles</span>
-          </button>
-          <button 
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'forum'}
-            onClick={() => setActiveTab('forum')}
-            className={`px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'forum' 
-                ? 'bg-[#3B0F2C] text-white shadow-xs' 
-                : 'text-wa-plum-muted hover:text-wa-plum hover:bg-wa-ground'
-            }`}
-          >
-            <MessageSquare size={13} className={activeTab === 'forum' ? 'text-[#FBE4E8]' : 'text-[#C4122F]'} />
-            <span>Village Forum</span>
-          </button>
+        {/* Tabs: equal-width segments so labels never wrap on a phone */}
+        <div role="tablist" aria-label="Community destinations" className="grid grid-cols-3 gap-1 rounded-full border border-wa-line bg-wa-surface p-1">
+          {([
+            { id: 'support', label: 'Care Directory', short: 'Directory', icon: MapPin },
+            { id: 'warrior_match', label: 'Peer Circles', short: 'Circles', icon: Users },
+            { id: 'forum', label: 'Village Forum', short: 'Forum', icon: MessageSquare },
+          ] as const).map(tab => {
+            const selected = activeTab === tab.id;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                aria-label={tab.label}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex min-h-11 items-center justify-center gap-1.5 rounded-full px-2 text-[13px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson ${
+                  selected ? 'bg-wa-rose text-wa-crimson' : 'text-wa-plum-muted hover:bg-wa-ground hover:text-wa-plum'
+                }`}
+              >
+                <Icon size={15} aria-hidden="true" />
+                <span className="sm:hidden">{tab.short}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </header>
 
       {/* ============================================================== */}
-      {/* 1. CARE DIRECTORY TAB (DESIGN.MD 8.13 PRIMARY SPEC)            */}
+      {/* 1. CARE DIRECTORY TAB                                           */}
       {/* ============================================================== */}
       {activeTab === 'support' && (
-        <div className="space-y-5">
-          {/* Controls Bar: Search, City Epicenter, Sort, Filter */}
-          <div className="bg-wa-surface p-4 sm:p-5 rounded-[24px] border border-wa-line shadow-2xs space-y-3.5">
-            <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-center justify-between">
-              
-              {/* City selector */}
-              <div className="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
-                <span className="text-[10px] font-mono font-bold text-wa-plum-muted uppercase tracking-wider shrink-0 mr-1">Location:</span>
-                {(['Lagos', 'Abuja', 'Ogun'] as const).map(city => (
-                  <button
-                    key={city}
-                    type="button"
-                    onClick={() => {
-                      setSelectedCity(city);
-                      setSearchQuery('');
-                    }}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                      selectedCity === city 
-                        ? 'bg-[#3B0F2C] text-white shadow-xs' 
-                        : 'bg-wa-ground text-wa-plum-muted border border-wa-line hover:text-wa-plum'
-                    }`}
-                  >
-                    {city}
-                  </button>
-                ))}
-              </div>
-
-              {/* Category filter & Sort by */}
-              <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-between lg:justify-end">
-                <div className="flex items-center gap-1.5 bg-wa-ground px-3 py-1.5 rounded-full border border-wa-line">
-                  <Filter size={13} className="text-wa-plum-muted" />
-                  <select 
-                    value={selectedCategoryFilter}
-                    onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-                    aria-label="Filter resource categories"
-                    className="bg-transparent border-none text-xs text-wa-plum font-bold focus:outline-none cursor-pointer"
-                  >
-                    <option value="All">All Resources</option>
-                    <option value="Specialized Clinics">Specialized Clinics</option>
-                    <option value="Support Groups">Support Groups</option>
-                    <option value="NGOs">NGOs</option>
-                  </select>
-                </div>
-
-                <button 
+        <div className="space-y-4">
+          {/* Filters */}
+          <div className="space-y-3 rounded-[22px] border border-wa-line bg-wa-surface p-4">
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="City">
+              {(['Lagos', 'Abuja', 'Ogun'] as const).map(city => (
+                <button
+                  key={city}
                   type="button"
-                  onClick={() => setSortBy(prev => prev === 'distance' ? 'name' : 'distance')}
-                  className="flex items-center gap-1.5 bg-wa-ground border border-wa-line hover:bg-wa-rose px-3 py-1.5 rounded-full text-xs font-bold text-wa-plum cursor-pointer transition"
-                  title="Toggle Sorting Mode"
+                  aria-pressed={selectedCity === city}
+                  onClick={() => {
+                    setSelectedCity(city);
+                    setSearchQuery('');
+                  }}
+                  className={`inline-flex min-h-11 items-center rounded-full px-4 text-[13px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson ${
+                    selectedCity === city
+                      ? 'bg-wa-hero text-white'
+                      : 'border border-wa-line bg-wa-surface text-wa-plum hover:bg-wa-ground'
+                  }`}
                 >
-                  <ArrowUpDown size={13} className="text-[#C4122F]" />
-                  <span>Sort: {sortBy === 'distance' ? 'Distance' : 'Name'}</span>
+                  {city}
                 </button>
-              </div>
+              ))}
             </div>
 
-            {/* Keyword search input */}
-            <div className="relative">
-              <Search className="absolute left-3.5 top-3 text-wa-plum-muted" size={16} />
-              <input 
-                type="text" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={`Search centers in ${selectedCity} (e.g. hematology, foundation, emergency)`} 
-                className="w-full pl-10 pr-4 py-2.5 bg-wa-ground rounded-full border border-wa-line text-xs font-medium text-wa-plum placeholder:text-wa-plum-muted/60 focus:outline-none focus:border-[#C4122F] transition"
-              />
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-wa-plum-muted" size={16} aria-hidden="true" />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  aria-label={`Search centres in ${selectedCity}`}
+                  placeholder={`Search ${selectedCity}`}
+                  className="h-11 w-full rounded-full border border-wa-line bg-wa-ground pl-10 pr-4 text-base text-wa-plum placeholder:text-wa-plum-muted/70 focus:border-wa-crimson focus:outline-none focus:ring-2 focus:ring-wa-crimson/30 sm:text-sm"
+                />
+              </div>
+              <div className="relative">
+                <Filter size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-wa-plum-muted" aria-hidden="true" />
+                <select
+                  value={selectedCategoryFilter}
+                  onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+                  aria-label="Filter resource categories"
+                  className="h-11 w-full appearance-none rounded-full border border-wa-line bg-wa-ground pl-10 pr-8 text-[13px] font-bold text-wa-plum focus:border-wa-crimson focus:outline-none sm:w-auto"
+                >
+                  <option value="All">All types</option>
+                  <option value="Specialized Clinics">Clinics</option>
+                  <option value="Support Groups">Support groups</option>
+                  <option value="NGOs">NGOs</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          {/* Directory Listings */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between px-1">
-              <h2 className="text-xs font-bold font-mono text-wa-plum-muted uppercase tracking-wider">
-                {processedCenters.length} Verified Facilities & Networks in {selectedCity}
-              </h2>
-            </div>
+          <div className="flex items-start gap-2.5 rounded-[18px] border border-wa-sun/40 bg-wa-sun-soft p-3.5 text-[13px] text-wa-plum">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0 text-wa-sun-ink" aria-hidden="true" />
+            <p>Confirm opening hours and services before you travel. In an emergency, call <a href="tel:112" className="font-bold underline">112</a>.</p>
+          </div>
+
+          {/* Listings */}
+          <div className="space-y-3">
+            <h2 className="px-1 text-xs font-bold uppercase tracking-wider text-wa-plum-muted">
+              {processedCenters.length} {processedCenters.length === 1 ? 'place' : 'places'} in {selectedCity}
+            </h2>
 
             {processedCenters.length > 0 ? (
-              <div className="space-y-4">
-                {/* 1. First result as Plum Feature Card (DESIGN.md 8.13) */}
-                {featuredCenter && (
-                  <div className="bg-[#3B0F2C] text-white rounded-[28px] p-5 sm:p-6 shadow-md border border-[#E6D8E0] relative overflow-hidden space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider bg-[#C4122F] text-white px-3 py-0.5 rounded-full shadow-2xs">
-                          Featured &bull; {featuredCenter.category}
+              <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {processedCenters.map((center) => {
+                  const isGroup = center.category === 'Support Groups';
+                  return (
+                    <li key={center.id} className="flex flex-col rounded-[22px] border border-wa-line bg-wa-surface p-4">
+                      <div className="flex items-start gap-3">
+                        <span
+                          aria-hidden="true"
+                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+                            isGroup ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-wa-rose text-wa-crimson'
+                          }`}
+                        >
+                          {isGroup ? <Users size={20} /> : <Building2 size={20} />}
                         </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-wa-plum-muted">{CATEGORY_LABELS[center.category]}</p>
+                          <h3 className="font-display text-[15px] font-bold leading-snug text-wa-plum">{center.center_name}</h3>
+                        </div>
                       </div>
-                      <span className="text-xs font-mono font-bold text-[#FBE4E8] bg-wa-surface/10 px-2.5 py-0.5 rounded-full border border-white/15">
-                        📍 {featuredCenter.distance} km from center
-                      </span>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg sm:text-xl font-bold font-display text-white tracking-tight">
-                        {featuredCenter.center_name}
-                      </h3>
-                      {featuredCenter.description && (
-                        <p className="text-xs sm:text-sm text-[#D9B9CC] mt-1.5 leading-relaxed font-medium max-w-3xl">
-                          {featuredCenter.description}
-                        </p>
+                      {center.description && (
+                        <p className="mt-2.5 text-[13px] leading-relaxed text-wa-plum">{center.description}</p>
                       )}
-                      <p className="text-xs text-[#FBE4E8] flex items-center gap-1.5 mt-2.5">
-                        <MapPin size={14} className="text-[#C4122F] shrink-0" />
-                        <span>{featuredCenter.address}</span>
+                      <p className="mt-2 flex items-start gap-1.5 text-xs leading-snug text-wa-plum-muted">
+                        <MapPin size={14} className="mt-px shrink-0 text-wa-crimson" aria-hidden="true" />
+                        <span>{center.address}</span>
                       </p>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/10">
-                      <a 
-                        href={`tel:${featuredCenter.phone}`}
-                        className="min-h-11 px-5 py-2.5 bg-[#C4122F] hover:bg-[#9E0E26] text-white rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
-                      >
-                        <Phone size={14} />
-                        <span>Call {featuredCenter.phone}</span>
-                      </a>
-                      <a 
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(featuredCenter.center_name + ' ' + featuredCenter.address)}`}
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(center.center_name + ' ' + center.address)}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="min-h-11 px-5 py-2.5 bg-wa-surface hover:bg-wa-ground text-wa-plum rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+                        className="mt-3 inline-flex min-h-11 items-center justify-center gap-1.5 self-start rounded-full border border-wa-line bg-wa-surface px-4 text-[13px] font-bold text-wa-plum transition-colors hover:bg-wa-ground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
                       >
-                        <ExternalLink size={14} />
-                        <span>Directions</span>
+                        <ExternalLink size={14} aria-hidden="true" />
+                        Contact &amp; directions
                       </a>
-                      <a 
-                        href={`mailto:${featuredCenter.email}`}
-                        className="min-h-11 px-4 py-2.5 bg-wa-surface/10 hover:bg-wa-surface/15 text-white rounded-full text-xs font-semibold flex items-center gap-1.5 transition"
-                      >
-                        <Mail size={14} />
-                        <span>Email</span>
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {/* 2. Remaining results as clean white cards (DESIGN.md 8.13) */}
-                {remainingCenters.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                    {remainingCenters.map((center) => {
-                      const isClinicOrNgo = center.category === 'Specialized Clinics' || center.category === 'NGOs';
-                      return (
-                        <div 
-                          key={center.id}
-                          className="bg-wa-surface border border-wa-line rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-xs transition flex flex-col justify-between"
-                        >
-                          <div>
-                            <div className="flex items-start justify-between gap-2 mb-2.5">
-                              <div className="flex items-center gap-2">
-                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                                  isClinicOrNgo ? 'bg-wa-rose/60 text-[#C4122F]' : 'bg-[#E8F8EE] text-[#1E7B4A]'
-                                }`}>
-                                  <Building2 size={16} />
-                                </div>
-                                <div>
-                                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-wa-plum-muted block">
-                                    {center.category} &bull; {center.city}
-                                  </span>
-                                </div>
-                              </div>
-                              <span className="text-[11px] font-mono font-bold text-wa-plum-muted bg-wa-ground px-2 py-0.5 rounded-full border border-wa-line">
-                                {center.distance} km
-                              </span>
-                            </div>
-
-                            <h3 className="font-display font-bold text-sm sm:text-base text-wa-plum tracking-tight leading-snug mb-1">
-                              {center.center_name}
-                            </h3>
-                            <p className="text-xs text-wa-plum-muted flex items-start gap-1.5 leading-relaxed mb-3">
-                              <MapPin size={13} className="text-[#C4122F] shrink-0 mt-0.5" />
-                              <span className="truncate">{center.address}</span>
-                            </p>
-                          </div>
-
-                          <div className="flex items-center gap-2 pt-3 border-t border-wa-line-soft mt-auto">
-                            <a 
-                              href={`tel:${center.phone}`}
-                              className="min-h-10 flex-1 px-3 py-2 bg-[#C4122F] hover:bg-[#9E0E26] text-white rounded-full text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-2xs transition"
-                            >
-                              <Phone size={13} />
-                              <span>Call</span>
-                            </a>
-                            <a 
-                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(center.center_name + ' ' + center.address)}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="min-h-10 px-3.5 py-2 bg-wa-ground hover:bg-wa-ground text-wa-plum border border-wa-line rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition"
-                            >
-                              <ExternalLink size={13} />
-                              <span>Route</span>
-                            </a>
-                            <a 
-                              href={`mailto:${center.email}`}
-                              className="min-h-10 px-3 py-2 bg-wa-ground hover:bg-wa-ground text-wa-plum-muted border border-wa-line rounded-full text-xs font-semibold flex items-center justify-center"
-                              title="Send Email"
-                            >
-                              <Mail size={13} />
-                            </a>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                    </li>
+                  );
+                })}
+              </ul>
             ) : (
-              <div className="py-12 bg-wa-surface rounded-2xl border border-wa-line text-center space-y-2 p-6">
-                <Building2 size={32} className="mx-auto text-wa-plum-muted/60 mb-2" />
-                <h3 className="font-bold text-sm text-wa-plum">No facilities match active filters</h3>
-                <p className="text-xs text-wa-plum-muted max-w-xs mx-auto">
-                  Try clearing your search query or selecting a different category filter.
-                </p>
+              <div className="space-y-2 rounded-[22px] border border-wa-line bg-wa-surface p-6 text-center">
+                <Building2 size={28} className="mx-auto text-wa-plum-muted/60" aria-hidden="true" />
+                <h3 className="text-sm font-bold text-wa-plum">No places match your search</h3>
+                <p className="mx-auto max-w-xs text-xs text-wa-plum-muted">Try a different word or show all types.</p>
                 <button
                   type="button"
                   onClick={() => { setSearchQuery(''); setSelectedCategoryFilter('All'); }}
-                  className="mt-2 px-4 py-2 bg-wa-ground text-wa-plum hover:bg-wa-rose rounded-full text-xs font-bold transition cursor-pointer"
+                  className="mt-1 inline-flex min-h-11 items-center rounded-full bg-wa-ground px-4 text-[13px] font-bold text-wa-plum transition hover:bg-wa-rose/40"
                 >
-                  Reset Filters
+                  Clear filters
                 </button>
               </div>
             )}
           </div>
 
-          {/* Sticky Emergency Assistance Box */}
-          <div className="bg-[#3B0F2C] text-white rounded-[24px] p-5 sm:p-6 shadow-sm border border-wa-line flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
-            <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-2xl bg-[#C4122F] flex items-center justify-center text-white shrink-0 shadow-xs">
-                <ShieldAlert className="w-6 h-6 animate-pulse" />
-              </div>
+          {/* Crisis help: calm surface, one clear action */}
+          <section aria-labelledby="crisis-help-heading" className="flex items-start gap-3 rounded-[22px] border border-wa-crimson/25 bg-wa-rose/40 p-4 dark:bg-wa-rose/10">
+            <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-wa-surface text-wa-crimson">
+              <ShieldAlert size={20} />
+            </span>
+            <div className="min-w-0 flex-1 space-y-2.5">
               <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#FBE4E8] block">
-                  Critical Sickle Cell Helpline
-                </span>
-                <h3 className="text-base sm:text-lg font-bold font-display text-white tracking-tight">
-                  Facing an Acute Vaso-Occlusive Crisis?
-                </h3>
-                <p className="text-xs text-[#D9B9CC] mt-0.5 max-w-md">
-                  Connect with the National Sickle Cell Hotline or standard emergency services.
-                </p>
+                <h2 id="crisis-help-heading" className="font-display text-[15px] font-bold text-wa-plum">In a pain crisis right now?</h2>
+                <p className="text-[13px] text-wa-plum-muted">If pain is severe or not easing, or you have fever, chest pain or trouble breathing, get emergency help.</p>
               </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-              <a 
-                href="tel:+2348035846666" 
-                className="flex-1 md:flex-none min-h-10 px-4 py-2.5 bg-[#C4122F] hover:bg-[#9E0E26] text-white rounded-full text-xs font-bold text-center uppercase tracking-wider transition shadow-xs flex items-center justify-center gap-2"
+              <a
+                href="tel:112"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-wa-crimson px-5 text-[13px] font-bold text-white transition-colors hover:bg-wa-crimson-press focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson focus-visible:ring-offset-2"
               >
-                <Phone size={14} />
-                <span>SCFN Hotline</span>
-              </a>
-              <a 
-                href="tel:112" 
-                className="flex-1 md:flex-none min-h-10 px-4 py-2.5 bg-wa-surface/10 hover:bg-wa-surface/20 text-white border border-white/20 rounded-full text-xs font-bold text-center uppercase tracking-wider transition flex items-center justify-center gap-1.5"
-              >
-                <span>Call 112 / 911</span>
+                <Phone size={15} aria-hidden="true" /> Call 112
               </a>
             </div>
-          </div>
+          </section>
         </div>
       )}
 
@@ -789,17 +590,16 @@ export const Community: React.FC = () => {
       {activeTab === 'warrior_match' && (
         <div className="space-y-5">
           {/* Intro Card */}
-          <div className="bg-[#3B0F2C] text-white rounded-[28px] p-5 sm:p-6 shadow-sm border border-wa-line">
-            <div className="max-w-2xl space-y-2">
-              <div className="inline-flex items-center gap-1.5 bg-wa-surface/10 px-3 py-1 rounded-full text-[11px] font-bold text-[#FBE4E8] uppercase tracking-wider">
-                <Sparkles size={12} className="text-[#FBE4E8]" />
-                <span>Comorbidity Lived-Experience Matching</span>
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold font-display tracking-tight text-white">
-                Find Your Health Journey Peer Circles
+          <div className="flex items-start gap-3 rounded-[22px] border border-wa-line bg-wa-rose/40 p-4 dark:bg-wa-rose/10">
+            <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-wa-surface text-wa-crimson">
+              <Sparkles size={20} />
+            </span>
+            <div className="min-w-0 space-y-1">
+              <h2 className="font-display text-[17px] font-bold leading-snug text-wa-plum">
+                Find warriors who understand
               </h2>
-              <p className="text-xs sm:text-sm text-[#D9B9CC] leading-relaxed">
-                Connect with mentors and warriors managing specific secondary conditions—such as Avascular Necrosis (AVN), Asthma, Leg Ulcers, or Stroke surveillance.
+              <p className="text-[13px] leading-relaxed text-wa-plum-muted">
+                Join circles for people living with the same extra conditions, such as AVN, asthma, leg ulcers or stroke risk.
               </p>
             </div>
           </div>
@@ -808,12 +608,12 @@ export const Community: React.FC = () => {
           <div className="bg-wa-surface p-4 sm:p-5 rounded-[24px] border border-wa-line shadow-2xs space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xs font-bold font-mono text-wa-plum uppercase tracking-wider">
-                  Select Your Health Factors & Comorbidities
+                <h3 className="text-xs font-bold text-wa-plum uppercase tracking-wider">
+                  Your health factors
                 </h3>
-                <p className="text-xs text-wa-plum-muted mt-0.5">Filter specialized peer circles by your specific diagnosis:</p>
+                <p className="text-xs text-wa-plum-muted mt-0.5">Pick any that apply to see matching circles.</p>
               </div>
-              <span className="text-[10px] font-bold bg-wa-rose text-[#C4122F] px-2.5 py-1 rounded-full">
+              <span className="shrink-0 whitespace-nowrap text-xs font-bold bg-wa-rose text-wa-crimson px-2.5 py-1 rounded-full">
                 {selectedComorbidities.length} Active
               </span>
             </div>
@@ -826,10 +626,11 @@ export const Community: React.FC = () => {
                     key={comorb}
                     type="button"
                     onClick={() => toggleComorbidity(comorb)}
-                    className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    aria-pressed={isSelected}
+                    className={`min-h-11 px-4 rounded-full text-[13px] font-bold transition-colors cursor-pointer flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson ${
                       isSelected
-                        ? 'bg-[#C4122F] text-white shadow-xs'
-                        : 'bg-wa-ground hover:bg-wa-rose text-wa-plum border border-wa-line'
+                        ? 'border-2 border-wa-crimson bg-wa-rose text-wa-crimson'
+                        : 'bg-wa-surface hover:bg-wa-ground text-wa-plum border border-wa-line'
                     }`}
                   >
                     <span>{isSelected ? '✓' : '+'}</span>
@@ -842,7 +643,7 @@ export const Community: React.FC = () => {
 
           {/* Matched Groups List */}
           <div className="space-y-3.5">
-            <h3 className="text-xs font-bold font-mono text-wa-plum-muted uppercase tracking-wider px-1">
+            <h3 className="text-xs font-bold text-wa-plum-muted uppercase tracking-wider px-1">
               Recommended Peer Circles
             </h3>
 
@@ -855,13 +656,13 @@ export const Community: React.FC = () => {
                   <div 
                     key={group.id} 
                     className={`bg-wa-surface border rounded-2xl p-5 space-y-3.5 transition-all shadow-2xs ${
-                      isMatching ? 'border-[#C4122F]/40 ring-1 ring-[#C4122F]/20' : 'border-wa-line'
+                      isMatching ? 'border-wa-crimson/40 ring-1 ring-wa-crimson/20' : 'border-wa-line'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
-                          isMatching ? 'bg-wa-rose text-[#C4122F]' : 'bg-wa-ground text-wa-plum-muted border border-wa-line'
+                        <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                          isMatching ? 'bg-wa-rose text-wa-crimson' : 'bg-wa-ground text-wa-plum-muted border border-wa-line'
                         }`}>
                           {isMatching ? '98% Comorbidity Match' : 'Open Circle'}
                         </span>
@@ -869,7 +670,7 @@ export const Community: React.FC = () => {
                           {group.name}
                         </h4>
                       </div>
-                      <div className="w-9 h-9 rounded-xl bg-wa-rose/60 text-[#C4122F] flex items-center justify-center shrink-0">
+                      <div className="w-9 h-9 rounded-xl bg-wa-rose/60 text-wa-crimson flex items-center justify-center shrink-0">
                         <Users size={18} />
                       </div>
                     </div>
@@ -881,7 +682,7 @@ export const Community: React.FC = () => {
                     <div className="space-y-1.5 text-xs border-t border-wa-line-soft pt-2.5 text-wa-plum-muted">
                       <div className="flex justify-between items-center">
                         <span className="font-semibold">Mentor:</span>
-                        <span className="font-bold text-[#C4122F]">{group.mentor}</span>
+                        <span className="font-bold text-wa-crimson">{group.mentor}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="font-semibold">Sessions:</span>
@@ -889,7 +690,7 @@ export const Community: React.FC = () => {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="font-semibold">Active Warriors:</span>
-                        <span className="text-wa-plum font-mono font-bold">{group.membersCount}</span>
+                        <span className="text-wa-plum font-bold">{group.membersCount}</span>
                       </div>
                     </div>
 
@@ -907,8 +708,8 @@ export const Community: React.FC = () => {
                         onClick={() => toggleJoinCircle(group.id)}
                         className={`min-h-10 px-4 py-2 rounded-full text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
                           isJoined 
-                            ? 'bg-[#E8F8EE] text-[#1E7B4A] border border-[#B3E5C7]' 
-                            : 'bg-[#C4122F] hover:bg-[#9E0E26] text-white shadow-xs'
+                            ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 dark:text-emerald-300' 
+                            : 'bg-wa-crimson hover:bg-wa-crimson-press text-white shadow-xs'
                         }`}
                       >
                         {isJoined ? <CheckCircle2 size={14} /> : <Bookmark size={14} />}
@@ -928,7 +729,7 @@ export const Community: React.FC = () => {
                 <h4 className="font-display font-bold text-sm text-wa-plum">
                   Warrior Community Channels
                 </h4>
-                <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
                   Live in Chat
                 </span>
               </div>
@@ -949,7 +750,7 @@ export const Community: React.FC = () => {
                 <h4 className="font-display font-bold text-sm text-wa-plum">
                   Trusted Companion Health Linking
                 </h4>
-                <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
                   Live on Home
                 </span>
               </div>
@@ -972,7 +773,7 @@ export const Community: React.FC = () => {
               <div className="bg-wa-surface border border-wa-line rounded-[28px] max-w-md w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95">
                 <div className="flex justify-between items-start border-b border-wa-line-soft pb-3">
                   <div>
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#C4122F] font-bold">
+                    <span className="text-xs uppercase tracking-wider text-wa-crimson font-bold">
                       Specialized Peer Circle
                     </span>
                     <h3 className="font-display font-bold text-base text-wa-plum mt-0.5">
@@ -989,13 +790,13 @@ export const Community: React.FC = () => {
 
                 <div className="space-y-3">
                   <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-wa-plum-muted mb-1.5 font-mono">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-wa-plum-muted mb-1.5">
                       Weekly Clinical Focus Topics
                     </h4>
                     <div className="space-y-1.5">
                       {selectedCircleDetail.recentTopics.map((topic: string, i: number) => (
                         <div key={i} className="p-2.5 bg-wa-ground border border-wa-line rounded-xl text-xs font-semibold text-wa-plum flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#C4122F]"></span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-wa-crimson"></span>
                           <span>{topic}</span>
                         </div>
                       ))}
@@ -1005,7 +806,7 @@ export const Community: React.FC = () => {
                   <div className="p-3 bg-[#FDF9FB] border border-wa-line rounded-xl text-xs text-wa-plum-muted space-y-1">
                     <span className="font-bold text-wa-plum block">Schedule & Format:</span>
                     <p className="flex items-center gap-1.5">
-                      <Clock size={12} className="text-[#C4122F]" />
+                      <Clock size={12} className="text-wa-crimson" />
                       <span>{selectedCircleDetail.meetingSchedule}</span>
                     </p>
                     <p>Facilitated by {selectedCircleDetail.mentor}. Peer discussions provide lived experience and complement your personal hematology care plan.</p>
@@ -1015,7 +816,7 @@ export const Community: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedCircleDetail(null)}
-                  className="w-full py-2.5 bg-[#3B0F2C] hover:bg-[#2A081D] text-white rounded-full text-xs font-bold transition cursor-pointer"
+                  className="w-full min-h-11 py-2.5 bg-wa-hero hover:bg-wa-hero/90 text-white rounded-full text-xs font-bold transition cursor-pointer"
                 >
                   Close
                 </button>
@@ -1041,7 +842,7 @@ export const Community: React.FC = () => {
                   <h3 className="text-xs sm:text-sm font-display font-bold text-wa-plum">
                     Community Safety &amp; Guardian Protection
                   </h3>
-                  <p className="text-[11px] text-wa-plum-muted">
+                  <p className="text-xs text-wa-plum-muted">
                     Peer stories offer lived encouragement—never replace your hematologist&apos;s plan or Hydroxyurea regimen.
                   </p>
                 </div>
@@ -1092,9 +893,9 @@ export const Community: React.FC = () => {
                 <button 
                   key={cat} 
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+                  className={`min-h-11 px-4 rounded-full text-[13px] font-bold transition cursor-pointer whitespace-nowrap ${
                     activeCategory === cat 
-                      ? 'bg-[#3B0F2C] text-white shadow-xs' 
+                      ? 'bg-wa-hero text-white shadow-xs' 
                       : 'bg-wa-ground text-wa-plum-muted border border-wa-line hover:text-wa-plum'
                   }`}
                 >
@@ -1105,7 +906,7 @@ export const Community: React.FC = () => {
 
             <button 
               onClick={() => setShowNewPost(true)}
-              className="px-4 py-2 bg-[#C4122F] hover:bg-[#9E0E26] text-white rounded-full text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer ml-auto"
+              className="min-h-11 px-4 py-2 bg-wa-crimson hover:bg-wa-crimson-press text-white rounded-full text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer ml-auto"
             >
               <Plus size={14} />
               <span>New Entry</span>
@@ -1123,16 +924,16 @@ export const Community: React.FC = () => {
                 return (
                 <div 
                   key={post.id} 
-                  className="bg-wa-surface p-5 rounded-2xl shadow-2xs border border-wa-line space-y-3 hover:border-[#C4122F]/30 transition"
+                  className="bg-wa-surface p-5 rounded-2xl shadow-2xs border border-wa-line space-y-3 hover:border-wa-crimson/30 transition"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 bg-wa-rose/60 text-[#C4122F] rounded-xl flex items-center justify-center text-xs font-bold border border-wa-line-soft">
+                      <div className="w-9 h-9 bg-wa-rose/60 text-wa-crimson rounded-xl flex items-center justify-center text-xs font-bold border border-wa-line-soft">
                         {(post.authorName || 'W')[0]}
                       </div>
                       <div>
                         <span className="text-xs font-bold text-wa-plum">{post.authorName || 'Warrior'}</span>
-                        <p className="text-[10px] font-mono text-wa-plum-muted">
+                        <p className="text-xs text-wa-plum-muted">
                           {post.createdAt?.toDate ? post.createdAt.toDate().toLocaleDateString() : 'Community member'}
                         </p>
                       </div>
@@ -1140,7 +941,7 @@ export const Community: React.FC = () => {
 
                     <div className="flex items-center gap-1.5">
                       {(post.tags || []).map((tag: string) => (
-                        <span key={tag} className="text-[10px] font-bold bg-wa-rose text-[#C4122F] px-2 py-0.5 rounded-full">
+                        <span key={tag} className="text-xs font-bold bg-wa-rose text-wa-crimson px-2 py-0.5 rounded-full">
                           #{tag}
                         </span>
                       ))}
@@ -1170,9 +971,9 @@ export const Community: React.FC = () => {
                       <button 
                         type="button"
                         onClick={() => handleLike(post.id)}
-                        className="flex items-center gap-1.5 text-xs font-semibold text-wa-plum-muted hover:text-[#C4122F] transition cursor-pointer"
+                        className="flex items-center gap-1.5 text-xs font-semibold text-wa-plum-muted hover:text-wa-crimson transition cursor-pointer"
                       >
-                        <Heart size={15} className={post.likes && post.likes > 0 ? 'text-[#C4122F] fill-[#C4122F]' : ''} />
+                        <Heart size={15} className={post.likes && post.likes > 0 ? 'text-wa-crimson fill-wa-crimson' : ''} />
                         <span>{post.likes || 0} Helpful</span>
                       </button>
 
@@ -1190,7 +991,7 @@ export const Community: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleMuteAuthor(post.authorName || 'Warrior')}
-                        className="flex items-center gap-1 text-[11px] font-semibold text-wa-plum-muted hover:text-wa-plum transition cursor-pointer"
+                        className="flex min-h-11 items-center gap-1 px-2 text-xs font-semibold text-wa-plum-muted hover:text-wa-plum transition cursor-pointer"
                         title="Mute posts from this author"
                       >
                         <VolumeX size={13} />
@@ -1199,7 +1000,7 @@ export const Community: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleReportPost(post.id, post.title)}
-                        className="flex items-center gap-1 text-[11px] font-semibold text-wa-plum-muted hover:text-wa-crimson transition cursor-pointer"
+                        className="flex min-h-11 items-center gap-1 px-2 text-xs font-semibold text-wa-plum-muted hover:text-wa-crimson transition cursor-pointer"
                         title="Report post for moderation review"
                       >
                         <ShieldAlert size={13} />
@@ -1231,13 +1032,13 @@ export const Community: React.FC = () => {
 
                 <div className="space-y-3">
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted block mb-1">
+                    <label className="text-xs font-bold uppercase tracking-wider text-wa-plum-muted block mb-1">
                       Category
                     </label>
                     <select
                       value={activeCategory}
                       onChange={(e) => setActiveCategory(e.target.value)}
-                      className="w-full bg-wa-ground border border-wa-line rounded-xl px-3.5 py-2 text-xs text-wa-plum font-semibold focus:outline-none focus:border-[#C4122F]"
+                      className="w-full bg-wa-ground border border-wa-line rounded-xl px-3.5 py-2 text-base text-wa-plum font-semibold focus:outline-none focus:border-wa-crimson"
                     >
                       {['General', 'Medication', 'Nutrition', 'Mental Health', 'Advocacy'].map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
@@ -1246,7 +1047,7 @@ export const Community: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted block mb-1">
+                    <label className="text-xs font-bold uppercase tracking-wider text-wa-plum-muted block mb-1">
                       Title
                     </label>
                     <input 
@@ -1254,12 +1055,12 @@ export const Community: React.FC = () => {
                       value={newPostTitle}
                       onChange={(e) => setNewPostTitle(e.target.value)}
                       placeholder="e.g. Tips for navigating long lecture days..." 
-                      className="w-full bg-wa-ground border border-wa-line rounded-xl px-3.5 py-2.5 text-xs text-wa-plum font-semibold focus:outline-none focus:border-[#C4122F]"
+                      className="w-full bg-wa-ground border border-wa-line rounded-xl px-3.5 py-2.5 text-base text-wa-plum font-semibold focus:outline-none focus:border-wa-crimson"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted block mb-1">
+                    <label className="text-xs font-bold uppercase tracking-wider text-wa-plum-muted block mb-1">
                       Insight / Question
                     </label>
                     <textarea 
@@ -1267,7 +1068,7 @@ export const Community: React.FC = () => {
                       value={newPostContent}
                       onChange={(e) => setNewPostContent(e.target.value)}
                       placeholder="Share what worked for you or ask the community..." 
-                      className="w-full bg-wa-ground border border-wa-line rounded-xl px-3.5 py-2.5 text-xs text-wa-plum font-medium resize-none focus:outline-none focus:border-[#C4122F]"
+                      className="w-full bg-wa-ground border border-wa-line rounded-xl px-3.5 py-2.5 text-base text-wa-plum font-medium resize-none focus:outline-none focus:border-wa-crimson"
                     />
                   </div>
                 </div>
@@ -1283,7 +1084,7 @@ export const Community: React.FC = () => {
                   <button 
                     onClick={handleAddPost}
                     disabled={!newPostTitle.trim() || !newPostContent.trim()}
-                    className="px-5 py-2 bg-[#C4122F] hover:bg-[#9E0E26] disabled:opacity-50 text-white rounded-full text-xs font-bold transition shadow-xs"
+                    className="min-h-11 px-5 py-2 bg-wa-crimson hover:bg-wa-crimson-press disabled:opacity-50 text-white rounded-full text-xs font-bold transition shadow-xs"
                   >
                     Publish Post
                   </button>

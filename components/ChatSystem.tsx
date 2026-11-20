@@ -1,2501 +1,631 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Send, Search, MoreVertical, Paperclip, Phone, Video, MessageSquare, 
-  ChevronLeft, Shield, Smile, X, Image as ImageIcon, Video as VideoIcon, 
-  FileText, Check, CheckCheck, Users, Info, Play, Pause, Volume2, Mic, 
-  MicOff, Camera, UserPlus, Award, Calendar, ExternalLink, Trash2, 
-  Reply, Copy, Pin, MapPin, Download, Sparkles, Filter, Plus, 
-  AlertTriangle, VolumeX, ShieldAlert, ShieldCheck, RefreshCw, ZoomIn, Eye
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ArrowLeft,
+  ChevronRight,
+  CornerUpLeft,
+  Flag,
+  ImagePlus,
+  Loader2,
+  MessageSquare,
+  MoreHorizontal,
+  Send,
+  ShieldCheck,
+  SmilePlus,
+  Trash2,
+  Users,
+  X,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { firebaseService } from '../services/firebaseService';
 import { auth } from '../firebase-init';
-import { PeerSupportSection } from './PeerSupportSection';
+import { DesignatedCaregiverWidget } from './DesignatedCaregiverWidget';
 
-// Seeded community-preview conversations. These are samples, not verified people or live services.
-const DEFAULT_CHATS = [
-  { 
-    id: 'lagos-warriors', 
-    name: 'Lagos Warriors Support Group', 
-    avatar: 'LW',
-    desc: 'The active group channel of the Lagos Sickle Cell Warrior community. Supporting warriors with knowledge, daily hydration reminders, and genetic tips.',
-    lastMsg: 'Stay hydrated everyone! Remember to log your water today.', 
-    time: '10:45 AM', 
-    unread: 2, 
-    online: true,
-    category: 'Group Chat',
-    pinned: true,
-    members: [
-      { id: 'tunde-uid', name: 'Tunde (Warrior)', role: 'SCD Hero (HbSS)', active: true, avatar: '🦸‍♂️', isAdmin: false },
-      { id: 'grace-mom-uid', name: 'Grace (Caregiver)', role: 'Support Mother', active: false, avatar: '👩', isAdmin: false },
-      { id: 'faith-uid', name: 'Faith (Warrior)', role: 'SCD Advocate', active: true, avatar: '👩‍🎤', isAdmin: false },
-      { id: 'current-user-uid', name: 'You (Warrior)', role: 'Group Moderator', active: true, avatar: '🩺', isAdmin: true }
-    ]
+/**
+ * Community channels: shared Firestore chat rooms (chats/{id}/messages) that every
+ * signed-in warrior can read and post to. Nothing here is simulated: no seeded people,
+ * member counts, online dots or calls. Channels start empty until people post.
+ */
+
+interface Channel {
+  id: string;
+  name: string;
+  desc: string;
+  initials: string;
+  custom?: boolean;
+}
+
+const CHANNELS: Channel[] = [
+  {
+    id: 'lagos-warriors',
+    name: 'Lagos Warriors',
+    desc: 'Warriors in and around Lagos: daily tips, encouragement and local updates.',
+    initials: 'LW',
   },
-  { 
-    id: 'global-scd-network', 
-    name: 'Global SCD Network Alliance', 
-    avatar: 'GS',
-    desc: 'Connecting sickle cell advocates, medical professionals, and support networks globally. Sharing breakthrough CRISPR therapeutic updates and international advocacy.',
-    lastMsg: 'Global assembly link is ready. Meeting is starting.', 
-    time: 'Yesterday', 
-    unread: 0, 
-    online: true,
-    category: 'Global Alliance',
-    pinned: false,
-    members: [
-      { id: 'marie-uid', name: 'Marie (Paris, Warrior)', role: 'Advocate Coordinator', active: true, avatar: '👩‍🎨', isAdmin: true },
-      { id: 'nabil-uid', name: 'Nabil (Cairo, Parent)', role: 'Family Pillar', active: false, avatar: '👨', isAdmin: false },
-      { id: 'current-user-uid', name: 'You', role: 'Warrior Member', active: true, avatar: '🩺', isAdmin: false }
-    ]
+  {
+    id: 'global-scd-network',
+    name: 'Global SCD Network',
+    desc: 'Warriors and advocates everywhere sharing news and experiences.',
+    initials: 'GS',
   },
-  { 
-    id: 'caregivers-circle', 
-    name: 'Warrior Moms & Caregivers Circle', 
-    avatar: 'WC',
-    desc: 'A dedicated, empathetic safe space for parents, siblings, and partners supporting children and adults living with Sickle Cell Disease.',
-    lastMsg: 'We pack a thermos with warm bone broth and electrolytes.', 
-    time: 'Yesterday', 
-    unread: 0, 
-    online: false,
-    category: 'Caregivers',
-    pinned: false,
-    members: [
-      { id: 'grace-mom-uid', name: 'Grace (Caregiver Mother)', role: 'Circle Moderator', active: false, avatar: '👩', isAdmin: true },
-      { id: 'nabil-uid', name: 'Nabil (Cairo, Parent)', role: 'Active Parent', active: false, avatar: '👨', isAdmin: false },
-      { id: 'amina-uid', name: 'Amina (Caregiver)', role: 'Community Helper', active: true, avatar: '🧕', isAdmin: false },
-      { id: 'current-user-uid', name: 'You', role: 'Member', active: true, avatar: '🩺', isAdmin: false }
-    ]
-  }
+  {
+    id: 'caregivers-circle',
+    name: 'Caregivers Circle',
+    desc: 'A safe space for parents, partners and family supporting a warrior.',
+    initials: 'CC',
+  },
 ];
 
-// Sample community message shortcuts. They are user-authored text, not clinical instructions.
-const CLINICAL_PRESETS = [
-  { id: 'pres_hydrate', text: 'Hydration check: I am taking a moment to drink water and record it.', label: 'Hydration', emoji: '' },
-  { id: 'pres_vaso', text: 'Cold weather check: I am keeping warm and following my own care plan.', label: 'Cold check', emoji: '' },
-  { id: 'pres_support', text: 'Warrior Solidarity: Checking in with everyone today—stay strong and hydrated.', label: 'Solidarity', emoji: '' },
-  { id: 'pres_folic', text: 'Medication check: Remember the daily medication plan prescribed for you.', label: 'Daily meds', emoji: '' },
-  { id: 'pres_pain', text: 'Pain check: I am experiencing discomfort and recording what I notice.', label: 'Pain check', emoji: '' }
+const REACTIONS = ['❤️', '🙏', '💪', '👏', '💧'];
+
+const QUICK_STARTERS = [
+  'Hello everyone! Glad to be here.',
+  'Hydration check: I am drinking water and logging it today.',
+  'Cold weather check: I am keeping warm today.',
 ];
 
-const SAMPLE_CHANNEL_MESSAGES: Record<string, any[]> = {
-  'lagos-warriors': [
-    {
-      id: 'demo-lw-1',
-      text: 'Good morning everyone! Remember to carry a bottle or sachets if you are heading out in traffic today.',
-      senderId: 'tunde-uid',
-      senderName: 'Tunde (Warrior)',
-      timestamp: new Date(Date.now() - 3600000 * 3).toISOString(),
-      mediaUrl: null,
-      mediaType: null,
-      replyTo: null,
-      audioDuration: 0,
-      reactions: { '👍': ['faith-uid'] }
-    },
-    {
-      id: 'demo-lw-2',
-      text: 'Just finished my morning Folic Acid and logged 1.5L so far. Wishing everyone a calm, pain-free day.',
-      senderId: 'faith-uid',
-      senderName: 'Faith (Warrior)',
-      timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
-      mediaUrl: null,
-      mediaType: null,
-      replyTo: null,
-      audioDuration: 0,
-      reactions: { '❤️': ['tunde-uid', 'grace-mom-uid'] }
-    },
-    {
-      id: 'demo-lw-3',
-      text: 'Evening rain is starting around Surulere—remember to layer up early so cold drafts do not catch you.',
-      senderId: 'grace-mom-uid',
-      senderName: 'Grace (Caregiver)',
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      mediaUrl: null,
-      mediaType: null,
-      replyTo: null,
-      audioDuration: 0,
-      reactions: {}
-    }
-  ],
-  'global-scd-network': [
-    {
-      id: 'demo-gs-1',
-      text: 'Welcome to the Global SCD Network Alliance! Share what daily routines help you stay consistent with hydration and clinic visits.',
-      senderId: 'marie-uid',
-      senderName: 'Marie (Paris, Warrior)',
-      timestamp: new Date(Date.now() - 7200000).toISOString(),
-      mediaUrl: null,
-      mediaType: null,
-      replyTo: null,
-      audioDuration: 0,
-      reactions: { '👏': ['nabil-uid'] }
-    },
-    {
-      id: 'demo-gs-2',
-      text: 'Keeping a printed summary of steady-state PCV and recent E/U/Cr labs in Care Vault saved us so much time at our last clinic review.',
-      senderId: 'nabil-uid',
-      senderName: 'Nabil (Cairo, Parent)',
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      mediaUrl: null,
-      mediaType: null,
-      replyTo: null,
-      audioDuration: 0,
-      reactions: {}
-    }
-  ],
-  'caregivers-circle': [
-    {
-      id: 'demo-wc-1',
-      text: 'We pack a thermos with warm water and keep extra socks in the school bag whenever the weather cools down.',
-      senderId: 'grace-mom-uid',
-      senderName: 'Grace (Caregiver Mother)',
-      timestamp: new Date(Date.now() - 5400000).toISOString(),
-      mediaUrl: null,
-      mediaType: null,
-      replyTo: null,
-      audioDuration: 0,
-      reactions: { '❤️': ['amina-uid'] }
-    },
-    {
-      id: 'demo-wc-2',
-      text: 'That really helps. Setting two gentle afternoon water reminders has also made hydration much easier for my son.',
-      senderId: 'amina-uid',
-      senderName: 'Amina (Caregiver)',
-      timestamp: new Date(Date.now() - 1800000).toISOString(),
-      mediaUrl: null,
-      mediaType: null,
-      replyTo: null,
-      audioDuration: 0,
-      reactions: {}
-    }
-  ]
-};
-
-const EMOJI_REACTIONS = ['❤️', '🧬', '💧', '💊', '👏', '🙏', '🔥', '💪'];
-
-const INAPPROPRIATE_REASONS = [
-  'Inappropriate or offensive language',
-  'Medical misinformation or unverified remedies',
-  'Spam, advertising, or unsolicited links',
-  'Harassment or disrespectful behavior',
-  'Privacy violation or sharing sensitive medical data'
-];
-
+// Peer chat is not medical advice. Messages that suggest stopping or changing treatment,
+// or promise cures, get a visible note and can be hidden with Guardian mode.
 const UNVERIFIED_MEDICAL_PATTERNS = [
-  /stop\s+hydroxyurea/i,
-  /stop\s+taking\s+(your\s+)?med/i,
-  /miracle\s+cure/i,
-  /herbal\s+cure/i,
-  /cures?\s+sickle\s+cell/i,
-  /skip\s+(the\s+)?(doctor|hospital|clinic)/i,
-  /double\s+(your\s+)?dose/i,
-  /overdose/i,
+  /stop(ped|ping)?\s+(taking\s+)?(hydroxyurea|hydroxycarbamide|folic|penicillin|medication|meds|my drugs)/i,
+  /(cure[sd]?|heal[sd]?)\s+(sickle|scd)/i,
+  /(miracle|herbal|natural)\s+(cure|remedy|treatment)/i,
+  /instead of (hydroxyurea|your medication|your drugs|the hospital)/i,
+  /don'?t (go|need) (to )?(the )?hospital/i,
 ];
+const hasUnverifiedClaim = (text?: string | null) => Boolean(text) && UNVERIFIED_MEDICAL_PATTERNS.some(p => p.test(String(text)));
 
-const containsUnverifiedMedicalAdvice = (text?: string | null): boolean => {
-  if (!text) return false;
-  return UNVERIFIED_MEDICAL_PATTERNS.some((pattern) => pattern.test(text));
-};
-
-// Audio synthesizer for authentic WhatsApp notification sounds
-const playTone = (type: 'send' | 'receive' | 'call' | 'alert') => {
+const readList = (key: string): string[] => {
   try {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    if (type === 'send') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(800, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.08);
-      gain.gain.setValueAtTime(0.08, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.08);
-    } else if (type === 'receive') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08);
-      gain.gain.setValueAtTime(0.06, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.18);
-    } else if (type === 'alert') {
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(300, ctx.currentTime);
-      osc.frequency.setValueAtTime(220, ctx.currentTime + 0.1);
-      gain.gain.setValueAtTime(0.08, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.25);
-    } else if (type === 'call') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(440, ctx.currentTime);
-      gain.gain.setValueAtTime(0.05, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.3);
-    }
-  } catch (e) {
-    // Audio Context blocked
+    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
   }
 };
+const writeList = (key: string, value: string[]) => {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* Preference only. */ }
+};
+
+const toDate = (value: any): Date | null => {
+  if (!value) return null;
+  if (typeof value?.toDate === 'function') return value.toDate();
+  if (typeof value?.seconds === 'number') return new Date(value.seconds * 1000);
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const formatTime = (value: any) => {
+  const date = toDate(value);
+  if (!date) return '';
+  const sameDay = date.toDateString() === new Date().toDateString();
+  return sameDay
+    ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : date.toLocaleDateString([], { day: 'numeric', month: 'short' }) + ', ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+const initialsOf = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]?.toUpperCase()).join('') || '?';
+
+/** Shrinks a photo before upload so chat documents stay small. */
+const compressImage = (file: File): Promise<Blob> => new Promise((resolve) => {
+  try {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, 1280 / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { URL.revokeObjectURL(url); resolve(file); return; }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => { URL.revokeObjectURL(url); resolve(blob || file); }, 'image/jpeg', 0.8);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  } catch {
+    resolve(file);
+  }
+});
 
 const ChatSystem: React.FC = () => {
-  const [allChats, setAllChats] = useState(DEFAULT_CHATS);
-  const [activeChatId, setActiveChatId] = useState<string | null>(DEFAULT_CHATS[0].id);
-  const [inputText, setInputText] = useState('');
-  const [messages, setMessages] = useState<any[]>([]);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
-  const [showGroupInfo, setShowGroupInfo] = useState(false);
-  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<'All' | 'Group Chat' | 'Caregivers'>('All');
-  const [inChatSearch, setInChatSearch] = useState('');
-  const [showInChatSearchBar, setShowInChatSearchBar] = useState(false);
+  const currentUser = auth.currentUser;
+  const currentUserId = currentUser?.uid || '';
+  const currentUserName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Warrior';
 
-  // Real-time typing indicators
-  const [typingUsers, setTypingUsers] = useState<string[]>([]);
-  const typingTimeoutRef = useRef<any>(null);
-
-  // Group Admin & Moderation Settings
-  const [groupSettings, setGroupSettings] = useState<{ admins: string[]; mutedUsers: string[] }>({
-    admins: ['current-user-uid'],
-    mutedUsers: []
-  });
-  const [selectedMessageForMod, setSelectedMessageForMod] = useState<any | null>(null);
-  const [modReason, setModReason] = useState(INAPPROPRIATE_REASONS[0]);
-  const [customModReason, setCustomModReason] = useState('');
-  const [showModModal, setShowModModal] = useState(false);
-
-  // Guardian / Minor Safe Mode & Member Safety Controls
-  const [guardianSafeMode, setGuardianSafeMode] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('warrior_guardian_safe_mode') === 'true';
-    } catch {
-      return false;
-    }
-  });
-  const [hiddenSenders, setHiddenSenders] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('warrior_hidden_senders');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [flaggedMessageIds, setFlaggedMessageIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('warrior_flagged_messages');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [safetyFeedback, setSafetyFeedback] = useState<string | null>(null);
-
-  const toggleGuardianSafeMode = () => {
-    const next = !guardianSafeMode;
-    setGuardianSafeMode(next);
-    try {
-      localStorage.setItem('warrior_guardian_safe_mode', String(next));
-    } catch {
-      // ignore storage errors
-    }
-    setSafetyFeedback(
-      next
-        ? 'Guardian / Minor Safe Mode enabled: flagged posts & unverified remedy claims are hidden.'
-        : 'Guardian / Minor Safe Mode turned off.'
-    );
-  };
-
-  const handleHideSender = (senderId: string, senderName: string) => {
-    if (!senderId || senderId === currentUserId) return;
-    const next = Array.from(new Set([...hiddenSenders, senderId]));
-    setHiddenSenders(next);
-    try {
-      localStorage.setItem('warrior_hidden_senders', JSON.stringify(next));
-    } catch {
-      // ignore storage errors
-    }
-    setSafetyFeedback(`Muted & hid messages from ${senderName}.`);
-  };
-
-  const handleClearHiddenSenders = () => {
-    setHiddenSenders([]);
-    try {
-      localStorage.removeItem('warrior_hidden_senders');
-    } catch {
-      // ignore storage errors
-    }
-    setSafetyFeedback('Restored all muted community members.');
-  };
-
-  // Camera & Storage Upload state
-  const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
-  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('environment');
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  const [capturedPhotoUrl, setCapturedPhotoUrl] = useState<string | null>(null);
-  const [isUploadingToStorage, setIsUploadingToStorage] = useState(false);
-  const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
-
-  // Reply / Quote state
-  const [replyingTo, setReplyingTo] = useState<{ id: string; senderName: string; text: string } | null>(null);
-
-  // Voice Note Recording states
-  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const recordingTimerRef = useRef<any>(null);
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  const audioElementsRef = useRef<{ [key: string]: HTMLAudioElement }>({});
-
-  // Media attachment states
-  const [localPreviewFile, setLocalPreviewFile] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
-
-  // Calling states
-  const [callSession, setCallSession] = useState<{ type: 'voice' | 'video'; active: boolean; timer: number } | null>(null);
-  const [muteMicrophone, setMuteMicrophone] = useState(false);
-  const [cameraStreamActive, setCameraStreamActive] = useState(true);
-
-  // New Group Form state
-  const [newGroupName, setNewGroupName] = useState('');
-  const [newGroupAvatar, setNewGroupAvatar] = useState('🌟');
-  const [newGroupDesc, setNewGroupDesc] = useState('');
-  const [newGroupCategory, setNewGroupCategory] = useState<'Group Chat' | 'Caregivers'>('Group Chat');
   const [subTab, setSubTab] = useState<'channels' | 'circle'>('channels');
+  const [channels, setChannels] = useState<Channel[]>(CHANNELS);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [text, setText] = useState('');
+  const [replyingTo, setReplyingTo] = useState<{ id: string; senderName: string; text: string } | null>(null);
+  const [actionsFor, setActionsFor] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [guardianMode, setGuardianMode] = useState(() => {
+    try { return localStorage.getItem('warrior_guardian_safe_mode') === 'true'; } catch { return false; }
+  });
+  const [hiddenSenders, setHiddenSenders] = useState<string[]>(() => readList('warrior_hidden_senders'));
+  const [reportedIds, setReportedIds] = useState<string[]>(() => readList('warrior_flagged_messages'));
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraFileInputRef = useRef<HTMLInputElement>(null);
-  const videoElementRef = useRef<HTMLVideoElement>(null);
-  const cameraViewfinderRef = useRef<HTMLVideoElement>(null);
-  const callTimerRef = useRef<any>(null);
+  const listEndRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const currentUserId = auth.currentUser?.uid || 'current-user-uid';
-  const currentUserName = auth.currentUser?.displayName || 'You';
+  const activeChannel = channels.find(c => c.id === activeChatId) ?? null;
 
-  // Load custom groups
+  // Groups made in older builds were saved on this device only; keep showing them.
   useEffect(() => {
-    const userId = auth.currentUser?.uid || 'guest';
-    const custom = firebaseService.getCustomGroups(userId);
-    if (custom && custom.length > 0) {
-      setAllChats(prev => {
-        const customIds = new Set(custom.map((c: any) => c.id));
-        const filteredDefault = prev.filter(c => !customIds.has(c.id));
-        return [...custom, ...filteredDefault];
-      });
-    }
-  }, []);
+    try {
+      const result: any = firebaseService.getCustomGroups(currentUserId);
+      const apply = (groups: any) => {
+        if (!Array.isArray(groups) || !groups.length) return;
+        const extra: Channel[] = groups
+          .filter((g: any) => g && typeof g.id === 'string' && !CHANNELS.some(c => c.id === g.id))
+          .map((g: any) => ({ id: g.id, name: String(g.name || 'My group'), desc: String(g.desc || ''), initials: initialsOf(String(g.name || 'G')), custom: true }));
+        if (extra.length) setChannels([...CHANNELS, ...extra]);
+      };
+      if (result && typeof result.then === 'function') result.then(apply).catch(() => undefined);
+      else apply(result);
+    } catch { /* Optional local groups. */ }
+  }, [currentUserId]);
 
-  // Real-time Firestore message subscription
   useEffect(() => {
     if (!activeChatId) return;
-    
-    const unsubscribe = firebaseService.subscribeToMessages(activeChatId, (newMessages) => {
-      if (newMessages && newMessages.length > 0) {
-        setMessages(newMessages);
-      } else {
-        setMessages(SAMPLE_CHANNEL_MESSAGES[activeChatId] || []);
-      }
+    setLoadingMessages(true);
+    setMessages([]);
+    const unsubscribe = firebaseService.subscribeToMessages(activeChatId, (next: any[]) => {
+      setMessages(Array.isArray(next) ? next : []);
+      setLoadingMessages(false);
     });
-
-    return () => {
-      unsubscribe();
-    };
+    return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
   }, [activeChatId]);
 
-  // Real-time typing status subscription
   useEffect(() => {
-    if (!activeChatId) return;
-
-    const unsubscribe = firebaseService.subscribeToTypingStatus(activeChatId, currentUserId, (activeTypers) => {
-      setTypingUsers(activeTypers);
-    });
-
-    return () => {
-      unsubscribe();
-    };
+    if (!activeChatId || !currentUserId) return;
+    const unsubscribe = firebaseService.subscribeToTypingStatus(activeChatId, currentUserId, (names: string[]) => setTypingUsers(names || []));
+    return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
   }, [activeChatId, currentUserId]);
 
-  // Real-time Group settings (Admins, Muted Users) subscription
   useEffect(() => {
-    if (!activeChatId) return;
+    listEndRef.current?.scrollIntoView?.({ block: 'end' });
+  }, [messages.length, activeChatId]);
 
-    const unsubscribe = firebaseService.subscribeToGroupSettings(activeChatId, (settings) => {
-      setGroupSettings(settings);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [activeChatId]);
-
-  // Auto-scroll on new messages
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, localPreviewFile, replyingTo, typingUsers]);
+    if (!notice) return;
+    const id = setTimeout(() => setNotice(''), 3000);
+    return () => clearTimeout(id);
+  }, [notice]);
 
-  // Camera stream handler for in-app Viewfinder
-  useEffect(() => {
-    if (isCameraModalOpen && !capturedPhotoUrl) {
-      navigator.mediaDevices?.getUserMedia({ 
-        video: { facingMode: cameraFacing, width: { ideal: 1280 }, height: { ideal: 720 } }, 
-        audio: false 
-      })
-      .then((stream) => {
-        setCameraStream(stream);
-        if (cameraViewfinderRef.current) {
-          cameraViewfinderRef.current.srcObject = stream;
-        }
-      })
-      .catch((err) => {
-        console.warn("Direct webcam/camera stream unavailable, switching to native file capture:", err);
-      });
-    }
+  const visibleMessages = useMemo(() => messages.filter(m =>
+    !hiddenSenders.includes(m.senderId)
+    && !reportedIds.includes(m.id)
+    && !(guardianMode && hasUnverifiedClaim(m.text))
+  ), [messages, hiddenSenders, reportedIds, guardianMode]);
 
-    return () => {
-      if (cameraStream) {
-        cameraStream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [isCameraModalOpen, cameraFacing, capturedPhotoUrl]);
-
-  // Dynamic call timer
-  useEffect(() => {
-    if (callSession?.active) {
-      callTimerRef.current = setInterval(() => {
-        setCallSession(prev => prev ? { ...prev, timer: prev.timer + 1 } : null);
-      }, 1000);
-    } else {
-      if (callTimerRef.current) clearInterval(callTimerRef.current);
-    }
-
-    return () => {
-      if (callTimerRef.current) clearInterval(callTimerRef.current);
-    };
-  }, [callSession?.active]);
-
-  const activeChat = allChats.find(c => c.id === activeChatId) || allChats[0];
-
-  // Admin status check
-  const isCurrentUserAdmin = groupSettings.admins.includes(currentUserId) || 
-                             groupSettings.admins.includes('current-user-uid') || 
-                             activeChat.members?.some(m => (m.id === currentUserId || m.name.includes('You')) && m.isAdmin);
-
-  // Mute status check
-  const isCurrentUserMuted = groupSettings.mutedUsers.includes(currentUserId) || groupSettings.mutedUsers.includes('current-user-uid');
-
-  // Filter conversations list
-  const filteredChats = allChats.filter(c => {
-    const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          c.desc.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCat = categoryFilter === 'All' || c.category === categoryFilter;
-    return matchesSearch && matchesCat;
-  });
-
-  // Filter messages in chat search, muted senders, and Guardian Safe Mode
-  const visibleMessages = messages.filter(m => {
-    if (hiddenSenders.includes(m.senderId)) return false;
-    if (guardianSafeMode && (flaggedMessageIds.includes(m.id) || containsUnverifiedMedicalAdvice(m.text))) {
-      return false;
-    }
-    if (inChatSearch.trim()) {
-      return m.text?.toLowerCase().includes(inChatSearch.toLowerCase());
-    }
-    return true;
-  });
-
-  // Compress image
-  const compressImage = (base64Str: string, maxW = 800, maxH = 800): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.src = base64Str;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        if (width > height) {
-          if (width > maxW) {
-            height *= maxW / width;
-            width = maxW;
-          }
-        } else {
-          if (height > maxH) {
-            width *= maxH / height;
-            height = maxH;
-          }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.7));
-      };
-      img.onerror = () => resolve(base64Str);
-    });
-  };
-
-  // --- Real-time Typing Handler ---
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setInputText(val);
-
-    if (activeChatId && !isCurrentUserMuted) {
-      firebaseService.setTypingStatus(activeChatId, currentUserId, currentUserName, true);
-
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = setTimeout(() => {
-        firebaseService.setTypingStatus(activeChatId, currentUserId, currentUserName, false);
-      }, 2500);
-    }
-  };
-
-  // --- Camera In-App Actions ---
-  const handleOpenLiveCamera = () => {
-    setShowAttachmentMenu(false);
-    setCapturedPhotoUrl(null);
-    setIsCameraModalOpen(true);
-  };
-
-  const handleCaptureFrame = () => {
-    if (!cameraViewfinderRef.current) return;
-    const video = cameraViewfinderRef.current;
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-      setCapturedPhotoUrl(dataUrl);
-    }
-  };
-
-  const handleRetakeCameraPhoto = () => {
-    setCapturedPhotoUrl(null);
-  };
-
-  const handleCloseCameraModal = () => {
-    if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
-      setCameraStream(null);
-    }
-    setIsCameraModalOpen(false);
-    setCapturedPhotoUrl(null);
-  };
-
-  const handleConfirmCameraPhoto = async () => {
-    if (!capturedPhotoUrl || !activeChatId) return;
-
-    setIsUploadingToStorage(true);
-    try {
-      const compressed = await compressImage(capturedPhotoUrl);
-      // Upload to Firebase Storage
-      const uploadedStorageUrl = await firebaseService.uploadChatMedia(activeChatId, compressed, 'camera_capture');
-      
-      setLocalPreviewFile({
-        url: uploadedStorageUrl,
-        type: 'image'
-      });
-      handleCloseCameraModal();
-    } catch (err) {
-      console.warn("Storage upload fallback:", err);
-      setLocalPreviewFile({
-        url: capturedPhotoUrl,
-        type: 'image'
-      });
-      handleCloseCameraModal();
-    } finally {
-      setIsUploadingToStorage(false);
-    }
-  };
-
-  // Native camera file input change (Mobile/Tablet fallback)
-  const handleCameraFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !activeChatId) return;
-
-    setIsUploadingToStorage(true);
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const resultStr = event.target?.result as string;
-      if (resultStr) {
-        try {
-          const compressed = await compressImage(resultStr);
-          const storageUrl = await firebaseService.uploadChatMedia(activeChatId, compressed, 'camera_mobile');
-          setLocalPreviewFile({
-            url: storageUrl,
-            type: 'image'
-          });
-        } catch (err) {
-          setLocalPreviewFile({
-            url: resultStr,
-            type: 'image'
-          });
-        }
-      }
-      setIsUploadingToStorage(false);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleTriggerFilePicker = () => {
-    setShowAttachmentMenu(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !activeChatId) return;
-
-    setIsUploadingToStorage(true);
-    const reader = new FileReader();
-    const isImg = file.type.startsWith('image/');
-    const isVid = file.type.startsWith('video/');
-
-    reader.onload = async (event) => {
-      const resultStr = event.target?.result as string;
-      if (!resultStr) {
-        setIsUploadingToStorage(false);
-        return;
-      }
-
-      let finalMediaUrl = resultStr;
-      if (isImg) {
-        try {
-          const compressed = await compressImage(resultStr);
-          finalMediaUrl = await firebaseService.uploadChatMedia(activeChatId, compressed, 'upload');
-        } catch (err) {
-          console.warn("Image storage upload fallback:", err);
-        }
-      }
-
-      setLocalPreviewFile({
-        url: finalMediaUrl,
-        type: isImg ? 'image' : 'video'
-      });
-      setIsUploadingToStorage(false);
-    };
-
-    reader.readAsDataURL(file);
-  };
-
-  // --- Voice Recording Logic ---
-  const startVoiceRecording = async () => {
-    if (isCurrentUserMuted) return;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = async () => {
-          const base64Audio = reader.result as string;
-          if (base64Audio && recordingDuration > 0) {
-            playTone('send');
-            await firebaseService.sendMessage(
-              activeChatId!,
-              '🎤 Voice Note (' + recordingDuration + 's)',
-              base64Audio,
-              'audio',
-              replyingTo,
-              recordingDuration
-            );
-            setReplyingTo(null);
-          }
-        };
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      mediaRecorder.start();
-      setIsRecordingVoice(true);
-      setRecordingDuration(0);
-
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
-      }, 1000);
-    } catch (err) {
-      console.warn("Microphone access denied or simulated:", err);
-      playTone('send');
-      await firebaseService.sendMessage(
-        activeChatId!,
-        '🎤 Voice Note: "Staying warm, taking hydroxyurea and drinking water today!"',
-        null,
-        'audio',
-        replyingTo,
-        5
-      );
-      setReplyingTo(null);
-    }
-  };
-
-  const stopVoiceRecording = (cancel: boolean = false) => {
-    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-    setIsRecordingVoice(false);
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      if (cancel) {
-        audioChunksRef.current = [];
-        mediaRecorderRef.current.stop();
-      } else {
-        mediaRecorderRef.current.stop();
-      }
-    }
-  };
-
-  const togglePlayAudio = (msgId: string, audioUrl?: string) => {
-    if (!audioUrl) return;
-
-    if (playingAudioId === msgId) {
-      audioElementsRef.current[msgId]?.pause();
-      setPlayingAudioId(null);
-    } else {
-      if (playingAudioId && audioElementsRef.current[playingAudioId]) {
-        audioElementsRef.current[playingAudioId].pause();
-      }
-
-      if (!audioElementsRef.current[msgId]) {
-        const audio = new Audio(audioUrl);
-        audio.onended = () => setPlayingAudioId(null);
-        audioElementsRef.current[msgId] = audio;
-      }
-      audioElementsRef.current[msgId].play();
-      setPlayingAudioId(msgId);
-    }
-  };
-
-  // --- Send Message ---
-  const handleSendMessage = async (textOverload?: string) => {
-    if (isCurrentUserMuted) return;
-
-    const textValue = textOverload !== undefined ? textOverload : inputText;
-    if (!textValue.trim() && !localPreviewFile && !textOverload) return;
-
-    const textToSend = textValue;
-    const mediaToSend = localPreviewFile;
-    const currentReply = replyingTo;
-
-    setInputText('');
-    setLocalPreviewFile(null);
-    setShowEmojiPicker(false);
-    setShowAttachmentMenu(false);
+  const openChannel = (id: string) => {
+    setActiveChatId(id);
     setReplyingTo(null);
+    setActionsFor(null);
+    setSendError('');
+    setText('');
+  };
 
-    // Clear typing status immediately
-    if (activeChatId) {
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+  const closeChannel = () => {
+    if (activeChatId && currentUserId) firebaseService.setTypingStatus(activeChatId, currentUserId, currentUserName, false);
+    setActiveChatId(null);
+  };
+
+  const handleTyping = (value: string) => {
+    setText(value);
+    if (!activeChatId || !currentUserId) return;
+    firebaseService.setTypingStatus(activeChatId, currentUserId, currentUserName, true);
+    if (typingTimeout.current) clearTimeout(typingTimeout.current);
+    typingTimeout.current = setTimeout(() => {
       firebaseService.setTypingStatus(activeChatId, currentUserId, currentUserName, false);
-    }
+    }, 2500);
+  };
 
-    playTone('send');
-
-    // Optimistic UI update so messages appear immediately
-    const optimisticMsg = {
-      id: 'msg-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
-      text: textToSend,
-      senderId: currentUserId,
-      senderName: currentUserName,
-      timestamp: new Date().toISOString(),
-      mediaUrl: mediaToSend?.url || null,
-      mediaType: mediaToSend?.type || null,
-      replyTo: currentReply,
-      audioDuration: 0,
-      reactions: {}
-    };
-
-    setMessages(prev => {
-      if (prev.some(m => m.id === optimisticMsg.id)) return prev;
-      return [...prev, optimisticMsg];
-    });
-
+  const send = async (body: string, mediaUrl: string | null = null) => {
+    if (!activeChatId || sending) return;
+    const trimmed = body.trim();
+    if (!trimmed && !mediaUrl) return;
+    setSending(true);
+    setSendError('');
     try {
-      await firebaseService.sendMessage(
-        activeChatId!, 
-        textToSend, 
-        mediaToSend?.url || null, 
-        mediaToSend?.type || null,
-        currentReply
-      );
-    } catch (error) {
-      console.error("Failed to dispatch message:", error);
-    }
-  };
-
-  const handleToggleReaction = async (messageId: string, emoji: string) => {
-    await firebaseService.toggleMessageReaction(activeChatId!, messageId, emoji, currentUserId);
-  };
-
-  const handleDeleteMessage = async (messageId: string) => {
-    await firebaseService.deleteChatMessage(activeChatId!, messageId);
-  };
-
-  // --- Admin Moderation Handlers ---
-  const handleOpenModerationModal = (msg: any) => {
-    setSelectedMessageForMod(msg);
-    setModReason(INAPPROPRIATE_REASONS[0]);
-    setCustomModReason('');
-    setShowModModal(true);
-  };
-
-  const handleConfirmRemoveMessage = async () => {
-    if (!selectedMessageForMod || !activeChatId) return;
-
-    const reasonFinal = customModReason.trim() || modReason;
-    playTone('alert');
-
-    const nextFlagged = Array.from(new Set([...flaggedMessageIds, selectedMessageForMod.id]));
-    setFlaggedMessageIds(nextFlagged);
-    try {
-      localStorage.setItem('warrior_flagged_messages', JSON.stringify(nextFlagged));
+      await firebaseService.sendMessage(activeChatId, trimmed, mediaUrl, mediaUrl ? 'image' : null, replyingTo);
+      setText('');
+      setReplyingTo(null);
+      if (currentUserId) firebaseService.setTypingStatus(activeChatId, currentUserId, currentUserName, false);
     } catch {
-      // ignore storage errors
-    }
-
-    if (isCurrentUserAdmin) {
-      await firebaseService.removeMessageAsAdmin(
-        activeChatId,
-        selectedMessageForMod.id,
-        currentUserName,
-        reasonFinal
-      );
-      setSafetyFeedback(`Message removed by moderator (${reasonFinal}).`);
-    } else {
-      setSafetyFeedback(`Message reported for review (${reasonFinal}).`);
-    }
-
-    setShowModModal(false);
-    setSelectedMessageForMod(null);
-  };
-
-  const handleToggleMuteUser = async (targetUserId: string, currentMutedState: boolean) => {
-    if (!activeChatId || !isCurrentUserAdmin) return;
-    playTone('alert');
-    await firebaseService.toggleMuteUserInGroup(activeChatId, targetUserId, !currentMutedState);
-  };
-
-  const handleToggleAdminRole = async (targetUserId: string, currentAdminState: boolean) => {
-    if (!activeChatId || !isCurrentUserAdmin) return;
-    await firebaseService.toggleGroupAdmin(activeChatId, targetUserId, !currentAdminState);
-  };
-
-  const handleCopyText = (text: string) => {
-    navigator.clipboard?.writeText(text);
-  };
-
-  // Calling actions
-  const handleStartCall = (type: 'voice' | 'video') => {
-    playTone('call');
-    setCallSession({
-      type,
-      active: true,
-      timer: 0
-    });
-  };
-
-  const handleEndCall = () => {
-    setCallSession(null);
-    if (videoElementRef.current?.srcObject) {
-      const stream = videoElementRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
+      setSendError("Your message wasn't sent. Check your connection and try again.");
+    } finally {
+      setSending(false);
     }
   };
 
-  // Create new custom group
-  const handleCreateNewGroup = () => {
-    if (!newGroupName.trim()) return;
-    const newGroupId = 'custom-' + Date.now().toString(36);
-    const newGroup = {
-      id: newGroupId,
-      name: newGroupName.trim(),
-      avatar: newGroupAvatar || '🛡️',
-      desc: newGroupDesc.trim() || 'A supportive Warrior Sickle Cell community chat group.',
-      lastMsg: 'Group created. Welcome fellow warriors!',
-      time: 'Just now',
-      unread: 0,
-      online: true,
-      category: newGroupCategory,
-      pinned: false,
-      members: [
-        { id: currentUserId, name: 'You (Creator)', role: 'Group Admin', active: true, avatar: '👑', isAdmin: true },
-        { id: 'tunde-uid', name: 'Tunde (Warrior)', role: 'SCD Hero (HbSS)', active: true, avatar: '🦸‍♂️', isAdmin: false },
-        { id: 'grace-mom-uid', name: 'Grace (Caregiver)', role: 'Support Mother', active: true, avatar: '👩', isAdmin: false }
-      ]
-    };
-
-    const welcomeMsg = {
-      id: 'msg-' + Date.now().toString(36),
-      text: `Welcome to ${newGroup.name}! 🌟 This channel was created by ${currentUserName} to support warriors, share tips, and connect. Feel free to say hello!`,
-      senderId: currentUserId,
-      senderName: currentUserName,
-      timestamp: new Date().toISOString(),
-      mediaUrl: null,
-      mediaType: null,
-      replyTo: null,
-      audioDuration: 0,
-      reactions: { '❤️': [currentUserId], '💧': ['tunde-uid'] }
-    };
-
-    const userId = auth.currentUser?.uid || 'guest';
-    firebaseService.saveCustomGroup(userId, newGroup);
-    localStorage.setItem(`warrior_chat_${newGroupId}`, JSON.stringify([welcomeMsg]));
-
-    setAllChats(prev => [newGroup, ...prev]);
-    setActiveChatId(newGroupId);
-    setMessages([welcomeMsg]);
-    setShowCreateGroupModal(false);
-    setNewGroupName('');
-    setNewGroupDesc('');
+  const handlePhoto = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !activeChatId) return;
+    if (!file.type.startsWith('image/')) {
+      setSendError('Only photos can be shared here.');
+      return;
+    }
+    setSending(true);
+    setSendError('');
+    try {
+      const blob = await compressImage(file);
+      const url = await firebaseService.uploadChatMedia(activeChatId, blob, 'photo');
+      setSending(false);
+      if (!url) throw new Error('upload failed');
+      await send(text, url);
+    } catch {
+      setSending(false);
+      setSendError("The photo wasn't sent. Please try again.");
+    }
   };
 
-  // Export chat transcript
-  const handleExportChat = () => {
-    const textContent = messages.map(m => {
-      const time = m.timestamp?.toDate ? m.timestamp.toDate().toLocaleString() : m.timestamp;
-      return `[${time}] ${m.senderName || 'Warrior'}: ${m.text || (m.mediaType ? `[Attachment: ${m.mediaType}]` : '')}`;
-    }).join('\n');
-
-    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${activeChat.name.replace(/\s+/g, '_')}_Transcript.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const react = async (messageId: string, emoji: string) => {
+    if (!activeChatId) return;
+    setActionsFor(null);
+    setMessages(current => current.map(m => {
+      if (m.id !== messageId) return m;
+      const reactions = { ...(m.reactions || {}) };
+      const list: string[] = reactions[emoji] || [];
+      reactions[emoji] = list.includes(currentUserId) ? list.filter(u => u !== currentUserId) : [...list, currentUserId];
+      if (!reactions[emoji].length) delete reactions[emoji];
+      return { ...m, reactions };
+    }));
+    await firebaseService.toggleMessageReaction(activeChatId, messageId, emoji, currentUserId);
   };
 
-  const mediaMessages = messages.filter(m => m.mediaUrl && (m.mediaType === 'image' || m.mediaType === 'video'));
+  const removeOwn = async (messageId: string) => {
+    if (!activeChatId) return;
+    setActionsFor(null);
+    setMessages(current => current.filter(m => m.id !== messageId));
+    await firebaseService.deleteChatMessage(activeChatId, messageId);
+    setNotice('Message deleted.');
+  };
 
-  return (
-    <div className="space-y-4">
-      {/* Sub-tab Navigation */}
-      <div className="flex items-center gap-1.5 p-1 rounded-full bg-wa-surface border border-wa-line shadow-2xs max-w-fit">
-        <button
-          type="button"
-          onClick={() => setSubTab('channels')}
-          className={`px-3 sm:px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-            subTab === 'channels'
-              ? 'bg-[#3B0F2C] text-white shadow-sm'
-              : 'text-[#6E4A63] hover:text-[#3B0F2C] hover:bg-[#F7F2F5]'
-          }`}
-        >
-          <MessageSquare size={14} />
-          <span><span className="hidden sm:inline">Warrior </span>Channels ({allChats.length})</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setSubTab('circle')}
-          className={`px-3 sm:px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-            subTab === 'circle'
-              ? 'bg-[#3B0F2C] text-white shadow-sm'
-              : 'text-[#6E4A63] hover:text-[#3B0F2C] hover:bg-[#F7F2F5]'
-          }`}
-        >
-          <Users size={14} />
-          <span>Care Circle<span className="hidden sm:inline"> & Buddies</span></span>
-        </button>
+  const report = (messageId: string) => {
+    const next = [...reportedIds, messageId];
+    setReportedIds(next);
+    writeList('warrior_flagged_messages', next);
+    setActionsFor(null);
+    setNotice('Reported and hidden from your view.');
+  };
+
+  const hideSender = (senderId: string, name: string) => {
+    const next = [...hiddenSenders, senderId];
+    setHiddenSenders(next);
+    writeList('warrior_hidden_senders', next);
+    setActionsFor(null);
+    setNotice(`Messages from ${name} are hidden.`);
+  };
+
+  const toggleGuardian = () => {
+    const next = !guardianMode;
+    setGuardianMode(next);
+    try { localStorage.setItem('warrior_guardian_safe_mode', String(next)); } catch { /* Preference only. */ }
+  };
+
+  const resetHidden = () => {
+    setHiddenSenders([]);
+    setReportedIds([]);
+    writeList('warrior_hidden_senders', []);
+    writeList('warrior_flagged_messages', []);
+    setNotice('Hidden people and messages are visible again.');
+  };
+
+  const segment = (selected: boolean) =>
+    `flex min-h-11 items-center justify-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson ${
+      selected ? 'bg-wa-surface text-wa-plum shadow-sm' : 'text-wa-plum-muted hover:text-wa-plum'
+    }`;
+
+  const channelList = (
+    <section aria-labelledby="channels-heading" className="space-y-3">
+      <div className="flex items-start gap-2.5 rounded-[18px] border border-wa-line bg-wa-ground/70 p-3.5 text-[13px] text-wa-plum dark:bg-white/5">
+        <ShieldCheck size={16} className="mt-0.5 shrink-0 text-emerald-600" aria-hidden="true" />
+        <p>
+          Peer support from other warriors, not medical advice. Messages are visible to everyone signed in.
+          In an emergency, call <a href="tel:112" className="font-bold underline">112</a>.
+        </p>
       </div>
 
-      {subTab === 'circle' ? (
-        <PeerSupportSection currentUserId={auth.currentUser?.uid || 'user-warrior'} />
-      ) : (
-        <div id="warrior-chat-container" className="h-[calc(100vh-210px)] min-h-[560px] flex flex-col md:flex-row bg-wa-surface text-wa-plum rounded-[28px] shadow-sm border border-wa-line overflow-hidden relative font-sans">
-      
-      {/* Hidden file input for documents & standard uploads */}
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        onChange={handleFileChange} 
-        accept="image/*,video/*" 
-        className="hidden" 
-      />
-
-      {/* Hidden file input for native camera launch */}
-      <input 
-        type="file" 
-        ref={cameraFileInputRef} 
-        onChange={handleCameraFileChange} 
-        accept="image/*" 
-        capture="environment" 
-        className="hidden" 
-      />
-
-      {/* 1. IMAGE LIGHTBOX MODAL */}
-      <AnimatePresence>
-        {lightboxImageUrl && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
-            onClick={() => setLightboxImageUrl(null)}
-          >
-            <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
-              <img 
-                src={lightboxImageUrl} 
-                alt="Enlarged" 
-                className="rounded-2xl max-h-[80vh] w-auto object-contain border-2 border-slate-800 shadow-2xl" 
-                referrerPolicy="no-referrer"
-              />
-              <div className="flex items-center gap-3 mt-3">
-                <a 
-                  href={lightboxImageUrl} 
-                  download="Warrior_Chat_Image.jpg" 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl flex items-center gap-2 border border-slate-700 transition"
-                >
-                  <Download size={14} /> Download Full Quality
-                </a>
-                <button 
-                  onClick={() => setLightboxImageUrl(null)}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
-                >
-                  <X size={14} /> Close
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* 2. LIVE CAMERA SNAPSHOT MODAL (Firebase Storage Upload) */}
-      <AnimatePresence>
-        {isCameraModalOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4 select-none"
-          >
-            <motion.div 
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="bg-slate-900 border-2 border-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col"
+      <h2 id="channels-heading" className="px-1 text-xs font-bold uppercase tracking-wider text-wa-plum-muted">Channels</h2>
+      <ul className="space-y-2.5">
+        {channels.map(channel => (
+          <li key={channel.id}>
+            <button
+              type="button"
+              onClick={() => openChannel(channel.id)}
+              aria-label={`Open ${channel.name}`}
+              className="flex w-full items-center gap-3 rounded-[22px] border border-wa-line bg-wa-surface p-3.5 text-left transition-colors hover:border-wa-crimson/40 hover:bg-wa-rose/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
             >
-              {/* Header */}
-              <div className="p-4 bg-slate-950 border-b border-slate-800 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center border border-red-500/20">
-                    <Camera size={16} />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-black text-white">Camera Capture</h3>
-                    <p className="text-[10px] text-gray-400 font-mono">Upload to Firebase Storage</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={handleCloseCameraModal}
-                  className="p-1.5 hover:bg-slate-800 text-gray-400 hover:text-white rounded-xl transition"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Viewfinder / Frozen Snapshot */}
-              <div className="relative aspect-square sm:aspect-video bg-black flex items-center justify-center overflow-hidden">
-                {capturedPhotoUrl ? (
-                  <img 
-                    src={capturedPhotoUrl} 
-                    alt="Captured" 
-                    className="w-full h-full object-contain" 
-                  />
-                ) : (
-                  <>
-                    <video 
-                      ref={cameraViewfinderRef} 
-                      autoPlay 
-                      playsInline 
-                      muted 
-                      className="w-full h-full object-cover" 
-                    />
-                    {/* Viewfinder crosshairs */}
-                    <div className="absolute inset-8 border border-white/20 rounded-2xl pointer-events-none flex items-center justify-center">
-                      <div className="w-4 h-4 border-t-2 border-l-2 border-red-500 absolute top-0 left-0"></div>
-                      <div className="w-4 h-4 border-t-2 border-r-2 border-red-500 absolute top-0 right-0"></div>
-                      <div className="w-4 h-4 border-b-2 border-l-2 border-red-500 absolute bottom-0 left-0"></div>
-                      <div className="w-4 h-4 border-b-2 border-r-2 border-red-500 absolute bottom-0 right-0"></div>
-                    </div>
-                  </>
-                )}
-
-                {/* Flip camera toggle */}
-                {!capturedPhotoUrl && (
-                  <button 
-                    onClick={() => setCameraFacing(prev => prev === 'user' ? 'environment' : 'user')}
-                    className="absolute top-3 right-3 p-2 bg-black/60 hover:bg-black/80 rounded-xl text-white backdrop-blur-md transition border border-white/10"
-                    title="Switch camera"
-                  >
-                    <RefreshCw size={15} />
-                  </button>
-                )}
-              </div>
-
-              {/* Controls */}
-              <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
-                {capturedPhotoUrl ? (
-                  <>
-                    <button 
-                      onClick={handleRetakeCameraPhoto}
-                      disabled={isUploadingToStorage}
-                      className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-gray-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
-                    >
-                      <RefreshCw size={14} /> Retake
-                    </button>
-                    <button 
-                      onClick={handleConfirmCameraPhoto}
-                      disabled={isUploadingToStorage}
-                      className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-black transition flex items-center gap-2 shadow-lg shadow-red-900/30"
-                    >
-                      {isUploadingToStorage ? (
-                        <>
-                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          <span>Uploading...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Check size={14} /> Attach to Chat
-                        </>
-                      )}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button 
-                      onClick={() => cameraFileInputRef.current?.click()}
-                      className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-gray-300 rounded-xl text-[11px] font-bold transition flex items-center gap-1.5"
-                    >
-                      <ImageIcon size={13} /> Native Camera
-                    </button>
-                    <button 
-                      onClick={handleCaptureFrame}
-                      className="w-14 h-14 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-lg shadow-red-900/40 border-4 border-slate-900 hover:scale-105 active:scale-95 transition cursor-pointer"
-                      title="Snap photo"
-                    >
-                      <div className="w-5 h-5 rounded-full bg-white"></div>
-                    </button>
-                    <button 
-                      onClick={handleCloseCameraModal}
-                      className="px-3 py-2 bg-slate-850 hover:bg-slate-800 text-gray-400 rounded-xl text-[11px] font-bold transition"
-                    >
-                      Cancel
-                    </button>
-                  </>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* 3. COMMUNITY REPORT & MODERATION MODAL */}
-      <AnimatePresence>
-        {showModModal && selectedMessageForMod && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-[#3B0F2C]/60 backdrop-blur-sm flex items-center justify-center p-4 select-none"
-          >
-            <motion.div 
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="bg-wa-surface border border-wa-line rounded-[28px] w-full max-w-md overflow-hidden shadow-2xl flex flex-col text-wa-plum"
-            >
-              <div className="p-4 bg-wa-rose/60 border-b border-wa-line-soft flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-wa-crimson text-white flex items-center justify-center shadow-2xs">
-                  <ShieldAlert size={18} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-display font-bold text-wa-plum">
-                    {isCurrentUserAdmin ? 'Report or Remove Message' : 'Report Message to Moderators'}
-                  </h3>
-                  <p className="text-[11px] text-wa-plum-muted">
-                    Community Safety &amp; Medical Misinformation Protection
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-5 space-y-4">
-                {/* Target Message Preview */}
-                <div className="p-3 bg-wa-ground rounded-2xl border border-wa-line space-y-1">
-                  <span className="text-[10px] font-mono text-wa-plum-muted block font-bold">
-                    Author: {selectedMessageForMod.senderName}
-                  </span>
-                  <p className="text-xs text-wa-plum italic line-clamp-2">
-                    "{selectedMessageForMod.text || '[Media Attachment]'}"
-                  </p>
-                </div>
-
-                {/* Reason Selection */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase text-wa-plum-muted font-mono tracking-wider block">
-                    Select Safety or Clinical Concern:
-                  </label>
-                  <div className="space-y-1.5">
-                    {INAPPROPRIATE_REASONS.map((r) => (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => setModReason(r)}
-                        className={`w-full text-left p-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
-                          modReason === r 
-                            ? 'bg-wa-rose border-wa-crimson text-wa-plum font-bold' 
-                            : 'bg-wa-ground border-wa-line text-wa-plum-muted hover:text-wa-plum'
-                        }`}
-                      >
-                        {r}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Custom Note */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-wa-plum-muted font-mono tracking-wider block">
-                    Additional Context (Optional):
-                  </label>
-                  <input 
-                    type="text"
-                    placeholder="Add details for the safety review..."
-                    value={customModReason}
-                    onChange={(e) => setCustomModReason(e.target.value)}
-                    className="w-full px-3 py-2 bg-wa-ground border border-wa-line rounded-xl text-xs text-wa-plum placeholder:text-wa-plum-muted/60 focus:outline-none focus:border-wa-crimson"
-                  />
-                </div>
-              </div>
-
-              <div className="p-4 bg-wa-ground border-t border-wa-line-soft flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModModal(false)}
-                  className="px-4 py-2 bg-wa-surface hover:bg-wa-rose/40 text-wa-plum border border-wa-line rounded-full text-xs font-bold transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmRemoveMessage}
-                  className="px-4 py-2 bg-wa-crimson hover:bg-[#9E0E26] text-white rounded-full text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-                >
-                  <ShieldAlert size={13} />
-                  {isCurrentUserAdmin ? 'Flag & Remove' : 'Submit Report'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* CREATE NEW GROUP MODAL */}
-      <AnimatePresence>
-        {showCreateGroupModal && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-[#3B0F2C]/60 backdrop-blur-sm flex items-center justify-center p-4 select-none"
-          >
-            <motion.div 
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="bg-white border border-[#E6D8E0] rounded-[28px] w-full max-w-md p-6 space-y-4 shadow-2xl text-[#3B0F2C]"
-            >
-              <div className="flex justify-between items-center pb-3 border-b border-[#F1E6EC]">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-2xl">✨</span>
-                  <div>
-                    <h3 className="text-base font-display font-bold text-[#3B0F2C]">Create Warrior Group</h3>
-                    <p className="text-xs text-[#6E4A63]">Establish a sickle cell support channel</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setShowCreateGroupModal(false)} 
-                  className="p-1.5 hover:bg-[#F7F2F5] rounded-full text-[#6E4A63] transition"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="space-y-3.5">
-                <div>
-                  <label className="text-[11px] font-bold uppercase text-[#6E4A63] tracking-wider block mb-1">Group Name</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. Lagos Warriors Hydration Circle" 
-                    value={newGroupName}
-                    onChange={(e) => setNewGroupName(e.target.value)}
-                    className="w-full bg-[#F7F2F5] border border-[#E6D8E0] rounded-xl px-3.5 py-2.5 text-xs text-[#3B0F2C] focus:outline-none focus:border-[#C4122F] font-semibold"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-bold uppercase text-[#6E4A63] tracking-wider block mb-1">Select Group Icon</label>
-                  <div className="flex flex-wrap gap-2">
-                    {['🌟', '🧬', '🛡️', '❤️', '🩺', '💧', '🤝', '⚡', '👶', '🏆'].map(emoji => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        onClick={() => setNewGroupAvatar(emoji)}
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg transition border cursor-pointer ${
-                          newGroupAvatar === emoji ? 'bg-[#FBE4E8] border-[#C4122F] scale-110 shadow-xs' : 'bg-[#F7F2F5] border-[#E6D8E0] hover:bg-white'
-                        }`}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-bold uppercase text-[#6E4A63] tracking-wider block mb-1">Category</label>
-                  <select
-                    value={newGroupCategory}
-                    onChange={(e: any) => setNewGroupCategory(e.target.value)}
-                    className="w-full bg-[#F7F2F5] border border-[#E6D8E0] rounded-xl px-3.5 py-2.5 text-xs text-[#3B0F2C] focus:outline-none focus:border-[#C4122F] font-semibold"
-                  >
-                    <option value="Group Chat">Community Group</option>
-                    <option value="Caregivers">Caregivers & Parents</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-bold uppercase text-[#6E4A63] tracking-wider block mb-1">Purpose / Bio</label>
-                  <textarea 
-                    placeholder="Brief description of this channel's mission..."
-                    value={newGroupDesc}
-                    onChange={(e) => setNewGroupDesc(e.target.value)}
-                    rows={2}
-                    className="w-full bg-[#F7F2F5] border border-[#E6D8E0] rounded-xl px-3.5 py-2.5 text-xs text-[#3B0F2C] focus:outline-none focus:border-[#C4122F] font-semibold resize-none"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2 border-t border-[#F1E6EC]">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateGroupModal(false)}
-                  className="px-4 py-2 bg-[#F7F2F5] hover:bg-[#E6D8E0] text-[#6E4A63] rounded-full text-xs font-bold transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCreateNewGroup}
-                  disabled={!newGroupName.trim()}
-                  className="px-5 py-2 bg-[#C4122F] hover:bg-[#9E0E26] disabled:opacity-50 text-white rounded-full text-xs font-bold shadow-sm transition"
-                >
-                  Create Channel
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* 4. TELEMEDICINE CALL OVERLAY */}
-      <AnimatePresence>
-        {callSession?.active && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="absolute inset-0 z-40 bg-slate-950/95 backdrop-blur-xl flex flex-col justify-between p-6"
-          >
-            {/* Call Header */}
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-red-500/20 text-2xl flex items-center justify-center border border-red-500/30">
-                  {activeChat.avatar}
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-white">{activeChat.name}</h3>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                    <span className="text-xs text-emerald-400 font-mono">
-                      {callSession.type === 'video' ? 'Video preview' : 'Voice preview'} &bull; 0:{callSession.timer.toString().padStart(2, '0')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <span className="px-3 py-1 bg-slate-900 border border-slate-800 rounded-xl text-[10px] font-mono text-gray-400">
-                Local preview — no live service connection
+              <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-wa-rose text-sm font-bold text-wa-crimson">
+                {channel.initials}
               </span>
-            </div>
+              <span className="min-w-0 flex-1">
+                <span className="block font-display text-[15px] font-bold text-wa-plum">{channel.name}</span>
+                <span className="mt-0.5 block text-[13px] leading-snug text-wa-plum-muted">
+                  {channel.custom ? 'Your group, saved on this phone. ' : ''}{channel.desc}
+                </span>
+              </span>
+              <ChevronRight size={18} className="shrink-0 text-wa-plum-muted" aria-hidden="true" />
+            </button>
+          </li>
+        ))}
+      </ul>
 
-            {/* Video Streams */}
-            {callSession.type === 'video' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 my-6">
-                <div className="relative rounded-3xl bg-slate-900 border border-slate-800 overflow-hidden flex items-center justify-center shadow-2xl">
-                  <div className="text-center space-y-2">
-                    <span className="text-5xl">{activeChat.avatar}</span>
-                    <h4 className="text-xs font-bold text-gray-300">Participant preview</h4>
-                    <span className="text-[10px] font-mono text-amber-400">No remote participant connected</span>
-                  </div>
-                </div>
-                <div className="relative rounded-3xl bg-black border border-slate-800 overflow-hidden flex items-center justify-center shadow-2xl">
-                  <video 
-                    ref={videoElementRef} 
-                    autoPlay 
-                    playsInline 
-                    muted 
-                    className="w-full h-full object-cover" 
-                  />
-                  <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-xl text-[10px] font-mono text-white">
-                    You (Patient Feed)
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center space-y-4">
-                <div className="w-28 h-28 rounded-full bg-slate-900 border-4 border-emerald-500/40 flex items-center justify-center text-5xl shadow-2xl animate-pulse">
-                  {activeChat.avatar}
-                </div>
-                <h4 className="text-sm font-black text-white">{activeChat.name}</h4>
-                <p className="text-xs text-gray-400 font-mono">Preview only — no call connected</p>
+      <div className="flex flex-wrap items-center gap-2 px-1 pt-1">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={guardianMode}
+          onClick={toggleGuardian}
+          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-wa-line bg-wa-surface px-4 text-[13px] font-bold text-wa-plum transition-colors hover:bg-wa-ground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
+        >
+          <span className={`relative block h-5 w-9 rounded-full transition-colors ${guardianMode ? 'bg-wa-crimson' : 'bg-wa-line'}`}>
+            <span className={`absolute top-0.5 block h-4 w-4 rounded-full bg-white transition-transform ${guardianMode ? 'translate-x-4' : 'translate-x-0.5'}`} />
+          </span>
+          Guardian mode
+        </button>
+        <span className="text-xs text-wa-plum-muted">Hides posts that suggest stopping treatment or promise cures.</span>
+        {(hiddenSenders.length > 0 || reportedIds.length > 0) && (
+          <button type="button" onClick={resetHidden} className="inline-flex min-h-11 items-center text-[13px] font-bold text-wa-crimson underline-offset-2 hover:underline">
+            Show hidden ({hiddenSenders.length + reportedIds.length})
+          </button>
+        )}
+      </div>
+    </section>
+  );
+
+  const renderMessage = (m: any) => {
+    const mine = Boolean(currentUserId) && m.senderId === currentUserId;
+    const name = String(m.senderName || 'Warrior');
+    const reactions = Object.entries((m.reactions || {}) as Record<string, string[]>).filter(([, users]) => Array.isArray(users) && users.length > 0);
+    const flagged = hasUnverifiedClaim(m.text);
+    const open = actionsFor === m.id;
+
+    return (
+      <li key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+        <div className={`flex max-w-[85%] flex-col ${mine ? 'items-end' : 'items-start'}`}>
+          {!mine && <span className="mb-1 px-1 text-xs font-bold text-wa-plum-muted">{name}</span>}
+          <div className={`rounded-[20px] px-3.5 py-2.5 ${mine ? 'rounded-br-md bg-wa-rose text-wa-plum' : 'rounded-bl-md border border-wa-line bg-wa-surface text-wa-plum'}`}>
+            {m.replyTo?.text && (
+              <div className="mb-1.5 border-l-2 border-wa-crimson/50 pl-2 text-xs text-wa-plum-muted">
+                <span className="font-bold">{m.replyTo.senderName}</span>
+                <span className="block line-clamp-2">{m.replyTo.text}</span>
               </div>
             )}
-
-            {/* Call Controls */}
-            <div className="flex items-center justify-center gap-4 py-2">
-              <button 
-                onClick={() => setMuteMicrophone(!muteMicrophone)}
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white transition ${
-                  muteMicrophone ? 'bg-red-500/20 border border-red-500 text-red-400' : 'bg-slate-800 hover:bg-slate-700'
-                }`}
-                title={muteMicrophone ? "Unmute Mic" : "Mute Mic"}
-              >
-                {muteMicrophone ? <MicOff size={20} /> : <Mic size={20} />}
+            {m.mediaUrl && m.mediaType === 'image' && (
+              <button type="button" onClick={() => setLightbox(m.mediaUrl)} className="mb-1.5 block overflow-hidden rounded-xl" aria-label="Open photo">
+                <img src={m.mediaUrl} alt="Shared photo" className="max-h-64 w-full object-cover" loading="lazy" />
               </button>
+            )}
+            {m.text && <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{m.text}</p>}
+            {flagged && (
+              <p className="mt-1.5 rounded-lg bg-wa-sun-soft px-2 py-1 text-xs text-wa-plum">
+                Check with your care team before changing any treatment.
+              </p>
+            )}
+          </div>
 
-              {callSession.type === 'video' && (
-                <button 
-                  onClick={() => setCameraStreamActive(!cameraStreamActive)}
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white transition ${
-                    !cameraStreamActive ? 'bg-red-500/20 border border-red-500 text-red-400' : 'bg-slate-800 hover:bg-slate-700'
-                  }`}
-                  title="Toggle Camera"
-                >
-                  <Camera size={20} />
-                </button>
-              )}
-
-              <button 
-                onClick={handleEndCall}
-                className="px-6 h-12 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black text-xs flex items-center gap-2 shadow-xl shadow-red-900/40 transition"
+          <div className={`mt-1 flex items-center gap-1 ${mine ? 'flex-row-reverse' : ''}`}>
+            <span className="px-1 text-xs text-wa-plum-muted">{formatTime(m.timestamp)}</span>
+            {reactions.map(([emoji, users]) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => void react(m.id, emoji)}
+                aria-label={`${emoji} ${users.length}`}
+                className={`inline-flex h-7 items-center gap-0.5 rounded-full border px-2 text-xs ${users.includes(currentUserId) ? 'border-wa-crimson/40 bg-wa-rose' : 'border-wa-line bg-wa-surface'}`}
               >
-                <Phone size={18} className="rotate-[135deg]" />
-                <span>End Call</span>
+                {emoji} <span className="font-semibold text-wa-plum">{users.length}</span>
               </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* 5. SIDEBAR: CONVERSATION LIST (LHS) */}
-      <div className={`w-full md:w-80 lg:w-96 flex flex-col bg-wa-ground border-r border-wa-line shrink-0 ${activeChatId ? 'hidden md:flex' : 'flex'}`}>
-        
-        {/* Sidebar Header */}
-        <div className="p-4 border-b border-wa-line space-y-3 bg-wa-surface">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-[#C4122F] flex items-center justify-center shadow-sm">
-                <MessageSquare size={16} className="text-white" />
-              </div>
-              <div>
-                <h2 className="text-sm font-display font-bold text-wa-plum tracking-tight">Warrior Channels</h2>
-                <span className="text-[10px] font-bold text-[#C4122F] bg-[#FBE4E8] px-2 py-0.5 rounded-full font-mono uppercase tracking-wider">
-                  Active Community
-                </span>
-              </div>
-            </div>
-
-            <button 
-              onClick={() => setShowCreateGroupModal(true)}
-              className="px-3 py-1.5 bg-[#C4122F] hover:bg-[#9E0E26] text-white rounded-full transition shadow-sm text-xs font-bold flex items-center gap-1 cursor-pointer"
-              title="Create a new Warrior support group"
+            ))}
+            <button
+              type="button"
+              aria-label={`Message options for ${mine ? 'your message' : name}`}
+              aria-expanded={open}
+              onClick={() => setActionsFor(open ? null : m.id)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-wa-plum-muted hover:bg-wa-ground hover:text-wa-plum focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
             >
-              <Plus size={14} />
-              <span><span className="hidden sm:inline">Create </span>Group</span>
+              <MoreHorizontal size={16} aria-hidden="true" />
             </button>
           </div>
 
-          {/* Search bar */}
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-3 text-[#6E4A63]" />
-            <input 
-              type="text" 
-              placeholder="Search community chats..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-wa-ground text-xs text-wa-plum pl-9 pr-3 py-2.5 rounded-full border border-wa-line focus:outline-none focus:border-wa-crimson font-semibold placeholder:text-wa-plum-muted/70 transition"
-            />
-          </div>
-
-          {/* Categories Pill Filters */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-            {(['All', 'Group Chat', 'Caregivers'] as const).map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setCategoryFilter(cat)}
-                className={`text-[10px] font-bold px-3 py-1 rounded-full shrink-0 transition font-mono cursor-pointer ${
-                  categoryFilter === cat 
-                    ? 'bg-[#3B0F2C] text-white shadow-xs' 
-                    : 'bg-white text-[#6E4A63] hover:text-[#3B0F2C] hover:bg-[#FBE4E8] border border-[#E6D8E0]'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto divide-y divide-wa-line-soft no-scrollbar select-none bg-wa-ground">
-          {filteredChats.map((chat) => {
-            const isActive = chat.id === activeChatId;
-            return (
-              <div 
-                key={chat.id}
-                onClick={() => setActiveChatId(chat.id)}
-                className={`p-3.5 flex items-center gap-3 cursor-pointer transition-all ${
-                  isActive 
-                    ? 'bg-wa-rose border-l-4 border-wa-crimson' 
-                    : 'hover:bg-wa-surface/80'
-                }`}
-              >
-                {/* Avatar with live badge */}
-                <div className="relative">
-                  <div className="w-11 h-11 bg-wa-surface text-wa-crimson rounded-2xl flex items-center justify-center text-xs font-display font-extrabold border border-wa-line shadow-2xs">
-                    {chat.avatar}
-                  </div>
-                  {chat.online && (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#3DDC84] border-2 border-white"></span>
-                  )}
-                </div>
-
-                {/* Details */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-baseline mb-0.5">
-                    <h4 className="text-xs font-bold text-wa-plum truncate tracking-tight">{chat.name}</h4>
-                    <span className="text-[10px] font-mono text-wa-plum-muted">{chat.time}</span>
-                  </div>
-
-                  <p className="text-[11px] font-medium text-wa-plum-muted truncate leading-tight">
-                    {chat.lastMsg}
-                  </p>
-
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#C4122F] bg-[#FBE4E8] px-2 py-0.5 rounded-full font-mono">
-                      {chat.category}
-                    </span>
-                    {chat.pinned && <Pin size={9} className="text-[#B45309] rotate-45" />}
-                  </div>
-                </div>
-
-                {/* Unread badge */}
-                {chat.unread > 0 && (
-                  <span className="w-4 h-4 rounded-full bg-[#C4122F] text-white text-[9px] font-black flex items-center justify-center shadow-xs">
-                    {chat.unread}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* User Identity Footer */}
-        <div className="p-3 bg-wa-surface border-t border-wa-line flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-wa-rose text-xs font-display font-extrabold text-wa-crimson">
-              {currentUserName.slice(0, 2).toUpperCase()}
-            </span>
-            <div>
-              <span className="text-xs font-bold text-wa-plum block">{currentUserName}</span>
-              <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
-                {isCurrentUserAdmin ? 'Admin Verified' : 'Warrior Online'}
-              </span>
-            </div>
-          </div>
-          {isCurrentUserAdmin && (
-            <span className="text-[9px] font-bold bg-[#FBE4E8] text-[#C4122F] border border-[#C4122F]/20 px-2 py-0.5 rounded-full font-mono uppercase">
-              Moderator
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* 6. MAIN CHAT CONVERSATION VIEW (CENTER) */}
-      {activeChat ? (
-        <div className={`flex-1 flex flex-col bg-white relative ${activeChatId ? 'flex' : 'hidden md:flex'}`}>
-          
-          {/* Active Chat Header */}
-          <div className="p-3 bg-wa-surface border-b border-wa-line flex items-center justify-between select-none shadow-2xs z-10">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <button 
-                onClick={() => setActiveChatId(null)} 
-                className="md:hidden p-1.5 text-[#6E4A63] hover:text-[#3B0F2C] rounded-xl hover:bg-[#F7F2F5] transition flex items-center gap-1 font-semibold text-xs cursor-pointer"
-              >
-                <ChevronLeft size={18} />
-                <span>Channels</span>
-              </button>
-
-              <div 
-                className="w-10 h-10 bg-wa-rose text-wa-crimson rounded-xl flex items-center justify-center text-xs font-display font-extrabold cursor-pointer hover:scale-105 transition border border-wa-line"
-                onClick={() => setShowGroupInfo(!showGroupInfo)}
-              >
-                {activeChat.avatar}
-              </div>
-
-              <div className="cursor-pointer min-w-0" onClick={() => setShowGroupInfo(!showGroupInfo)}>
-                <div className="flex items-center gap-1.5">
-                  <h4 className="font-display font-bold text-xs text-wa-plum leading-tight truncate tracking-tight">{activeChat.name}</h4>
-                  {isCurrentUserAdmin && (
-                    <span className="text-[8px] font-black text-[#C4122F] bg-[#FBE4E8] px-1.5 py-0.2 rounded font-mono uppercase">
-                      Admin
-                    </span>
-                  )}
-                </div>
-                
-                {/* Real-time Subtitle (Typing or Online Status) */}
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  {typingUsers.length > 0 ? (
-                    <span className="text-[10px] text-[#1E7B4A] font-bold animate-pulse flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#1E7B4A] animate-ping"></span>
-                      ✍️ {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
-                    </span>
-                  ) : (
-                    <>
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#3DDC84]"></span>
-                      <span className="text-[9px] text-[#6E4A63] font-medium tracking-wide uppercase font-mono">
-                        {activeChat.category} &bull; {activeChat.members?.length || 2} members
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Quick action buttons */}
-            <div className="flex items-center gap-1 text-[#6E4A63]">
-              <button 
-                onClick={() => setShowInChatSearchBar(!showInChatSearchBar)}
-                title="Search within chat"
-                className={`p-2 hover:bg-[#F7F2F5] hover:text-[#3B0F2C] rounded-xl transition ${showInChatSearchBar ? 'text-[#C4122F] bg-[#FBE4E8]' : ''}`}
-              >
-                <Search size={16} />
-              </button>
-              <button 
-                onClick={handleOpenLiveCamera}
-                title="Take photo with Camera & upload to Firebase"
-                className="hidden sm:inline-flex p-2 hover:bg-[#F7F2F5] hover:text-[#C4122F] rounded-xl transition"
-              >
-                <Camera size={16} />
-              </button>
-              <button 
-                onClick={() => handleStartCall('video')}
-                title="Initiate video consultation"
-                className="hidden sm:inline-flex p-2 hover:bg-[#F7F2F5] hover:text-[#C4122F] rounded-xl transition"
-              >
-                <Video size={16} />
-              </button>
-              <button 
-                onClick={() => handleStartCall('voice')}
-                title="Initiate patient advocate voice line"
-                className="hidden sm:inline-flex p-2 hover:bg-[#F7F2F5] hover:text-[#1E7B4A] rounded-xl transition"
-              >
-                <Phone size={16} />
-              </button>
-              <button 
-                onClick={() => setShowGroupInfo(!showGroupInfo)}
-                title="Toggle group details & Admin Moderation"
-                className={`p-2 rounded-xl transition ${showGroupInfo ? 'bg-[#FBE4E8] text-[#C4122F]' : 'hover:bg-[#F7F2F5]'}`}
-              >
-                <Info size={16} />
-              </button>
-            </div>
-          </div>
-
-          {/* In-Chat Search Bar Toggle */}
-          {showInChatSearchBar && (
-            <div className="px-4 py-2.5 bg-[#F7F2F5] border-b border-[#E6D8E0] flex items-center gap-2 animate-in slide-in-from-top-2">
-              <Search size={14} className="text-[#6E4A63]" />
-              <input 
-                type="text" 
-                placeholder="Search messages in this thread..."
-                value={inChatSearch}
-                onChange={(e) => setInChatSearch(e.target.value)}
-                className="flex-1 bg-transparent text-xs text-[#3B0F2C] focus:outline-none placeholder:text-[#6E4A63]/60 font-semibold"
-                autoFocus
-              />
-              {inChatSearch && (
-                <button onClick={() => setInChatSearch('')} className="text-[#6E4A63] hover:text-[#3B0F2C] text-xs font-semibold cursor-pointer">
-                  Clear
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Messages Feed body */}
-          <div 
-            ref={scrollRef} 
-            className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar relative bg-wa-ground select-text"
-          >
-            {/* Seeded preview + Community Moderation & Guardian Safe Mode Banner */}
-            <div className="rounded-2xl border border-wa-line bg-wa-surface p-3.5 shadow-2xs space-y-2.5 select-none">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <div className="flex items-center gap-1.5 bg-wa-rose border border-wa-line-soft px-3 py-1 rounded-full">
-                    <Shield size={12} className="text-wa-crimson" />
-                    <span className="text-[10px] font-bold text-wa-crimson tracking-wider uppercase">
-                      SAMPLE COMMUNITY PREVIEW
-                    </span>
-                  </div>
-                  <span className="rounded-full bg-wa-ground border border-wa-line px-2.5 py-1 text-[10px] font-bold text-wa-plum uppercase tracking-wider">
-                    Moderated &bull; Clinical Safety Filter Active
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={toggleGuardianSafeMode}
-                    aria-pressed={guardianSafeMode}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold transition cursor-pointer border ${
-                      guardianSafeMode
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                        : 'bg-wa-ground text-wa-plum border-wa-line hover:border-wa-crimson'
-                    }`}
-                    title="Guardian / Minor Safe Mode filters flagged posts and unverified medical claims"
-                  >
-                    <ShieldCheck size={13} />
-                    <span>{guardianSafeMode ? 'Guardian / Minor Mode: ON' : 'Guardian / Minor Mode'}</span>
-                  </button>
-                  {hiddenSenders.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={handleClearHiddenSenders}
-                      className="inline-flex items-center gap-1 rounded-full bg-wa-ground border border-wa-line px-2.5 py-1 text-[10px] font-bold text-wa-plum-muted hover:text-wa-plum cursor-pointer"
-                    >
-                      <span>Unmute ({hiddenSenders.length})</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-              <p className="text-[11px] text-wa-plum-muted leading-relaxed">
-                Seeded conversations and members are synthetic for clinical evaluation. No live emergency dispatcher is connected. Never stop Hydroxyurea or prescribed medications based on group posts—use <strong className="text-wa-plum">Report</strong> or <strong className="text-wa-plum">Mute user</strong> on any message.
-              </p>
-              {safetyFeedback && (
-                <div role="status" className="flex items-center justify-between gap-2 rounded-xl bg-wa-rose/60 px-3 py-1.5 text-[11px] font-semibold text-wa-plum border border-wa-line-soft">
-                  <span>{safetyFeedback}</span>
-                  <button
-                    type="button"
-                    onClick={() => setSafetyFeedback(null)}
-                    className="text-wa-plum-muted hover:text-wa-plum font-bold cursor-pointer"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Quick Clinical Broadcasts bar */}
-            <div className="bg-wa-surface rounded-2xl p-3 border border-wa-line space-y-2 select-none shadow-2xs">
-              <span className="text-[9px] font-bold uppercase text-[#C4122F] tracking-wider block font-mono flex items-center gap-1">
-                <Sparkles size={11} />
-                QUICK COMMUNITY CHECK-INS
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {CLINICAL_PRESETS.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => handleSendMessage(p.text)}
-                    disabled={isCurrentUserMuted}
-                    className="bg-wa-ground border border-wa-line hover:border-wa-crimson hover:bg-wa-rose disabled:opacity-40 text-[11px] text-wa-plum font-semibold px-3 py-1 rounded-full transition-all hover:text-wa-crimson active:scale-95 cursor-pointer shadow-2xs"
-                  >
-                    {p.label}
+          {open && (
+            <div className="mt-1 w-64 max-w-full space-y-1 rounded-2xl border border-wa-line bg-wa-surface p-2 shadow-md">
+              <div className="flex justify-between gap-1 border-b border-wa-line-soft pb-1.5" role="group" aria-label="React">
+                {REACTIONS.map(emoji => (
+                  <button key={emoji} type="button" onClick={() => void react(m.id, emoji)} aria-label={`React ${emoji}`} className="flex h-10 w-10 items-center justify-center rounded-full text-lg hover:bg-wa-ground">
+                    {emoji}
                   </button>
                 ))}
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setReplyingTo({ id: m.id, senderName: name, text: String(m.text || 'Photo').slice(0, 140) });
+                  setActionsFor(null);
+                  inputRef.current?.focus();
+                }}
+                className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-[13px] font-semibold text-wa-plum hover:bg-wa-ground"
+              >
+                <CornerUpLeft size={16} aria-hidden="true" /> Reply
+              </button>
+              {mine ? (
+                <button type="button" onClick={() => void removeOwn(m.id)} className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-[13px] font-semibold text-wa-crimson hover:bg-wa-rose/40">
+                  <Trash2 size={16} aria-hidden="true" /> Delete message
+                </button>
+              ) : (
+                <>
+                  <button type="button" onClick={() => report(m.id)} className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-[13px] font-semibold text-wa-plum hover:bg-wa-ground">
+                    <Flag size={16} aria-hidden="true" /> Report and hide
+                  </button>
+                  <button type="button" onClick={() => hideSender(m.senderId, name)} className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-[13px] font-semibold text-wa-plum hover:bg-wa-ground">
+                    <X size={16} aria-hidden="true" /> Hide messages from {name}
+                  </button>
+                </>
+              )}
             </div>
-
-            {/* Messages Stream */}
-            {visibleMessages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 opacity-60 select-none">
-                <MessageSquare size={32} className="text-[#6E4A63] mb-2" />
-                <span className="text-xs font-semibold text-[#6E4A63]">{inChatSearch ? 'No messages matching query' : 'No active messages yet. Say hello to fellow warriors below!'}</span>
-              </div>
-            ) : (
-              visibleMessages.map((msg, index) => {
-                const isUserRef = msg.senderId === currentUserId || msg.senderId === 'guest';
-                const isRemoved = msg.removedByAdmin;
-                
-                const timeLabel = msg.timestamp?.toDate 
-                  ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-                  : (typeof msg.timestamp === 'string' && msg.timestamp.includes('T'))
-                    ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                    : 'Delivered';
-
-                const reactionsObj = msg.reactions || {};
-                const hasReactions = Object.keys(reactionsObj).length > 0;
-
-                return (
-                  <div 
-                    key={msg.id || index}
-                    className={`group flex flex-col ${isUserRef ? 'items-end' : 'items-start'} max-w-full animate-in slide-in-from-bottom-2 duration-200`}
-                  >
-                    {/* Sender label */}
-                    {!isUserRef && (
-                      <div className="flex items-center gap-1.5 mb-1 ml-3">
-                        <span className="text-[10px] font-bold text-[#C4122F] uppercase tracking-wider font-mono">
-                          {msg.senderName || 'Anonymous Warrior'}
-                        </span>
-                        {groupSettings.admins.includes(msg.senderId) && (
-                          <span className="text-[8px] font-black bg-[#FBE4E8] text-[#C4122F] px-1.5 py-0.2 rounded font-mono">
-                            ADMIN
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="relative max-w-[85%] sm:max-w-[75%]">
-                      {/* Hover action toolbar (Reply, React, Copy, Admin Remove, Delete) */}
-                      {!isRemoved && (
-                        <div className={`absolute -top-7 ${isUserRef ? 'right-0' : 'left-0'} hidden group-hover:flex items-center gap-1 bg-white border border-[#E6D8E0] px-2 py-1 rounded-xl shadow-md z-20 text-[#6E4A63]`}>
-                          <button 
-                            onClick={() => setReplyingTo({ id: msg.id, senderName: msg.senderName || 'Warrior', text: msg.text || 'Attachment' })}
-                            className="p-1 hover:text-[#3B0F2C] text-[#6E4A63] transition" 
-                            title="Reply / Quote"
-                          >
-                            <Reply size={12} />
-                          </button>
-                          <button 
-                            onClick={() => handleCopyText(msg.text || '')}
-                            className="p-1 hover:text-[#3B0F2C] text-[#6E4A63] transition" 
-                            title="Copy text"
-                          >
-                            <Copy size={12} />
-                          </button>
-                          
-                          {/* Report / Flag Message & Mute User (Available to all members) */}
-                          {!isUserRef && (
-                            <>
-                              <button 
-                                onClick={() => handleOpenModerationModal(msg)}
-                                className="p-1 hover:text-[#C4122F] text-[#B45309] transition flex items-center gap-0.5 text-[9px] font-bold cursor-pointer"
-                                title="Report or Flag Message"
-                                aria-label="Report message"
-                              >
-                                <ShieldAlert size={12} />
-                              </button>
-                              <button
-                                onClick={() => handleHideSender(msg.senderId, msg.senderName || 'Member')}
-                                className="p-1 hover:text-[#C4122F] text-[#6E4A63] transition flex items-center gap-0.5 text-[9px] font-bold cursor-pointer"
-                                title="Mute / Hide User"
-                                aria-label="Mute user"
-                              >
-                                <VolumeX size={12} />
-                              </button>
-                            </>
-                          )}
-
-                          {isUserRef && (
-                            <button 
-                              onClick={() => handleDeleteMessage(msg.id)}
-                              className="p-1 hover:text-[#C4122F] text-[#6E4A63] transition" 
-                              title="Delete message"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          )}
-
-                          <div className="w-[1px] h-3 bg-[#E6D8E0] mx-0.5"></div>
-                          {EMOJI_REACTIONS.slice(0, 4).map(emoji => (
-                            <button
-                              key={emoji}
-                              onClick={() => handleToggleReaction(msg.id, emoji)}
-                              className="text-xs hover:scale-125 transition px-0.5"
-                            >
-                              {emoji}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Main Message Bubble */}
-                      <div 
-                        className={`p-3.5 rounded-2xl shadow-sm relative flex flex-col ${
-                          isRemoved
-                            ? 'bg-rose-50 border border-rose-200 text-rose-800 italic'
-                            : isUserRef 
-                              ? 'bg-[#3B0F2C] text-white rounded-tr-none' 
-                              : 'bg-white text-[#3B0F2C] rounded-tl-none border border-[#E6D8E0]'
-                        }`}
-                      >
-                        {/* Quoted / Reply Banner if present */}
-                        {msg.replyTo && !isRemoved && (
-                          <div className="mb-2 p-2 bg-black/25 border-l-3 border-emerald-400 rounded-lg text-[10px]">
-                            <span className="font-extrabold text-emerald-400 block leading-tight">
-                              {msg.replyTo.senderName}
-                            </span>
-                            <span className="text-gray-300 opacity-80 truncate block line-clamp-1">
-                              {msg.replyTo.text}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Image / Video Attachment with click lightbox */}
-                        {msg.mediaUrl && !isRemoved && (msg.mediaType === 'image' || msg.mediaType === 'video') && (
-                          <div className="mb-2 relative rounded-xl overflow-hidden max-w-sm aspect-video bg-slate-950 flex items-center justify-center border border-white/10 group/media">
-                            {msg.mediaType === 'image' ? (
-                              <>
-                                <img 
-                                  src={msg.mediaUrl} 
-                                  alt="Attachment" 
-                                  onClick={() => setLightboxImageUrl(msg.mediaUrl)}
-                                  className="object-contain w-full h-full max-h-[220px] cursor-pointer hover:scale-102 transition"
-                                  referrerPolicy="no-referrer"
-                                />
-                                <button 
-                                  onClick={() => setLightboxImageUrl(msg.mediaUrl)}
-                                  className="absolute bottom-2 right-2 p-1.5 bg-black/60 hover:bg-black/90 text-white rounded-lg opacity-0 group-hover/media:opacity-100 transition backdrop-blur-sm"
-                                  title="Enlarge Image"
-                                >
-                                  <ZoomIn size={14} />
-                                </button>
-                              </>
-                            ) : (
-                              <video 
-                                src={msg.mediaUrl} 
-                                controls 
-                                className="w-full h-full max-h-[220px] bg-black" 
-                              />
-                            )}
-                          </div>
-                        )}
-
-                        {/* Audio Voice Note Bubble (WhatsApp PTT Player) */}
-                        {msg.mediaType === 'audio' && !isRemoved && (
-                          <div className="flex items-center gap-3 p-2 bg-black/20 rounded-xl mb-1 min-w-[200px]">
-                            <button
-                              onClick={() => togglePlayAudio(msg.id, msg.mediaUrl)}
-                              className="w-9 h-9 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center hover:scale-105 active:scale-95 transition flex-shrink-0 cursor-pointer shadow-md"
-                            >
-                              {playingAudioId === msg.id ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
-                            </button>
-                            <div className="flex-1 space-y-1">
-                              <div className="flex items-center gap-0.5 h-4">
-                                {[6, 12, 16, 8, 14, 18, 10, 16, 12, 15, 7, 13, 17, 9, 14].map((h, i) => (
-                                  <div 
-                                    key={i} 
-                                    className={`w-1 rounded-full transition-all duration-200 ${
-                                      playingAudioId === msg.id ? 'bg-emerald-400 animate-pulse' : 'bg-gray-400'
-                                    }`}
-                                    style={{ height: `${h}px` }}
-                                  />
-                                ))}
-                              </div>
-                              <div className="flex justify-between items-center text-[9px] font-mono text-gray-300">
-                                <span>Voice Note</span>
-                                <span>{msg.audioDuration ? `0:${msg.audioDuration.toString().padStart(2, '0')}` : '0:05'}</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Message Text */}
-                        {msg.text && (
-                          <p className={`text-xs leading-relaxed whitespace-pre-wrap select-text break-words pr-2 ${isRemoved ? 'text-red-300 font-mono text-[11px]' : 'font-semibold'}`}>
-                            {msg.text}
-                          </p>
-                        )}
-
-                        {/* Automated Unverified Medical Advice Safety Banner */}
-                        {!isRemoved && (containsUnverifiedMedicalAdvice(msg.text) || flaggedMessageIds.includes(msg.id)) && (
-                          <div className="mt-2 rounded-xl bg-amber-500/15 border border-amber-500/40 px-2.5 py-1.5 text-[10px] font-semibold text-amber-900 dark:text-amber-200 flex items-start gap-1.5">
-                            <AlertTriangle size={13} className="shrink-0 mt-0.5 text-amber-600" />
-                            <span>
-                              Safety Notice: This post mentions medication changes or unverified remedies. Always consult your hematologist before changing your care plan.
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Bubble footer (Timestamp + WhatsApp ticks) */}
-                        <div className="flex items-center gap-1.5 self-end mt-1.5 opacity-75 select-none font-mono text-[9px]">
-                          <span>{timeLabel}</span>
-                          {isUserRef && <CheckCheck size={12} className="text-blue-400" />}
-                        </div>
-                      </div>
-
-                      {/* Reactions Pill Display */}
-                      {hasReactions && !isRemoved && (
-                        <div className={`flex flex-wrap gap-1 mt-1 ${isUserRef ? 'justify-end' : 'justify-start'}`}>
-                          {Object.entries(reactionsObj).map(([emoji, uids]: [string, any]) => {
-                            if (!Array.isArray(uids) || uids.length === 0) return null;
-                            const userHasReacted = uids.includes(currentUserId);
-                            return (
-                              <button
-                                key={emoji}
-                                onClick={() => handleToggleReaction(msg.id, emoji)}
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 transition ${
-                                  userHasReacted ? 'bg-red-500/20 border-red-500 text-white' : 'bg-[#182229] border-slate-800 text-gray-300 hover:bg-slate-800'
-                                }`}
-                              >
-                                <span>{emoji}</span>
-                                <span className="text-[9px] font-mono">{uids.length}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-
-            {/* Real-time WhatsApp Typing Indicator Bubble */}
-            {typingUsers.length > 0 && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-[#202c33] rounded-2xl rounded-tl-none border border-slate-800 w-fit text-xs text-emerald-400 shadow-md animate-in fade-in slide-in-from-bottom-1">
-                <span className="font-bold text-gray-200 text-[11px]">{typingUsers.join(', ')}</span>
-                <div className="flex items-center gap-1 py-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              </div>
-            )}
-
-            {/* Local draft upload preview */}
-            {localPreviewFile && (
-              <div className="flex flex-col items-end max-w-full">
-                <div className="bg-[#002e26] border border-[#005c4b] p-3 rounded-2xl rounded-tr-none max-w-[70%] space-y-2 relative">
-                  <div className="flex justify-between items-center bg-black/30 p-1.5 rounded-xl border border-white/5">
-                    <span className="text-[8px] font-black uppercase text-emerald-400 font-mono flex items-center gap-1">
-                      <ImageIcon size={10} /> Firebase Storage Attached
-                    </span>
-                    <button 
-                      onClick={() => setLocalPreviewFile(null)} 
-                      className="p-1 hover:bg-white/10 rounded text-red-400"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                  <div className="overflow-hidden rounded-xl border border-white/10 aspect-video bg-black flex items-center justify-center">
-                    {localPreviewFile.type === 'image' ? (
-                      <img src={localPreviewFile.url} alt="Draft" className="object-cover h-28" />
-                    ) : (
-                      <video src={localPreviewFile.url} controls className="h-28" />
-                    )}
-                  </div>
-                  <span className="text-[9px] text-[#e9edef] opacity-80 italic">Image verified. Press send below to post.</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Interactive controls and Attachments picker popup */}
-          <div className="p-3 bg-white border-t border-[#E6D8E0] flex flex-col gap-2 relative select-none">
-            
-            {/* Replying Banner */}
-            {replyingTo && (
-              <div className="flex justify-between items-center bg-[#FBE4E8] border-l-4 border-[#C4122F] px-3 py-1.5 rounded-xl text-xs">
-                <div className="truncate pr-2">
-                  <span className="text-[10px] font-bold text-[#C4122F] block">Replying to {replyingTo.senderName}</span>
-                  <span className="text-[11px] text-[#3B0F2C] truncate block">{replyingTo.text}</span>
-                </div>
-                <button onClick={() => setReplyingTo(null)} className="text-[#6E4A63] hover:text-[#3B0F2C] p-1 cursor-pointer">
-                  <X size={14} />
-                </button>
-              </div>
-            )}
-
-            {/* Attachment popover drawer */}
-            <AnimatePresence>
-              {showAttachmentMenu && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 15 }}
-                  className="absolute bottom-16 left-4 bg-white rounded-2xl p-3 border border-[#E6D8E0] shadow-xl w-60 space-y-1 z-30"
-                >
-                  <span className="text-[9px] font-bold text-[#6E4A63] tracking-wider block uppercase font-mono mb-1.5">Attach Update</span>
-                  
-                  {/* Camera Option */}
-                  <button 
-                    onClick={handleOpenLiveCamera}
-                    className="w-full flex items-center gap-3 p-2 hover:bg-[#F7F2F5] rounded-xl transition text-left cursor-pointer"
-                  >
-                    <div className="w-7 h-7 rounded-lg bg-[#FBE4E8] text-[#C4122F] flex items-center justify-center"><Camera size={15} /></div>
-                    <div>
-                      <span className="text-xs font-bold text-[#3B0F2C] block leading-none">Take Photo</span>
-                      <span className="text-[9px] text-[#6E4A63]">Camera viewfinder</span>
-                    </div>
-                  </button>
-
-                  <button 
-                    onClick={handleTriggerFilePicker}
-                    className="w-full flex items-center gap-3 p-2 hover:bg-[#F7F2F5] rounded-xl transition text-left cursor-pointer"
-                  >
-                    <div className="w-7 h-7 rounded-lg bg-[#E1F2F4] text-[#11535E] flex items-center justify-center"><ImageIcon size={15} /></div>
-                    <div>
-                      <span className="text-xs font-bold text-[#3B0F2C] block leading-none">Photo & Video</span>
-                      <span className="text-[9px] text-[#6E4A63]">From device gallery</span>
-                    </div>
-                  </button>
-
-                  <button 
-                    onClick={() => {
-                      setInputText('💧 Hydration Check: I have completed 2.5L today. Staying on track!');
-                      setShowAttachmentMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 p-2 hover:bg-[#F7F2F5] rounded-xl transition text-left cursor-pointer"
-                  >
-                    <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center"><FileText size={15} /></div>
-                    <span className="text-xs font-bold text-[#3B0F2C]">Hydration Check-in</span>
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Emoji popover */}
-            <AnimatePresence>
-              {showEmojiPicker && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="absolute bottom-16 left-12 bg-white rounded-2xl p-3 border border-[#E6D8E0] shadow-xl gap-2 flex flex-wrap justify-between w-64 z-35"
-                >
-                  {['❤️', '🧬', '💧', '💊', '🏆', '🤝', '🩺', '🦸‍♂️', '🔥', '🙌', '👏', '❄️', '💉', '🩸', '✨', '⚡'].map(emoji => (
-                    <button 
-                      key={emoji}
-                      onClick={() => { setInputText(prev => prev + emoji); setShowEmojiPicker(false); }}
-                      className="text-xl p-1.5 hover:bg-[#F7F2F5] rounded-lg transition cursor-pointer"
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* MUTED USER LOCK BANNER OR INPUT BAR */}
-            {isCurrentUserMuted ? (
-              <div className="p-3 bg-[#FBE4E8] border border-[#C4122F]/30 rounded-2xl flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <VolumeX size={18} className="text-[#C4122F]" />
-                  <div>
-                    <span className="text-xs font-bold text-[#C4122F] block">You are muted in this channel</span>
-                    <span className="text-[10px] text-[#6E4A63]">An administrator has temporarily restricted messaging permissions.</span>
-                  </div>
-                </div>
-                {isCurrentUserAdmin && (
-                  <button 
-                    onClick={() => handleToggleMuteUser(currentUserId, true)}
-                    className="px-3 py-1 bg-[#C4122F] hover:bg-[#9E0E26] text-white rounded-full text-[10px] font-bold"
-                  >
-                    Unmute Self
-                  </button>
-                )}
-              </div>
-            ) : isRecordingVoice ? (
-              <div className="flex items-center justify-between bg-[#FBE4E8] border border-[#C4122F]/40 px-4 py-2.5 rounded-2xl animate-pulse">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full bg-[#C4122F] animate-ping"></div>
-                  <span className="text-xs font-mono font-bold text-[#C4122F]">
-                    Recording Audio... 0:{recordingDuration.toString().padStart(2, '0')}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => stopVoiceRecording(true)}
-                    className="p-2 hover:bg-white text-[#6E4A63] hover:text-[#C4122F] rounded-full transition"
-                    title="Cancel recording"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                  <button
-                    onClick={() => stopVoiceRecording(false)}
-                    className="px-3 py-1.5 bg-[#C4122F] hover:bg-[#9E0E26] text-white rounded-full transition flex items-center gap-1 text-xs font-bold"
-                    title="Send voice note"
-                  >
-                    <Send size={14} />
-                    <span>Send</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => { setShowAttachmentMenu(!showAttachmentMenu); setShowEmojiPicker(false); }}
-                  className={`p-2 text-[#6E4A63] hover:text-[#C4122F] transition-all rounded-full hover:bg-[#F7F2F5] cursor-pointer ${showAttachmentMenu ? 'bg-[#FBE4E8] text-[#C4122F]' : ''}`}
-                  title="Add attachment"
-                >
-                  <Paperclip size={18} />
-                </button>
-
-                <button 
-                  onClick={handleOpenLiveCamera}
-                  className="p-2 text-[#6E4A63] hover:text-[#C4122F] transition-all rounded-full hover:bg-[#F7F2F5] cursor-pointer"
-                  title="Capture Image with Camera"
-                >
-                  <Camera size={18} />
-                </button>
-
-                <button 
-                  onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowAttachmentMenu(false); }}
-                  className={`p-2 text-[#6E4A63] hover:text-[#B45309] transition-all rounded-full hover:bg-[#F7F2F5] cursor-pointer ${showEmojiPicker ? 'bg-[#FDF0DC] text-[#B45309]' : ''}`}
-                  title="Emoji panel"
-                >
-                  <Smile size={18} />
-                </button>
-
-                <div className="flex-1 relative">
-                  <input 
-                    type="text" 
-                    value={inputText}
-                    onChange={handleInputChange}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder="Share your warrior strength or message..." 
-                    className="w-full pl-4 pr-12 py-2.5 bg-[#F7F2F5] text-[#3B0F2C] rounded-full text-xs font-semibold focus:outline-none border border-[#E6D8E0] focus:border-[#C4122F] transition-all placeholder:text-[#6E4A63]/60"
-                  />
-                  {inputText.trim() || localPreviewFile ? (
-                    <button 
-                      onClick={() => handleSendMessage()}
-                      disabled={isUploadingToStorage}
-                      className="absolute right-1.5 top-1 p-2 bg-[#C4122F] hover:bg-[#9E0E26] text-white rounded-full transition-all cursor-pointer shadow-sm active:scale-95"
-                      title="Send message"
-                    >
-                      <Send size={14} />
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={startVoiceRecording}
-                      className="absolute right-1.5 top-1 p-2 bg-[#1E7B4A] hover:bg-[#155d36] text-white rounded-full transition-all cursor-pointer shadow-sm"
-                      title="Hold / Tap to record voice note"
-                    >
-                      <Mic size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </div>
-      ) : (
-        <div className="flex-1 flex flex-col items-center justify-center text-[#6E4A63] bg-[#FAF7F9] p-12 text-center">
-          <div className="w-16 h-16 bg-white rounded-3xl shadow-sm flex items-center justify-center mb-3 border border-[#E6D8E0] relative">
-             <MessageSquare size={28} className="text-[#C4122F]" />
-          </div>
-          <h3 className="text-base font-display font-bold text-[#3B0F2C] mb-1">Warrior Channel Network</h3>
-          <p className="text-xs font-medium max-w-xs leading-relaxed text-[#6E4A63]">
-            Select a channel or create your own group above to connect with fellow warriors.
+      </li>
+    );
+  };
+
+  const chatView = activeChannel && (
+    <section aria-label={activeChannel.name} className="flex h-[calc(100dvh-17rem)] min-h-[20rem] flex-col overflow-hidden rounded-[24px] border border-wa-line bg-wa-surface md:h-[calc(100dvh-13rem)]">
+      <header className="flex items-center gap-2 border-b border-wa-line-soft px-2 py-2">
+        <button type="button" onClick={closeChannel} aria-label="Back to channels" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-wa-plum hover:bg-wa-ground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson">
+          <ArrowLeft size={20} aria-hidden="true" />
+        </button>
+        <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-wa-rose text-xs font-bold text-wa-crimson">{activeChannel.initials}</span>
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate font-display text-[15px] font-bold text-wa-plum">{activeChannel.name}</h2>
+          <p className="truncate text-xs text-wa-plum-muted">
+            {typingUsers.length > 0 ? `${typingUsers.slice(0, 2).join(', ')} typing…` : 'Peer support · not medical advice'}
           </p>
         </div>
+      </header>
+
+      <div className="min-h-0 flex-1 overflow-y-auto bg-wa-ground/40 px-3 py-3" role="log" aria-live="polite" aria-label={`${activeChannel.name} messages`}>
+        {loadingMessages ? (
+          <p role="status" className="flex items-center gap-2 px-1 text-[13px] text-wa-plum-muted">
+            <Loader2 size={16} className="animate-spin" aria-hidden="true" /> Loading messages…
+          </p>
+        ) : visibleMessages.length === 0 ? (
+          <div className="mx-auto max-w-sm py-6 text-center">
+            <span aria-hidden="true" className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-wa-rose text-wa-crimson">
+              <MessageSquare size={20} />
+            </span>
+            <h3 className="mt-2.5 font-display text-base font-bold text-wa-plum">No messages yet</h3>
+            <p className="mt-1 text-[13px] text-wa-plum-muted">Start the conversation. Tap a message to send it, or write your own.</p>
+            <div className="mt-3 space-y-2">
+              {QUICK_STARTERS.map(starter => (
+                <button
+                  key={starter}
+                  type="button"
+                  disabled={sending || !currentUserId}
+                  onClick={() => void send(starter)}
+                  className="flex min-h-11 w-full items-center rounded-2xl border border-wa-line bg-wa-surface px-4 py-2 text-left text-[13px] font-semibold text-wa-plum transition-colors hover:border-wa-crimson/40 hover:bg-wa-rose/30 disabled:opacity-50"
+                >
+                  {starter}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <ul className="space-y-3">{visibleMessages.map(renderMessage)}</ul>
+        )}
+        <div ref={listEndRef} />
+      </div>
+
+      {(notice || sendError) && (
+        <p role={sendError ? 'alert' : 'status'} className={`border-t border-wa-line-soft px-4 py-2 text-[13px] font-semibold ${sendError ? 'text-status-danger-text' : 'text-wa-plum-muted'}`}>
+          {sendError || notice}
+        </p>
       )}
 
-      {/* 7. GROUP DETAILS & COMMUNITY MANAGEMENT DRAWER (RHS) */}
-      <AnimatePresence>
-        {showGroupInfo && activeChat && (
-          <motion.div 
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 300, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            className="hidden lg:flex flex-col bg-slate-900 border-l border-slate-950 w-76 shrink-0 select-none divide-y divide-slate-950 overflow-y-auto no-scrollbar"
-          >
-            {/* Header */}
-            <div className="p-4 flex justify-between items-center bg-slate-900">
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck size={14} className="text-red-500" />
-                <h3 className="text-xs font-black uppercase tracking-wider text-red-500 font-mono">CHANNEL & MODERATION</h3>
-              </div>
-              <button 
-                onClick={() => setShowGroupInfo(false)} 
-                className="p-1 hover:bg-slate-800 text-gray-400 hover:text-white rounded-lg transition"
-              >
-                <X size={15} />
-              </button>
-            </div>
-
-            {/* Profile Summary */}
-            <div className="p-4 text-center space-y-2 bg-slate-950">
-              <div className="w-14 h-14 bg-slate-850 rounded-2xl flex items-center justify-center text-3xl mx-auto border-2 border-slate-800">
-                {activeChat.avatar}
-              </div>
-              <div>
-                <h4 className="text-xs font-black text-white">{activeChat.name}</h4>
-                <span className="text-[9px] font-black tracking-wider uppercase font-mono mt-0.5 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full inline-block">
-                  {activeChat.category}
-                </span>
-              </div>
-              <p className="text-[10px] text-gray-400 leading-relaxed font-semibold italic text-justify px-1 opacity-90">
-                {activeChat.desc}
-              </p>
-            </div>
-
-            {/* Admin Controls Panel */}
-            <div className="p-4 bg-slate-900 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] font-black uppercase tracking-wider text-gray-400 font-mono flex items-center gap-1">
-                  <Shield size={12} className="text-red-400" /> ADMIN PRIVILEGES
-                </span>
-                <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full ${isCurrentUserAdmin ? 'bg-red-500/20 text-red-300' : 'bg-slate-800 text-gray-400'}`}>
-                  {isCurrentUserAdmin ? 'Active Admin' : 'Member'}
-                </span>
-              </div>
-              
-              <p className="text-[9px] text-gray-400 font-semibold leading-relaxed">
-                {isCurrentUserAdmin 
-                  ? 'You have moderator rights to remove inappropriate messages, manage admin roles, and mute violators.' 
-                  : 'Channel moderation is active. Report unverified remedies or offensive posts to the admin.'}
-              </p>
-            </div>
-
-            {/* Members Directory & Moderation Controls */}
-            <div className="p-4 space-y-2 bg-slate-950">
-              <div className="flex items-center justify-between pb-1">
-                <div className="flex items-center gap-1.5">
-                  <Users size={13} className="text-blue-400" />
-                  <span className="text-[9px] font-black uppercase tracking-wider text-gray-400 font-mono">
-                    MEMBERS ({activeChat.members?.length || 2})
-                  </span>
-                </div>
-                <span className="text-[8px] text-gray-500 font-mono">Real-Time Sync</span>
-              </div>
-
-              <div className="space-y-1.5">
-                {(activeChat.members || []).map((member: any, i: number) => {
-                  const mId = member.id || `member-${i}`;
-                  const isMemberAdmin = groupSettings.admins.includes(mId) || member.isAdmin;
-                  const isMemberMuted = groupSettings.mutedUsers.includes(mId);
-                  const isSelf = mId === currentUserId || mId === 'current-user-uid' || member.name.includes('You');
-
-                  return (
-                    <div 
-                      key={mId}
-                      className={`p-2.5 rounded-xl border transition ${
-                        isMemberMuted 
-                          ? 'bg-red-950/20 border-red-500/30' 
-                          : 'bg-slate-900 border-slate-850'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-base bg-slate-950 p-1 rounded-lg w-7 h-7 flex items-center justify-center border border-slate-800">
-                          {member.avatar}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1">
-                            <h5 className="text-[10px] font-black text-white truncate leading-none">{member.name}</h5>
-                            {isMemberAdmin && (
-                              <span className="text-[8px] font-black bg-red-500/20 text-red-400 px-1 py-0.2 rounded font-mono">
-                                ADMIN
-                              </span>
-                            )}
-                            {isMemberMuted && (
-                              <span className="text-[8px] font-black bg-yellow-500/20 text-yellow-400 px-1 py-0.2 rounded font-mono">
-                                MUTED
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-[8px] font-bold uppercase tracking-wide opacity-70 block font-mono text-gray-400 mt-0.5">
-                            {member.role}
-                          </span>
-                        </div>
-                        {member.active && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                        )}
-                      </div>
-
-                      {/* Admin Member Management Toolbar */}
-                      {isCurrentUserAdmin && !isSelf && (
-                        <div className="mt-2 pt-1.5 border-t border-slate-800 flex items-center justify-between text-[9px] font-mono">
-                          <button
-                            onClick={() => handleToggleAdminRole(mId, isMemberAdmin)}
-                            className="text-gray-400 hover:text-red-400 transition"
-                          >
-                            {isMemberAdmin ? 'Dismiss Admin' : 'Make Admin'}
-                          </button>
-                          <button
-                            onClick={() => handleToggleMuteUser(mId, isMemberMuted)}
-                            className={`font-bold transition ${isMemberMuted ? 'text-green-400 hover:text-green-300' : 'text-yellow-400 hover:text-yellow-300'}`}
-                          >
-                            {isMemberMuted ? '🔊 Unmute' : '🔇 Mute'}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Shared Clinic Media Grid */}
-            <div className="p-4 bg-slate-900 space-y-2">
-              <span className="text-[9px] font-black uppercase text-gray-400 font-mono tracking-wider block">
-                STORAGE MEDIA VAULT ({mediaMessages.length})
+      {currentUserId ? (
+        <form
+          onSubmit={(event) => { event.preventDefault(); void send(text); }}
+          className="border-t border-wa-line-soft bg-wa-surface px-2.5 pb-2 pt-2"
+        >
+          {replyingTo && (
+            <div className="mb-2 flex items-start gap-2 rounded-xl bg-wa-ground px-3 py-2 text-xs text-wa-plum">
+              <CornerUpLeft size={14} className="mt-0.5 shrink-0 text-wa-crimson" aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className="font-bold">Replying to {replyingTo.senderName}</span>
+                <span className="block truncate text-wa-plum-muted">{replyingTo.text}</span>
               </span>
-
-              {mediaMessages.length === 0 ? (
-                <div className="p-3 border border-dashed border-slate-800 rounded-xl text-[10px] text-gray-500 italic text-center">
-                  No images uploaded to Firebase Storage yet.
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-1.5">
-                  {mediaMessages.map((m, idx) => (
-                    <div 
-                      key={m.id || idx}
-                      onClick={() => setLightboxImageUrl(m.mediaUrl)}
-                      className="aspect-square bg-slate-950 border border-slate-800 rounded-lg overflow-hidden shadow-sm relative group cursor-pointer"
-                    >
-                      <img 
-                        src={m.mediaUrl} 
-                        alt="Media" 
-                        className="object-cover w-full h-full hover:scale-105 transition"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Actions: Export Transcript */}
-            <div className="p-4 bg-slate-950">
-              <button
-                onClick={handleExportChat}
-                className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-gray-200 rounded-xl text-[10px] font-black flex items-center justify-center gap-1.5 transition border border-slate-700 cursor-pointer"
-              >
-                <Download size={12} />
-                <span>Export Chat Transcript</span>
+              <button type="button" onClick={() => setReplyingTo(null)} aria-label="Cancel reply" className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-wa-surface">
+                <X size={14} aria-hidden="true" />
               </button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+          <div className="flex items-end gap-1.5 rounded-2xl border border-wa-line bg-wa-ground p-1.5 focus-within:border-wa-crimson focus-within:ring-2 focus-within:ring-wa-crimson/20">
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void handlePhoto(e)} />
+            <button type="button" onClick={() => fileRef.current?.click()} disabled={sending} aria-label="Share a photo" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-wa-plum hover:bg-wa-surface disabled:opacity-50">
+              <ImagePlus size={20} aria-hidden="true" />
+            </button>
+            <label htmlFor="channel-composer" className="sr-only">Message {activeChannel.name}</label>
+            <textarea
+              id="channel-composer"
+              ref={inputRef}
+              rows={1}
+              value={text}
+              disabled={sending}
+              onChange={(e) => handleTyping(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  void send(text);
+                }
+              }}
+              placeholder="Write a message"
+              className="max-h-32 min-h-11 flex-1 resize-none border-0 bg-transparent px-2 py-2.5 text-base text-wa-plum placeholder:text-wa-plum-muted/70 focus:outline-none"
+            />
+            <button type="submit" disabled={sending || !text.trim()} aria-label="Send message" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-wa-crimson text-white transition-colors hover:bg-wa-crimson-press disabled:opacity-40">
+              {sending ? <Loader2 size={18} className="animate-spin" aria-hidden="true" /> : <Send size={18} aria-hidden="true" />}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <p className="border-t border-wa-line-soft px-4 py-3 text-[13px] text-wa-plum-muted">Sign in to post in community channels.</p>
+      )}
+    </section>
+  );
 
+  return (
+    <div className="space-y-3" data-semantic>
+      {!(subTab === 'channels' && activeChannel) && (
+      <div role="tablist" aria-label="Community chat sections" className="grid grid-cols-2 gap-1 rounded-full bg-wa-ground p-1 dark:bg-white/5">
+        <button type="button" role="tab" aria-selected={subTab === 'channels'} onClick={() => setSubTab('channels')} className={segment(subTab === 'channels')}>
+          <MessageSquare size={15} aria-hidden="true" /> Channels
+        </button>
+        <button type="button" role="tab" aria-selected={subTab === 'circle'} onClick={() => setSubTab('circle')} className={segment(subTab === 'circle')}>
+          <Users size={15} aria-hidden="true" /> Care Circle
+        </button>
       </div>
+      )}
+
+      {subTab === 'circle' ? (
+        <section aria-label="Care Circle" className="space-y-3">
+          <p className="px-1 text-[13px] text-wa-plum-muted">
+            Save one trusted person you can reach in a crisis, and talk with other families in the Caregivers Circle.
+          </p>
+          <DesignatedCaregiverWidget userId={currentUserId} />
+          <button
+            type="button"
+            onClick={() => { setSubTab('channels'); openChannel('caregivers-circle'); }}
+            className="flex w-full items-center gap-3 rounded-[22px] border border-wa-line bg-wa-surface p-3.5 text-left transition-colors hover:border-wa-crimson/40 hover:bg-wa-rose/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
+          >
+            <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-wa-rose text-wa-crimson">
+              <Users size={20} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-[15px] font-bold text-wa-plum">Open Caregivers Circle</span>
+              <span className="block text-[13px] text-wa-plum-muted">Chat with parents, partners and family of warriors.</span>
+            </span>
+            <ChevronRight size={18} className="shrink-0 text-wa-plum-muted" aria-hidden="true" />
+          </button>
+        </section>
+      ) : activeChannel ? chatView : channelList}
+
+      {lightbox && (
+        <div role="dialog" aria-modal="true" aria-label="Photo" className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setLightbox(null)}>
+          <button type="button" aria-label="Close photo" className="absolute right-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white">
+            <X size={20} aria-hidden="true" />
+          </button>
+          <img src={lightbox} alt="Shared photo, enlarged" className="max-h-full max-w-full rounded-xl" />
+        </div>
       )}
     </div>
   );

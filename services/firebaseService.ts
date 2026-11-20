@@ -372,15 +372,21 @@ export const firebaseService = {
     const path = `chats/${chatId}/messages`;
     const q = query(collection(db, path), orderBy('timestamp', 'asc'));
 
-    // Check if we need to seed initial friendly conversation if cache and cloud are empty
-    const cached = localStorage.getItem(`warrior_chat_${chatId}`);
-    if (!cached) {
-      const defaultSeeds = this.getDefaultChatSeeds(chatId);
-      if (defaultSeeds.length > 0) {
-        localStorage.setItem(`warrior_chat_${chatId}`, JSON.stringify(defaultSeeds));
-        callback(defaultSeeds);
+    // Earlier builds seeded synthetic conversations (including an invented clinician) into
+    // each device's cache. Those entries are dropped on read so only real messages show.
+    const readCache = (): any[] => {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(`warrior_chat_${chatId}`) || '[]');
+        if (!Array.isArray(parsed)) return [];
+        const real = parsed.filter((m: any) => !(typeof m?.id === 'string' && m.id.startsWith('seed-')));
+        if (real.length !== parsed.length) localStorage.setItem(`warrior_chat_${chatId}`, JSON.stringify(real));
+        return real;
+      } catch {
+        return [];
       }
-    }
+    };
+
+    callback(readCache());
 
     try {
       return onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
@@ -389,140 +395,22 @@ export const firebaseService = {
           localStorage.setItem(`warrior_chat_${chatId}`, JSON.stringify(messages));
           callback(messages);
         } else {
-          // If Firestore is empty, use stored or seeded local messages
-          const existing = localStorage.getItem(`warrior_chat_${chatId}`);
-          if (existing) {
-            callback(JSON.parse(existing));
-          } else {
-            const seeds = this.getDefaultChatSeeds(chatId);
-            localStorage.setItem(`warrior_chat_${chatId}`, JSON.stringify(seeds));
-            callback(seeds);
-          }
+          callback(readCache());
         }
       }, (error) => {
         console.warn("onSnapshot messages list failed, using cache fallback:", error);
-        const cached = localStorage.getItem(`warrior_chat_${chatId}`);
-        if (cached) {
-          callback(JSON.parse(cached));
-        } else {
-          const seeds = this.getDefaultChatSeeds(chatId);
-          callback(seeds);
-        }
+        callback(readCache());
         handleFirestoreError(error, OperationType.LIST, path);
       });
     } catch (error) {
       console.warn("Failed to subscribe to chat onSnapshot (client offline):", error);
-      const cached = localStorage.getItem(`warrior_chat_${chatId}`);
-      if (cached) {
-        callback(JSON.parse(cached));
-      } else {
-        const seeds = this.getDefaultChatSeeds(chatId);
-        callback(seeds);
-      }
+      callback(readCache());
       return () => { };
     }
   },
 
-  getDefaultChatSeeds(chatId: string) {
-    const now = Date.now();
-    const timeAgo = (minsAgo: number) => new Date(now - minsAgo * 60000).toISOString();
-
-    if (chatId === 'lagos-warriors') {
-      return [
-        {
-          id: 'seed-lw-1',
-          text: 'Good morning warriors! 🌅 Remember that harmattan / cold drafts are picking up in the evenings. Wear your warm layers and keep a water flask handy.',
-          senderId: 'dr-sarah-uid',
-          senderName: 'Dr. Sarah (Hematology)',
-          timestamp: timeAgo(120),
-          reactions: { '❤️': ['dr-sarah-uid', 'tunde-uid'], '💧': ['grace-uid'] }
-        },
-        {
-          id: 'seed-lw-2',
-          text: 'Logged my 3.0 Liters already! Drinking warm water with lemon helps so much with joint circulation.',
-          senderId: 'tunde-uid',
-          senderName: 'Tunde (Warrior)',
-          timestamp: timeAgo(95),
-          reactions: { '👏': ['dr-sarah-uid', 'faith-uid'], '🔥': ['tunde-uid'] }
-        },
-        {
-          id: 'seed-lw-3',
-          text: 'Stay hydrated everyone! Remember to log your water today in your dashboard tracker.',
-          senderId: 'faith-uid',
-          senderName: 'Faith (Warrior)',
-          timestamp: timeAgo(25),
-          reactions: { '💧': ['tunde-uid', 'dr-sarah-uid'] }
-        }
-      ];
-    } else if (chatId === 'hematology-dr-sarah') {
-      return [
-        {
-          id: 'seed-ds-1',
-          text: 'Hello Warrior! Welcome to your direct consultation channel. Please share any changes in your pain intensity or medication tolerance.',
-          senderId: 'dr-sarah-uid',
-          senderName: 'Dr. Sarah (Hematology Consultant)',
-          timestamp: timeAgo(300),
-          reactions: { '🩺': ['dr-sarah-uid'] }
-        },
-        {
-          id: 'seed-ds-2',
-          text: 'Your haematology panel results are uploaded and stable. Baseline Hb is sitting nicely at 8.4 g/dL. Keep up your Hydroxyurea and hydration routine!',
-          senderId: 'dr-sarah-uid',
-          senderName: 'Dr. Sarah (Hematology Consultant)',
-          timestamp: timeAgo(60),
-          reactions: { '🙌': ['dr-sarah-uid'] }
-        }
-      ];
-    } else if (chatId === 'global-scd-network') {
-      return [
-        {
-          id: 'seed-gn-1',
-          text: 'Exciting news from the European Hematology Association: New clinical trial data on gene-editing therapies shows 94% reduction in vaso-occlusive hospitalizations!',
-          senderId: 'prof-adebayo-uid',
-          senderName: 'Prof. Adebayo (UK)',
-          timestamp: timeAgo(500),
-          reactions: { '🧬': ['prof-adebayo-uid', 'marie-uid'], '🔥': ['nabil-uid'] }
-        },
-        {
-          id: 'seed-gn-2',
-          text: 'Global assembly link is ready. We will discuss affordable Hydroxyurea access across developing regions.',
-          senderId: 'marie-uid',
-          senderName: 'Marie (Paris, Warrior)',
-          timestamp: timeAgo(40),
-          reactions: { '🤝': ['prof-adebayo-uid'] }
-        }
-      ];
-    } else if (chatId === 'caregivers-circle') {
-      return [
-        {
-          id: 'seed-cc-1',
-          text: 'Welcome fellow parents & caregivers! What thermals or heating pads work best for your warriors during cooler school mornings?',
-          senderId: 'grace-mom-uid',
-          senderName: 'Grace (Caregiver Mother)',
-          timestamp: timeAgo(180),
-          reactions: { '❤️': ['grace-mom-uid'] }
-        },
-        {
-          id: 'seed-cc-2',
-          text: 'We pack a thermos with warm bone broth and warm electrolyte water. The school nurse also has his crisis protocol card saved!',
-          senderId: 'nabil-uid',
-          senderName: 'Nabil (Cairo, Parent)',
-          timestamp: timeAgo(80),
-          reactions: { '👍': ['grace-mom-uid', 'nabil-uid'], '🍲': ['grace-mom-uid'] }
-        }
-      ];
-    } else if (chatId === 'crisis-rapid-response') {
-      return [
-        {
-          id: 'seed-cr-1',
-          text: '🚨 TRIAGE DISPATCH CHANNEL: For immediate advice during acute VOC pain onset, finding nearby oxygen-equipped ERs, or blood matching.',
-          senderId: 'system-bot',
-          senderName: 'Emergency Coordination Bot',
-          timestamp: timeAgo(400),
-          reactions: { '🛡️': ['system-bot'] }
-        }
-      ];
-    }
+  /** Synthetic seed conversations were removed; channels start empty until people post. */
+  getDefaultChatSeeds(_chatId: string): any[] {
     return [];
   },
 
