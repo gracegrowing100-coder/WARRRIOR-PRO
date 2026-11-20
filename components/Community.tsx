@@ -3,10 +3,11 @@ import {
   MessageSquare, Heart, Share2, Plus, X, Search, 
   Phone, Mail, MapPin, Filter, ArrowUpDown, Users, 
   ShieldAlert, ShieldCheck, VolumeX, Check, Sparkles, Clock, 
-  ExternalLink, Building2, CheckCircle2, ChevronRight, Bookmark, AlertTriangle
+  ExternalLink, Building2, CheckCircle2, ChevronRight, Bookmark, AlertTriangle, MessagesSquare
 } from 'lucide-react';
 import { firebaseService } from '../services/firebaseService';
 import { auth } from '../firebase-init';
+import ChatSystem from './ChatSystem';
 
 interface SupportCenter {
   id: string;
@@ -131,7 +132,7 @@ const DEFAULT_FORUM_POSTS: ForumPost[] = [
 ];
 
 export const Community: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'support' | 'warrior_match' | 'forum'>('support');
+  const [activeTab, setActiveTab] = useState<'support' | 'chat' | 'forum' | 'warrior_match'>('support');
   
   // --- Support Directory States ---
   const [selectedCity, setSelectedCity] = useState<'Lagos' | 'Abuja' | 'Ogun'>('Lagos');
@@ -406,15 +407,16 @@ export const Community: React.FC = () => {
       <header className="space-y-3">
         <div>
           <h1 className="font-display text-2xl font-extrabold tracking-tight text-wa-plum sm:text-3xl">Community &amp; Support</h1>
-          <p className="mt-0.5 text-[13px] text-wa-plum-muted sm:text-sm">Find care near you and connect with other warriors.</p>
+          <p className="mt-0.5 text-[13px] text-wa-plum-muted sm:text-sm">Find care, and talk with other warriors and families.</p>
         </div>
 
         {/* Tabs: equal-width segments so labels never wrap on a phone */}
-        <div role="tablist" aria-label="Community destinations" className="grid grid-cols-3 gap-1 rounded-full border border-wa-line bg-wa-surface p-1">
+        <div role="tablist" aria-label="Community destinations" className="grid grid-cols-4 gap-1 rounded-full border border-wa-line bg-wa-surface p-1">
           {([
-            { id: 'support', label: 'Care Directory', short: 'Directory', icon: MapPin },
-            { id: 'warrior_match', label: 'Peer Circles', short: 'Circles', icon: Users },
-            { id: 'forum', label: 'Village Forum', short: 'Forum', icon: MessageSquare },
+            { id: 'support', label: 'Find care', icon: MapPin },
+            { id: 'chat', label: 'Chat', icon: MessagesSquare },
+            { id: 'forum', label: 'Forum', icon: MessageSquare },
+            { id: 'warrior_match', label: 'Groups', icon: Users },
           ] as const).map(tab => {
             const selected = activeTab === tab.id;
             const Icon = tab.icon;
@@ -424,15 +426,13 @@ export const Community: React.FC = () => {
                 type="button"
                 role="tab"
                 aria-selected={selected}
-                aria-label={tab.label}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex min-h-11 items-center justify-center gap-1.5 rounded-full px-2 text-[13px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson ${
+                className={`flex min-h-11 items-center justify-center gap-1.5 rounded-full px-1 text-[13px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson ${
                   selected ? 'bg-wa-rose text-wa-crimson' : 'text-wa-plum-muted hover:bg-wa-ground hover:text-wa-plum'
                 }`}
               >
-                <Icon size={15} aria-hidden="true" />
-                <span className="sm:hidden">{tab.short}</span>
-                <span className="hidden sm:inline">{tab.label}</span>
+                <Icon size={15} className="hidden sm:block" aria-hidden="true" />
+                <span>{tab.label}</span>
               </button>
             );
           })}
@@ -584,8 +584,10 @@ export const Community: React.FC = () => {
         </div>
       )}
 
+      {activeTab === 'chat' && <ChatSystem />}
+
       {/* ============================================================== */}
-      {/* 2. PEER CIRCLES TAB (COMORBIDITY & LIVED EXPERIENCE MATCHING)    */}
+      {/* 2. GROUPS TAB (was Peer Circles) (COMORBIDITY & LIVED EXPERIENCE MATCHING)    */}
       {/* ============================================================== */}
       {activeTab === 'warrior_match' && (
         <div className="space-y-5">
@@ -644,7 +646,7 @@ export const Community: React.FC = () => {
           {/* Matched Groups List */}
           <div className="space-y-3.5">
             <h3 className="text-xs font-bold text-wa-plum-muted uppercase tracking-wider px-1">
-              Recommended Peer Circles
+              Suggested groups
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -713,57 +715,12 @@ export const Community: React.FC = () => {
                         }`}
                       >
                         {isJoined ? <CheckCircle2 size={14} /> : <Bookmark size={14} />}
-                        <span>{isJoined ? 'Joined' : 'Join Circle'}</span>
+                        <span>{isJoined ? 'Joined' : 'Join group'}</span>
                       </button>
                     </div>
                   </div>
                 );
               })}
-            </div>
-          </div>
-
-          {/* Upcoming Community Features (Coming Soon) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-2">
-            <div className="bg-wa-ground border border-wa-line rounded-2xl p-5 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <h4 className="font-display font-bold text-sm text-wa-plum">
-                  Warrior Community Channels
-                </h4>
-                <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
-                  Live in Chat
-                </span>
-              </div>
-              <p className="text-xs text-wa-plum-muted leading-relaxed">
-                WhatsApp-style group channels where warriors can create, join, and share daily encouragement across Lagos, Abuja, and Ogun.
-              </p>
-              <button
-                type="button"
-                onClick={() => { window.location.hash = '#/chat'; }}
-                className="inline-flex items-center gap-1 text-xs font-bold text-wa-crimson hover:underline cursor-pointer"
-              >
-                Open Community Channels →
-              </button>
-            </div>
-
-            <div className="bg-wa-ground border border-wa-line rounded-2xl p-5 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <h4 className="font-display font-bold text-sm text-wa-plum">
-                  Trusted Companion Health Linking
-                </h4>
-                <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
-                  Live on Home
-                </span>
-              </div>
-              <p className="text-xs text-wa-plum-muted leading-relaxed">
-                Two-way linking between a warrior&apos;s device and a trusted family member or caregiver with Emergency SOS alerts on the Home screen.
-              </p>
-              <button
-                type="button"
-                onClick={() => { window.location.hash = '#/home'; }}
-                className="inline-flex items-center gap-1 text-xs font-bold text-wa-crimson hover:underline cursor-pointer"
-              >
-                Open Trusted Companion &amp; SOS →
-              </button>
             </div>
           </div>
 

@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../firebase-init', () => ({ auth: { currentUser: { uid: 'patient-1', displayName: 'Ada' } } }));
-vi.mock('../../components/DesignatedCaregiverWidget', () => ({ DesignatedCaregiverWidget: () => <div>Designated caregiver</div> }));
 
 const service = vi.hoisted(() => ({
   getCustomGroups: vi.fn(() => []),
@@ -40,14 +39,11 @@ describe('Community channels truthfulness', () => {
     expect(screen.queryByText(/Moderator|Admin/)).not.toBeInTheDocument();
   });
 
-  it('Care Circle uses the real caregiver tool, not simulated linked peers', async () => {
-    const user = userEvent.setup();
+  it('shows chat rooms only, with no simulated Care Circle', () => {
     render(<ChatSystem />);
-    await user.click(screen.getByRole('tab', { name: /Care Circle/ }));
-    expect(screen.getByText('Designated caregiver')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Chat rooms' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /Care Circle/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Grace|Tunde|audit|encrypted/i)).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /Open Caregivers Circle/ }));
-    expect(await screen.findByLabelText('Message Caregivers Circle')).toBeInTheDocument();
   });
 
   it('sends a real message to the open channel', async () => {

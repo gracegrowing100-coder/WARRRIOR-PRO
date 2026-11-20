@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { firebaseService } from '../services/firebaseService';
 import { auth } from '../firebase-init';
-import { DesignatedCaregiverWidget } from './DesignatedCaregiverWidget';
 
 /**
  * Community channels: shared Firestore chat rooms (chats/{id}/messages) that every
@@ -131,7 +130,6 @@ const ChatSystem: React.FC = () => {
   const currentUserId = currentUser?.uid || '';
   const currentUserName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Warrior';
 
-  const [subTab, setSubTab] = useState<'channels' | 'circle'>('channels');
   const [channels, setChannels] = useState<Channel[]>(CHANNELS);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -321,11 +319,6 @@ const ChatSystem: React.FC = () => {
     setNotice('Hidden people and messages are visible again.');
   };
 
-  const segment = (selected: boolean) =>
-    `flex min-h-11 items-center justify-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson ${
-      selected ? 'bg-wa-surface text-wa-plum shadow-sm' : 'text-wa-plum-muted hover:text-wa-plum'
-    }`;
-
   const channelList = (
     <section aria-labelledby="channels-heading" className="space-y-3">
       <div className="flex items-start gap-2.5 rounded-[18px] border border-wa-line bg-wa-ground/70 p-3.5 text-[13px] text-wa-plum dark:bg-white/5">
@@ -336,7 +329,7 @@ const ChatSystem: React.FC = () => {
         </p>
       </div>
 
-      <h2 id="channels-heading" className="px-1 text-xs font-bold uppercase tracking-wider text-wa-plum-muted">Channels</h2>
+      <h2 id="channels-heading" className="px-1 text-xs font-bold uppercase tracking-wider text-wa-plum-muted">Chat rooms</h2>
       <ul className="space-y-2.5">
         {channels.map(channel => (
           <li key={channel.id}>
@@ -481,7 +474,7 @@ const ChatSystem: React.FC = () => {
   };
 
   const chatView = activeChannel && (
-    <section aria-label={activeChannel.name} className="flex h-[calc(100dvh-17rem)] min-h-[20rem] flex-col overflow-hidden rounded-[24px] border border-wa-line bg-wa-surface md:h-[calc(100dvh-13rem)]">
+    <section aria-label={activeChannel.name} className="flex h-[calc(100dvh-21.5rem)] min-h-[20rem] flex-col overflow-hidden rounded-[24px] border border-wa-line bg-wa-surface md:h-[calc(100dvh-16rem)]">
       <header className="flex items-center gap-2 border-b border-wa-line-soft px-2 py-2">
         <button type="button" onClick={closeChannel} aria-label="Back to channels" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-wa-plum hover:bg-wa-ground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson">
           <ArrowLeft size={20} aria-hidden="true" />
@@ -585,39 +578,7 @@ const ChatSystem: React.FC = () => {
 
   return (
     <div className="space-y-3" data-semantic>
-      {!(subTab === 'channels' && activeChannel) && (
-      <div role="tablist" aria-label="Community chat sections" className="grid grid-cols-2 gap-1 rounded-full bg-wa-ground p-1 dark:bg-white/5">
-        <button type="button" role="tab" aria-selected={subTab === 'channels'} onClick={() => setSubTab('channels')} className={segment(subTab === 'channels')}>
-          <MessageSquare size={15} aria-hidden="true" /> Channels
-        </button>
-        <button type="button" role="tab" aria-selected={subTab === 'circle'} onClick={() => setSubTab('circle')} className={segment(subTab === 'circle')}>
-          <Users size={15} aria-hidden="true" /> Care Circle
-        </button>
-      </div>
-      )}
-
-      {subTab === 'circle' ? (
-        <section aria-label="Care Circle" className="space-y-3">
-          <p className="px-1 text-[13px] text-wa-plum-muted">
-            Save one trusted person you can reach in a crisis, and talk with other families in the Caregivers Circle.
-          </p>
-          <DesignatedCaregiverWidget userId={currentUserId} />
-          <button
-            type="button"
-            onClick={() => { setSubTab('channels'); openChannel('caregivers-circle'); }}
-            className="flex w-full items-center gap-3 rounded-[22px] border border-wa-line bg-wa-surface p-3.5 text-left transition-colors hover:border-wa-crimson/40 hover:bg-wa-rose/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
-          >
-            <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-wa-rose text-wa-crimson">
-              <Users size={20} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-display text-[15px] font-bold text-wa-plum">Open Caregivers Circle</span>
-              <span className="block text-[13px] text-wa-plum-muted">Chat with parents, partners and family of warriors.</span>
-            </span>
-            <ChevronRight size={18} className="shrink-0 text-wa-plum-muted" aria-hidden="true" />
-          </button>
-        </section>
-      ) : activeChannel ? chatView : channelList}
+      {activeChannel ? chatView : channelList}
 
       {lightbox && (
         <div role="dialog" aria-modal="true" aria-label="Photo" className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setLightbox(null)}>

@@ -68,8 +68,8 @@ const TOOL_META: Record<Exclude<HomeToolView, null>, ToolMeta> = {
     subtitle: 'Set daily alerts for water and medicines',
   },
   caregiver: {
-    title: 'Caregiver & Alerts',
-    subtitle: 'Manage emergency alerts for family or trusted contacts',
+    title: 'My caregiver',
+    subtitle: 'Save one trusted person you can reach in a crisis',
   },
   weather: {
     title: 'Weather & Recent Logs',
@@ -216,8 +216,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
     },
     {
       id: 'caregiver',
-      title: 'Caregiver',
-      description: 'Family SOS alerts',
+      title: 'My caregiver',
+      description: 'Your trusted SOS contact',
       icon: <UserCheck size={22} />,
       accentClass: 'bg-wa-rose text-wa-crimson',
       onClick: () => openTool('caregiver'),

@@ -515,7 +515,7 @@ export const MiraAssistant: React.FC<MiraAssistantProps> = ({
 
   return (
     <section aria-labelledby="mira-heading" className="space-y-4" data-semantic>
-      <Card as="section" padding="none" className="flex h-[calc(100dvh-17rem)] min-h-[22rem] flex-col overflow-hidden rounded-[24px] border-wa-line bg-wa-surface shadow-none md:h-[calc(100dvh-13rem)]">
+      <Card as="section" padding="none" className="flex h-[calc(100dvh-13.5rem)] min-h-[22rem] flex-col overflow-hidden rounded-[24px] border-wa-line bg-wa-surface shadow-none md:h-[calc(100dvh-9.5rem)]">
         <header className="flex items-center justify-between gap-3 border-b border-wa-line-soft bg-wa-surface px-3 py-2.5 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <div className="relative">
