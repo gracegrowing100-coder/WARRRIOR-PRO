@@ -6,17 +6,19 @@ import {
   ChevronDown,
   Copy,
   Download,
-  FileText,
+  Eye,
   FlaskConical,
   HeartPulse,
-  Info,
-  Layers,
+  Pencil,
+  Phone,
   PhoneCall,
   Pill,
   Plus,
   RotateCcw,
   ShieldCheck,
-  Sparkles,
+  Stethoscope,
+  Trash2,
+  X,
 } from 'lucide-react';
 import { firebaseService } from '../../services/firebaseService';
 import {
@@ -32,16 +34,15 @@ import {
   type RecordSection,
 } from '../../services/medicalRecords';
 import { generateClinicalPassportPDF } from '../../services/pdfPassportService';
-import { PageHeader } from '../layout';
-import { Alert, Button, FormField, Modal, SelectInput, Skeleton, StateMessage, Textarea, TextInput } from '../ui';
+import { Alert, Button, FormField, Modal, SelectInput, Skeleton, Textarea, TextInput } from '../ui';
+import { EXAMPLE_MEDICAL_RECORD, SHOW_MEDICAL_RECORDS_EXAMPLE } from './medicalRecordsExample';
 
 interface GroupDefinition {
   title: string;
   category: string;
   keys: string[];
   icon: React.ComponentType<{ size?: number; className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>;
-  badgeColor: string;
-  accentBorder: string;
+  iconClass: string;
   description: string;
 }
 
@@ -51,198 +52,96 @@ const groups: GroupDefinition[] = [
     category: 'background',
     keys: ['background', 'otherConditions'],
     icon: HeartPulse,
-    badgeColor: 'text-wa-crimson bg-wa-rose/70 dark:bg-wa-rose/30',
-    accentBorder: 'border-wa-crimson/20',
-    description: 'Core sickle cell diagnosis, drug allergies, and chronic co-existing conditions.',
+    iconClass: 'bg-wa-rose text-wa-crimson',
+    description: 'Diagnosis, allergies and other conditions',
   },
   {
-    title: 'Medications & therapies',
+    title: 'Medicines & treatment',
     category: 'medications',
     keys: ['medications', 'therapy'],
     icon: Pill,
-    badgeColor: 'text-purple-600 bg-purple-50 dark:bg-purple-950/40',
-    accentBorder: 'border-purple-200 dark:border-purple-900/40',
-    description: 'Current and past prescriptions, Hydroxyurea response, and chelation therapy.',
+    iconClass: 'bg-wa-rose text-wa-crimson',
+    description: 'What you take or took, and how hydroxyurea is working',
   },
   {
-    title: 'Procedures & hospital care',
+    title: 'Hospital & procedures',
     category: 'procedures',
     keys: ['surgeries', 'hospitalizations', 'transfusions'],
     icon: Building2,
-    badgeColor: 'text-amber-600 bg-amber-50 dark:bg-amber-950/40',
-    accentBorder: 'border-amber-200 dark:border-amber-900/40',
-    description: 'Surgical history, inpatient admissions for acute crises, and blood transfusions.',
+    iconClass: 'bg-wa-sun-soft text-wa-sun-ink dark:text-amber-300',
+    description: 'Admissions, surgeries and blood transfusions',
   },
   {
-    title: 'Laboratory records',
+    title: 'Blood tests',
     category: 'labs',
     keys: ['labs'],
     icon: FlaskConical,
-    badgeColor: 'text-teal-600 bg-teal-50 dark:bg-teal-950/40',
-    accentBorder: 'border-teal-200 dark:border-teal-900/40',
-    description: 'Baseline blood count & renal tracking (Haemoglobin, Steady-State PCV, E/U/Cr, Reticulocytes, HbF%).',
+    iconClass: 'bg-wa-water-soft text-wa-water-ink dark:text-wa-water-bright',
+    description: 'Steady-state Hb, PCV, E/U/Cr and other results',
   },
   {
-    title: 'Immunizations',
+    title: 'Vaccines',
     category: 'immunizations',
     keys: ['immunizations'],
     icon: ShieldCheck,
-    badgeColor: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40',
-    accentBorder: 'border-emerald-200 dark:border-emerald-900/40',
-    description: 'Vaccines protecting against encapsulated bacteria (PCV, MenACWY, Hib).',
+    iconClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+    description: 'Pneumococcal, meningococcal, flu and others',
   },
   {
-    title: 'Care information',
+    title: 'Care team & emergency plan',
     category: 'care',
     keys: ['care'],
     icon: PhoneCall,
-    badgeColor: 'text-blue-600 bg-blue-50 dark:bg-blue-950/40',
-    accentBorder: 'border-blue-200 dark:border-blue-900/40',
-    description: 'Haematologist contacts, acute pain regimens, and emergency room notes.',
+    iconClass: 'bg-wa-water-soft text-wa-water-ink dark:text-wa-water-bright',
+    description: 'Your clinic contact, pain plan and what to tell the ER',
   },
 ];
 
-const sectionGuides: Record<string, { purpose: string; guidance: string }> = {
-  background: {
-    purpose: 'Core clinical genotype & allergies',
-    guidance: 'Record your verified hemoglobin phenotype (e.g. Hemoglobin SS, SC) and confirmed drug or environmental allergies so attending clinicians have baseline clarity in acute care.',
-  },
-  otherConditions: {
-    purpose: 'Secondary diagnoses & comorbidities',
-    guidance: 'Track chronic conditions like avascular necrosis, pulmonary hypertension, or gallstones that require consideration alongside sickle cell management.',
-  },
-  medications: {
-    purpose: 'Active prescriptions & schedule',
-    guidance: 'Log prescribed medications (e.g. Hydroxyurea, prophylactic penicillin, folic acid) with daily dosages, start dates, and adherence routines.',
-  },
-  therapy: {
-    purpose: 'Disease-modifying therapies & iron management',
-    guidance: 'Document your therapeutic response to Hydroxyurea, target Fetal Hemoglobin (HbF) percentages, recorded side effects, and chelation therapy for iron overload.',
-  },
-  surgeries: {
-    purpose: 'Surgical history & operative notes',
-    guidance: 'Keep a record of previous surgical procedures (such as cholecystectomy or splenectomy) to inform anesthesia and surgical teams about airway and transfusion history.',
-  },
-  hospitalizations: {
-    purpose: 'Hospital stays & acute admissions',
-    guidance: 'Log past inpatient admissions for severe vaso-occlusive episodes, acute chest syndrome, or severe infections, including admission dates and hospital stay duration.',
-  },
-  transfusions: {
-    purpose: 'Transfusion history & antibody tracking',
-    guidance: 'Record simple or exchange blood transfusions, volume transfused, and reaction history. Critical for tracking red cell alloantibodies and safe cross-matching.',
-  },
-  labs: {
-    purpose: 'Steady-state blood markers & renal panel',
-    guidance: 'Track your steady-state baseline blood metrics—Haemoglobin, Steady-State PCV (%), E/U/Cr (Electrolytes, Urea, Creatinine), Reticulocyte count, Bilirubin, and HbF%. Comparing current labs against your baseline helps doctors detect acute crises or renal changes.',
-  },
-  immunizations: {
-    purpose: 'Preventive bacterial & viral vaccines',
-    guidance: 'Document essential immunizations (Pneumococcal conjugate, Meningococcal ACWY/B, Hib, and Influenza) critical for patients with functional asplenia to prevent invasive bacterial infections.',
-  },
-  care: {
-    purpose: 'Care team & emergency protocol',
-    guidance: 'Record direct contact information for your primary haematologist, your individualized acute pain protocol, and concise instructions to present immediately to emergency department staff.',
-  },
+/** One-line hints shown under each section title and in its edit form. */
+const sectionHints: Record<string, string> = {
+  background: 'Your genotype or diagnosis and any allergies, as your clinic recorded them.',
+  otherConditions: 'Other long-term conditions, e.g. avascular necrosis or gallstones.',
+  medications: 'Use the dose on your prescription or clinic card.',
+  therapy: 'How hydroxyurea is working for you, your latest HbF, and any chelation.',
+  surgeries: 'Past operations help surgical and anaesthetic teams plan safely.',
+  hospitalizations: 'Admissions for crises, acute chest syndrome or infections.',
+  transfusions: 'Past transfusions and any reactions help with safe cross-matching.',
+  labs: 'Results from a well (steady-state) day give doctors your baseline to compare against.',
+  immunizations: 'Vaccines you have had, with the year if you know it.',
+  care: 'Who to call, your usual pain plan, and a short note for emergency staff.',
 };
 
-// Authentic sickle cell clinical profile with top-level keys mapped accurately to the database schema
-const SAMPLE_CLINICAL_RECORD: MedicalRecordData = {
-  primaryDiagnosis: 'Sickle Cell Disease (Hemoglobin SS)',
-  allergies: 'Penicillin (mild childhood cutaneous rash), Codeine (severe nausea)',
-  otherConditions: [
-    'Avascular Necrosis of Femoral Head',
-    'Cholelithiasis (Post-cholecystectomy)',
-  ],
-  medications: [
-    {
-      id: 'sample-med-1',
-      name: 'Hydroxyurea',
-      dosage: '1,000 mg oral once daily',
-      startDate: '2023-03-01',
-      endDate: '',
-      isActive: true,
-      adherenceNotes: 'Taken consistently at bedtime with a full glass of water. Well tolerated.',
-    },
-    {
-      id: 'sample-med-2',
-      name: 'Folic Acid',
-      dosage: '5 mg oral daily',
-      startDate: '2022-01-10',
-      endDate: '',
-      isActive: true,
-      adherenceNotes: 'Supports ongoing red blood cell production.',
-    },
-  ],
-  diseaseModifyingTherapy: {
-    hydroxyureaResponse: 'Noticeable clinical improvement: vaso-occlusive pain episodes reduced from 5/year to <1/year. Steady-state baseline stabilized.',
-    latestHbF: '15.2%',
-    sideEffects: 'Mild benign hyperpigmentation of fingernail beds. No myelosuppression observed.',
-  },
-  chelation: {
-    isActive: false,
-    agentName: 'None',
-    ironOverloadStatus: 'Normal serum ferritin levels monitored annually post-transfusion.',
-  },
-  surgeries: [
-    {
-      id: 'sample-surg-1',
-      name: 'Laparoscopic Cholecystectomy',
-      date: '2022-11-18',
-      hospital: 'St. Nicholas Specialist Hospital',
-      complications: 'Elective procedure for pigmented gallstones. Preoperative exchange transfusion; uneventful recovery.',
-    },
-  ],
-  hospitalizations: [
-    {
-      id: 'sample-hosp-1',
-      reason: 'Acute Chest Syndrome & Bilateral Infiltrates',
-      date: '2024-04-12',
-      durationDays: 4,
-      notes: 'Rapid recovery following empiric IV cephalosporin, aggressive incentive spirometry, and analgesia.',
-    },
-  ],
-  transfusions: [
-    {
-      id: 'sample-trans-1',
-      date: '2024-04-13',
-      volumeMl: 550,
-      units: 2,
-      reactionNotes: 'Phenotypically cross-matched leukoreduced packed red blood cells. Premedicated with paracetamol; zero transfusion reactions.',
-    },
-  ],
-  labs: [
-    {
-      id: 'sample-lab-1',
-      date: '2026-08-14',
-      hemoglobin: 8.7,
-      steadyStatePcv: 26,
-      lastEUCr: 'Na+ 138, K+ 4.1, Urea 3.4 mmol/L, Cr 62 µmol/L',
-      reticulocyte: 7.8,
-      bilirubin: 2.2,
-      ldh: 395,
-      ferritin: 320,
-      hbfPercentage: 15.2,
-      notes: 'Routine haematology outpatient clinic; steady-state asymptomatic baseline.',
-    },
-  ],
-  immunizations: [
-    'Pneumococcal Conjugate Vaccine (PCV20) - Documented 2024',
-    'Meningococcal Conjugate (MenACWY + MenB) - Documented 2025',
-    'Haemophilus influenzae type b (Hib) - Complete Childhood Series',
-    'Annual Quadrivalent Inactivated Influenza - Updated 2026',
-  ],
-  emergencyInfo: {
-    hematologistName: 'Dr. T. Alabi (Consultant Haematologist)',
-    hematologistPhone: '+234 802 555 9812',
-    usualPainRegimen: 'Immediate oral hydration. If severe crisis: IV Morphine 0.1 mg/kg or Sublingual Buprenorphine as per personal acute plan. Avoid delayed triage.',
-    whatToTellER: 'Adult sickle cell warrior in acute pain crisis. Baseline Hb is 8.5-8.8 g/dL. Prioritize parenteral analgesia within 30 minutes of emergency presentation.',
-  },
-  notesJournal: 'Patient-curated health log for doctor reviews, clinic appointments, and emergency preparedness.',
+/** Which field names an entry in its card header. */
+const primaryFieldKey: Record<string, string> = {
+  medications: 'name',
+  surgeries: 'name',
+  hospitalizations: 'reason',
+  transfusions: 'date',
+  labs: 'date',
 };
+
+const USES = [
+  { icon: AlertTriangle, text: 'Show emergency staff your diagnosis, allergies and pain plan in seconds.' },
+  { icon: FlaskConical, text: 'Keep your steady-state blood results so doctors can compare during a crisis.' },
+  { icon: Download, text: 'Download one summary to take to a new clinic or hospital.' },
+];
 
 const fieldsFor = (section: RecordSection): RecordField[] => section.stringList
   ? [{ key: 'value', label: section.title === 'Conditions' ? 'Condition' : 'Immunization information', required: true }]
   : section.fields ?? [];
+
+const isRecorded = (value: unknown) => displayValue(value) !== 'Not recorded';
+const isDateField = (key: string) => /(^|\.)(date|startDate|endDate)$/.test(key);
+
+const formatValue = (key: string, value: unknown) => {
+  if (isDateField(key) && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const parsed = new Date(`${value}T12:00:00`);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+  }
+  return displayValue(value);
+};
 
 interface Editor {
   section: RecordSection;
@@ -254,10 +153,10 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
   const [data, setData] = useState<MedicalRecordData>({});
   const [readState, setReadState] = useState<'loading' | 'recorded' | 'cached' | 'empty' | 'unavailable'>('loading');
   const [reload, setReload] = useState(0);
+  const [showExample, setShowExample] = useState(false);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [deletion, setDeletion] = useState<{ section: RecordSection; index: number } | null>(null);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [copiedER, setCopiedER] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
@@ -265,7 +164,6 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [exporting, setExporting] = useState(false);
   const busy = useRef(false);
-  const editorRef = useRef<HTMLHeadingElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const removalFocusRef = useRef<HTMLElement | null>(null);
 
@@ -279,33 +177,31 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
   }, [userId, reload]);
 
   useEffect(() => {
-    if (editor) editorRef.current?.focus();
-    else triggerRef.current?.focus();
+    if (!editor) triggerRef.current?.focus();
   }, [editor?.section.key, editor?.index]);
 
   useEffect(() => {
     if (!deletion) removalFocusRef.current?.focus();
   }, [deletion]);
 
-  const itemsFor = (section: RecordSection): unknown[] =>
-    Array.isArray(data[section.key]) ? data[section.key] as unknown[] : [];
+  // The example is only ever rendered, never saved; every write path uses `data`.
+  const view = showExample ? EXAMPLE_MEDICAL_RECORD : data;
+  const readOnly = showExample;
 
-  const itemsCountForGroup = (group: GroupDefinition): string => {
-    const groupSections = recordSections.filter(s => group.keys.includes(s.key));
-    let count = 0;
-    groupSections.forEach(s => {
-      if (s.itemLabel) {
-        count += itemsFor(s).length;
-      } else if (s.fields?.some(f => displayValue(fieldValue(data, f.key)) !== 'Not recorded')) {
-        count += 1;
-      }
-    });
-    return count > 0 ? `${count} recorded` : 'Empty';
-  };
+  const itemsFor = (section: RecordSection, source: MedicalRecordData = view): unknown[] =>
+    Array.isArray(source[section.key]) ? source[section.key] as unknown[] : [];
+
+  const sectionCount = (section: RecordSection): number => section.itemLabel
+    ? itemsFor(section).length
+    : (section.fields ?? []).filter(field => isRecorded(fieldValue(view, field.key))).length > 0 ? 1 : 0;
+
+  const groupCount = (group: GroupDefinition): number =>
+    recordSections.filter(s => group.keys.includes(s.key)).reduce((sum, s) => sum + sectionCount(s), 0);
 
   const beginEdit = (section: RecordSection, index?: number) => {
+    if (readOnly) return;
     triggerRef.current = document.activeElement as HTMLElement;
-    const item = index === undefined ? {} : itemsFor(section)[index];
+    const item = index === undefined ? {} : itemsFor(section, data)[index];
     const source = section.stringList ? { value: item } : section.itemLabel ? (isRecord(item) ? item : {}) : data;
     const draft: Record<string, string> = {};
     fieldsFor(section).forEach(field => {
@@ -333,8 +229,8 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
       setData(current => mergeMedicalRecords(current, patch));
       setReadState(outcome.state === 'device-only' ? 'cached' : 'recorded');
       setNotice(outcome.state === 'device-only'
-        ? 'Saved only on this device. Your cloud record was not updated. These changes are not automatically sent later and a future cloud refresh may replace them.'
-        : 'Changes recorded in your account. No clinician review or notification is implied.');
+        ? 'Saved only on this device. Your account copy was not updated.'
+        : 'Changes recorded in your account.');
       return true;
     } catch {
       setError('Changes could not be saved. Your entries are still here. Please try again.');
@@ -343,10 +239,6 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
       busy.current = false;
       setSaving(false);
     }
-  };
-
-  const handleLoadSampleRecord = async () => {
-    await persist(SAMPLE_CLINICAL_RECORD);
   };
 
   const handleClearAll = async () => {
@@ -371,15 +263,24 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
     }
   };
 
+  const emergencyText = () => [
+    isRecorded(fieldValue(view, 'primaryDiagnosis')) ? `Diagnosis: ${fieldValue(view, 'primaryDiagnosis')}` : '',
+    isRecorded(fieldValue(view, 'allergies')) ? `Allergies: ${fieldValue(view, 'allergies')}` : '',
+    isRecorded(fieldValue(view, 'emergencyInfo.whatToTellER')) ? String(fieldValue(view, 'emergencyInfo.whatToTellER')) : '',
+    isRecorded(fieldValue(view, 'emergencyInfo.hematologistName'))
+      ? `Care contact: ${fieldValue(view, 'emergencyInfo.hematologistName')}${isRecorded(fieldValue(view, 'emergencyInfo.hematologistPhone')) ? `, ${fieldValue(view, 'emergencyInfo.hematologistPhone')}` : ''}`
+      : '',
+  ].filter(Boolean).join('\n');
+
   const handleCopyER = async () => {
-    const erText = String(fieldValue(data, 'emergencyInfo.whatToTellER') || '');
-    if (!erText) return;
+    const text = emergencyText();
+    if (!text) return;
     try {
-      await navigator.clipboard.writeText(erText);
+      await navigator.clipboard.writeText(text);
       setCopiedER(true);
       setTimeout(() => setCopiedER(false), 2200);
     } catch {
-      // Graceful clipboard fallback
+      // Clipboard can be blocked; the text stays visible on screen.
     }
   };
 
@@ -398,7 +299,7 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
     if (Object.keys(errors).length) return;
 
     const section = editor.section;
-    const items = itemsFor(section);
+    const items = itemsFor(section, data);
     const oldItem = editor.index === undefined ? {} : items[editor.index];
     const source = section.stringList ? { value: oldItem } : section.itemLabel ? (isRecord(oldItem) ? oldItem : {}) : data;
     let changes: MedicalRecordData = {};
@@ -429,486 +330,390 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
     if (!Object.keys(patch).length || await persist(patch)) closeEditor();
   };
 
-  // Structured Definition List component preserving semantic dd for tests
-  const renderFields = (source: MedicalRecordData, fields: RecordField[]) => (
-    <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {fields.map(field => {
-        const val = fieldValue(source, field.key);
-        const isRecorded = val !== undefined && val !== null && String(val).trim() !== '';
-        return (
-          <div
-            key={field.key}
-            className="min-w-0 rounded-2xl bg-wa-ground/60 dark:bg-wa-surface/70 p-3.5 border border-wa-line-soft transition-all hover:border-wa-line"
-          >
-            <dt className="text-xs font-semibold uppercase tracking-wider text-foreground-secondary">{field.label}</dt>
-            <dd className={`mt-1.5 whitespace-pre-wrap break-words text-body font-medium ${isRecorded ? 'text-foreground' : 'text-foreground-secondary/70 italic'}`}>
-              {displayValue(val)}
+  const actionButton = 'inline-flex min-h-11 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson disabled:opacity-50';
+
+  /** Recorded fields only, so a lab with two values does not show eight "Not recorded" rows. */
+  const renderFields = (source: MedicalRecordData, fields: RecordField[], skipKey?: string) => {
+    const shown = fields.filter(field => field.key !== skipKey && isRecorded(fieldValue(source, field.key)));
+    if (!shown.length) return null;
+    return (
+      <dl className="grid gap-x-4 gap-y-2.5 sm:grid-cols-2">
+        {shown.map(field => (
+          <div key={field.key} className="min-w-0">
+            <dt className="text-xs font-semibold text-wa-plum-muted">{field.label}</dt>
+            <dd className="mt-0.5 whitespace-pre-wrap break-words text-sm text-wa-plum">
+              {formatValue(field.key, fieldValue(source, field.key))}
             </dd>
           </div>
-        );
-      })}
-    </dl>
-  );
+        ))}
+      </dl>
+    );
+  };
 
-  const renderSection = (section: RecordSection) => {
+  const renderSection = (section: RecordSection, showTitle = true) => {
     const items = itemsFor(section);
-    const editing = editor?.section.key === section.key;
-    const guide = sectionGuides[section.key];
+    const hint = sectionHints[section.key];
+    const fieldsShown = !section.itemLabel ? renderFields(view, section.fields ?? []) : null;
+    const primaryKey = primaryFieldKey[section.key];
 
     return (
-      <section
-        key={section.key}
-        aria-label={section.title}
-        className="rounded-3xl border border-wa-line-soft bg-surface p-5 sm:p-6 shadow-xs space-y-4 transition-all"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-wa-line-soft pb-3.5">
-          <div className="space-y-0.5">
-            <h3 className="text-heading-3 text-foreground font-display">{section.title}</h3>
-            {guide && (
-              <p className="text-xs text-foreground-secondary">{guide.purpose}</p>
-            )}
-          </div>
+      <section key={section.key} aria-label={section.title} className="space-y-3">
+        <div>
+          {showTitle && <h3 className="font-display text-[15px] font-bold text-wa-plum">{section.title}</h3>}
+          {hint && <p className="text-xs leading-snug text-wa-plum-muted">{hint}</p>}
         </div>
 
-        {guide && (
-          <div className="flex items-start gap-2.5 rounded-2xl bg-wa-ground/60 dark:bg-wa-surface/40 p-3.5 text-small text-foreground-secondary border border-wa-line-soft/80">
-            <Info size={16} className="text-wa-crimson shrink-0 mt-0.5" />
-            <span className="leading-relaxed">{guide.guidance}</span>
-          </div>
-        )}
-
-        {/* Section Items */}
         {section.itemLabel ? (
-          <>
-            {!items.length && (
-              <div className="py-4 text-center rounded-2xl bg-wa-ground/30 border border-dashed border-wa-line">
-                <p className="text-body text-foreground-secondary">No information recorded yet.</p>
-              </div>
-            )}
-            <ul className="space-y-3.5">
+          items.length ? (
+            <ul className="space-y-2.5">
               {items.map((item, index) => {
                 const itemRec = isRecord(item) ? item : null;
-                const isMed = section.key === 'medications' && itemRec;
-                const isLab = section.key === 'labs' && itemRec;
+                const title = section.stringList
+                  ? displayValue(item)
+                  : itemRec && primaryKey
+                    ? formatValue(primaryKey, fieldValue(itemRec, primaryKey))
+                    : `${section.itemLabel} ${index + 1}`;
+                const isActive = itemRec?.isActive;
 
                 return (
-                  <li
-                    key={index}
-                    className="space-y-3 rounded-2xl bg-wa-surface dark:bg-wa-surface/90 p-4 sm:p-5 border border-wa-line-soft shadow-xs transition-shadow hover:shadow-sm"
-                  >
-                    {/* Item Card Header */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-wa-line-soft/80 pb-2.5">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-wa-rose/70 text-wa-crimson">
-                          {section.itemLabel} #{index + 1}
-                        </span>
-
-                      </div>
-
-                      {itemRec && itemRec.isActive !== undefined && (
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${itemRec.isActive
-                              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-                              : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-                            }`}
+                  <li key={index} className="rounded-[18px] border border-wa-line bg-wa-surface p-3.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="min-w-0 whitespace-pre-wrap break-words text-[15px] font-bold leading-snug text-wa-plum">
+                        {section.key === 'labs' ? `Results from ${title}` : title}
+                      </p>
+                      {typeof isActive === 'boolean' && (
+                        <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${isActive
+                          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                          : 'bg-wa-ground text-wa-plum-muted'}`}
                         >
-                          {itemRec.isActive ? 'Active Prescription' : 'Discontinued / Past'}
+                          {isActive ? 'Taking now' : 'Stopped'}
                         </span>
                       )}
                     </div>
 
-
-
-                    {/* Content Rendering */}
-                    {section.stringList ? (
-                      <p className="whitespace-pre-wrap break-words text-body font-medium text-foreground py-1">
-                        {displayValue(item)}
-                      </p>
-                    ) : itemRec ? (
-                      renderFields(itemRec, section.fields ?? [])
-                    ) : (
-                      <p className="text-small text-foreground-secondary">
-                        This older entry cannot be displayed in the current format. It has been preserved.
-                      </p>
+                    {!section.stringList && (
+                      itemRec ? (
+                        <div className="mt-2.5">{renderFields(itemRec, section.fields ?? [], primaryKey)}</div>
+                      ) : (
+                        <p className="mt-2 text-xs text-wa-plum-muted">
+                          This older entry cannot be shown in the current format. It has been kept.
+                        </p>
+                      )
                     )}
 
-                    {/* Action Buttons for this Item */}
-                    <div className="flex flex-wrap items-center gap-2 pt-2.5 border-t border-wa-line-soft">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={saving || Boolean(editor)}
-                        onClick={() => beginEdit(section, index)}
-                      >
-                        Edit {section.itemLabel} {index + 1}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={saving || Boolean(editor)}
-                        onClick={event => {
-                          removalFocusRef.current = event.currentTarget.closest('section')?.querySelector<HTMLElement>('[data-record-add]') ?? null;
-                          setError('');
-                          setDeletion({ section, index });
-                        }}
-                      >
-                        Remove {section.itemLabel} {index + 1}
-                      </Button>
-                    </div>
+                    {!readOnly && (
+                      <div className="mt-2.5 flex items-center gap-1 border-t border-wa-line-soft pt-2">
+                        <button
+                          type="button"
+                          aria-label={`Edit ${section.itemLabel} ${index + 1}`}
+                          disabled={saving || Boolean(editor)}
+                          onClick={() => beginEdit(section, index)}
+                          className={`${actionButton} text-wa-plum hover:bg-wa-ground`}
+                        >
+                          <Pencil size={14} aria-hidden="true" /> Edit
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Remove ${section.itemLabel} ${index + 1}`}
+                          disabled={saving || Boolean(editor)}
+                          onClick={event => {
+                            removalFocusRef.current = event.currentTarget.closest('section')?.querySelector<HTMLElement>('[data-record-add]') ?? null;
+                            setError('');
+                            setDeletion({ section, index });
+                          }}
+                          className={`${actionButton} text-wa-plum-muted hover:bg-wa-rose/40 hover:text-wa-crimson`}
+                        >
+                          <Trash2 size={14} aria-hidden="true" /> Remove
+                        </button>
+                      </div>
+                    )}
                   </li>
                 );
               })}
             </ul>
-          </>
-        ) : (
-          renderFields(data, section.fields ?? [])
-        )}
-
-        {/* Special Emergency Action for Care Section */}
-        {section.key === 'care' && fieldValue(data, 'emergencyInfo.whatToTellER') && (
-          <div className="rounded-2xl border-2 border-wa-crimson/30 bg-wa-rose/30 dark:bg-wa-rose/10 p-4 sm:p-5 space-y-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-wa-crimson font-bold text-sm">
-                <AlertTriangle size={16} />
-                <span>Quick-Show for Emergency Department</span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopyER}
-                leadingIcon={copiedER ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
-              >
-                {copiedER ? 'Copied to Clipboard' : 'Copy ER Note'}
-              </Button>
-            </div>
-            <p className="text-small font-medium text-foreground leading-relaxed italic">
-              "{String(fieldValue(data, 'emergencyInfo.whatToTellER'))}"
+          ) : (
+            <p className="rounded-[18px] border border-dashed border-wa-line px-3.5 py-3 text-[13px] text-wa-plum-muted">
+              Nothing added yet.
             </p>
-          </div>
+          )
+        ) : fieldsShown ? (
+          <div className="rounded-[18px] border border-wa-line bg-wa-surface p-3.5">{fieldsShown}</div>
+        ) : (
+          <p className="rounded-[18px] border border-dashed border-wa-line px-3.5 py-3 text-[13px] text-wa-plum-muted">
+            Nothing added yet.
+          </p>
         )}
 
-        {/* Add / Edit Section Button */}
-        <Button
-          data-record-add
-          variant="secondary"
-          size="sm"
-          disabled={saving || Boolean(editor)}
-          onClick={() => beginEdit(section)}
-          leadingIcon={<Plus size={14} />}
-        >
-          {section.itemLabel ? 'Add ' + section.itemLabel : 'Edit ' + section.title.toLowerCase()}
-        </Button>
+        {!readOnly && (
+          <button
+            type="button"
+            data-record-add
+            disabled={saving || Boolean(editor)}
+            onClick={() => beginEdit(section)}
+            className={`${actionButton} border border-wa-line bg-wa-surface text-wa-plum hover:border-wa-crimson/40 hover:bg-wa-rose/30`}
+          >
+            {section.itemLabel ? <Plus size={15} className="text-wa-crimson" aria-hidden="true" /> : <Pencil size={14} className="text-wa-crimson" aria-hidden="true" />}
+            {section.itemLabel ? 'Add ' + section.itemLabel : 'Edit ' + section.title.toLowerCase()}
+          </button>
+        )}
       </section>
     );
   };
 
-  const hasInfo = hasMedicalInformation(data);
-  const activeMedsCount = itemsFor(recordSections[2]).filter((m: any) => isRecord(m) && m.isActive).length;
-  const labsList = itemsFor(recordSections[7]);
-  const surgeriesList = itemsFor(recordSections[4]);
-  const hospitalList = itemsFor(recordSections[5]);
-  const immunizationsList = itemsFor(recordSections[8]);
+  const hasInfo = hasMedicalInformation(view);
+  const hasOwnInfo = hasMedicalInformation(data);
+  const careSection = recordSections.find(s => s.key === 'care');
+  const backgroundSection = recordSections.find(s => s.key === 'background');
+  const diagnosis = fieldValue(view, 'primaryDiagnosis');
+  const allergies = fieldValue(view, 'allergies');
+  const erNote = fieldValue(view, 'emergencyInfo.whatToTellER');
+  const contactName = fieldValue(view, 'emergencyInfo.hematologistName');
+  const contactPhone = fieldValue(view, 'emergencyInfo.hematologistPhone');
+  const hasEmergencyInfo = [diagnosis, allergies, erNote, contactName].some(isRecorded);
 
   return (
-    <div className="space-y-5 pb-6" data-semantic>
-      {/* Layer 1: Unified Plum Hero + Floating Clinical Snapshot Card */}
-      <header className="relative overflow-hidden rounded-[28px] bg-[var(--wa-hero)] px-5 pt-5 pb-12 text-white sm:px-6 sm:pt-6 sm:pb-14">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-8 h-44 w-44 rounded-full bg-wa-coral/15 blur-2xl" />
-        <div className="relative space-y-2">
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3 py-1 text-xs font-bold uppercase tracking-wider text-wa-on-plum-soft">
-            <ShieldCheck size={13} className="text-emerald-300" aria-hidden="true" />
-            <span>Self-Managed Vault · Private &amp; PDF Exportable</span>
-          </div>
-          <h1 className="font-display text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
-            Medical records
-          </h1>
-          <p className="max-w-xl text-xs leading-relaxed text-wa-on-plum-muted sm:text-sm">
-            Patient-maintained information: genotype, steady-state PCV, E/U/Cr labs, and emergency care notes. Not clinician-verified records.
-          </p>
-        </div>
+    <div className="space-y-4 pb-6" data-semantic>
+      <header className="space-y-1">
+        <h1 className="font-display text-2xl font-extrabold text-wa-plum">Medical records</h1>
+        <p className="text-sm text-wa-plum">Your own health file, ready for a new doctor or the emergency room.</p>
+        <p className="flex items-center gap-1.5 text-xs text-wa-plum-muted">
+          <ShieldCheck size={14} className="shrink-0 text-emerald-600" aria-hidden="true" />
+          Patient-maintained information: private to you, not checked by a clinician.
+        </p>
       </header>
 
-      {/* Floating Surface Snapshot + Quick Add Card */}
-      <div className="-mt-10 relative z-10 rounded-[28px] border border-wa-line bg-wa-surface p-4 text-wa-plum shadow-[0_12px_30px_rgb(59_15_44/0.12)] sm:p-5 space-y-4">
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
-          <div className="rounded-[18px] border border-wa-line-soft bg-wa-ground/70 p-3 dark:bg-white/5">
-            <span className="text-xs font-bold uppercase tracking-wider text-wa-crimson">Clinical Profile</span>
-            <p className="mt-1 truncate font-display text-sm font-bold text-wa-plum">
-              {hasInfo ? 'Genotype & Info' : 'Not started'}
-            </p>
-          </div>
-
-          <div className="rounded-[18px] border border-wa-line-soft bg-wa-ground/70 p-3 dark:bg-white/5">
-            <span className="text-xs font-bold uppercase tracking-wider text-wa-water-ink dark:text-wa-water-bright">Blood Tests</span>
-            <p className="mt-1 truncate font-display text-sm font-bold text-wa-plum">
-              {labsList.length > 0 ? `${labsList.length} Lab Record${labsList.length === 1 ? '' : 's'}` : 'None recorded'}
-            </p>
-          </div>
-
-          <div className="rounded-[18px] border border-wa-line-soft bg-wa-ground/70 p-3 dark:bg-white/5">
-            <span className="text-xs font-bold uppercase tracking-wider text-wa-plum-muted">Active Regimen</span>
-            <p className="mt-1 truncate font-display text-sm font-bold text-wa-plum">
-              {activeMedsCount > 0 ? `${activeMedsCount} Active` : 'None recorded'}
-            </p>
-          </div>
-
-          <div className="rounded-[18px] border border-wa-line-soft bg-wa-ground/70 p-3 dark:bg-white/5">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Vaccine Shield</span>
-            <p className="mt-1 truncate font-display text-sm font-bold text-wa-plum">
-              {immunizationsList.length > 0 ? `${immunizationsList.length} Logged` : 'None recorded'}
-            </p>
-          </div>
-        </div>
-
-        <div className="border-t border-wa-line-soft pt-3 space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-display text-xs font-extrabold uppercase tracking-wider text-wa-plum">
-              Quick add to your records
-            </span>
-            <span className="text-xs text-wa-plum-muted">Tap any category</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { label: 'Diagnosis & allergies', key: 'background' },
-              { label: 'Lab result (PCV / E/U/Cr)', key: 'labs' },
-              { label: 'Medication', key: 'medications' },
-              { label: 'Hospitalization', key: 'hospitalizations' },
-              { label: 'Care team & ER note', key: 'care' },
-            ].map((quick) => {
-              const targetSection = recordSections.find((s) => s.key === quick.key);
-              if (!targetSection) return null;
-              return (
-                <button
-                  key={quick.key}
-                  type="button"
-                  disabled={saving || Boolean(editor)}
-                  onClick={() => beginEdit(targetSection)}
-                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-wa-line bg-wa-ground px-3.5 text-[13px] font-bold text-wa-plum focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson transition-colors hover:border-wa-crimson hover:bg-wa-rose/40 disabled:opacity-50 cursor-pointer"
-                >
-                  <Plus size={14} className="text-wa-crimson" aria-hidden="true" />
-                  {quick.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
       {readState === 'loading' ? (
-        <div role="status" aria-label="Loading medical records">
-          <Skeleton className="h-40 rounded-3xl" />
+        <div role="status" aria-label="Loading medical records" className="space-y-3">
+          <Skeleton className="h-36 rounded-[22px]" />
+          <Skeleton className="h-20 rounded-[22px]" />
         </div>
       ) : (
         <>
-          {readState === 'unavailable' && (
+          {showExample && (
+            <div role="status" className="sticky top-[4.25rem] z-20 flex items-start gap-3 rounded-[18px] border border-wa-sun/40 bg-wa-sun-soft p-3.5 text-wa-plum shadow-sm lg:top-20">
+              <Eye size={18} className="mt-0.5 shrink-0 text-wa-sun-ink" aria-hidden="true" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold">Example only, not your records</p>
+                <p className="text-xs text-wa-plum-muted">This shows how a filled-in record looks. Nothing here is saved.</p>
+              </div>
+              <Button size="sm" variant="secondary" className="h-11 shrink-0" leadingIcon={<X size={15} />} onClick={() => setShowExample(false)}>
+                Close
+              </Button>
+            </div>
+          )}
+
+          {readState === 'unavailable' && !showExample && (
             <Alert
               tone="warning"
               title="Medical records unavailable"
-              action={<Button variant="secondary" size="sm" onClick={() => setReload(value => value + 1)}>Try again</Button>}
+              action={<Button variant="secondary" size="sm" className="h-11" onClick={() => setReload(value => value + 1)}>Try again</Button>}
             >
-              Your account records could not be loaded right now. You can still add records below; they will be saved on this device.
+              Your account records could not be loaded. Anything you add now is kept on this device.
             </Alert>
           )}
 
-          {readState === 'cached' && (
-            <Alert tone="warning" title="Showing information saved on this device">
-              Cloud confirmation is unavailable. This copy may not include changes from another device.
+          {readState === 'cached' && !showExample && (
+            <Alert tone="warning" title="Showing the copy saved on this device">
+              It may not include changes made on another device.
             </Alert>
           )}
 
-          {notice && (
-            <Alert tone={notice.startsWith('Saved only') ? 'warning' : 'info'} title="Save status" live="polite">
+          {notice && !showExample && (
+            <Alert tone={notice.startsWith('Saved only') ? 'warning' : 'success'} title="Save status" live="polite">
               {notice}
             </Alert>
           )}
 
-          {!hasInfo ? (
-            <StateMessage
-              state="empty"
-              title="No information recorded yet"
-              description="Add only information you know. Missing details will stay unrecorded."
-              action={
-                <div className="flex flex-wrap gap-2.5 justify-center mt-3">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => beginEdit(recordSections[0])}
-                    leadingIcon={<Plus size={15} />}
-                  >
+          {!hasInfo && (
+            <section aria-labelledby="records-empty-title" className="rounded-[22px] border border-wa-line bg-wa-surface p-4 sm:p-5">
+              <h2 id="records-empty-title" className="font-display text-[17px] font-bold text-wa-plum">No information recorded yet</h2>
+              <p className="mt-1 text-[13px] text-wa-plum-muted">Add only what you know. Start with the basics; you can fill in the rest any time.</p>
+              <ul className="mt-3 space-y-2.5">
+                {USES.map(({ icon: Icon, text }) => (
+                  <li key={text} className="flex items-start gap-3 text-[13px] text-wa-plum">
+                    <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-wa-rose text-wa-crimson">
+                      <Icon size={16} />
+                    </span>
+                    <span className="pt-1.5">{text}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-4 flex flex-wrap gap-2.5">
+                {backgroundSection && (
+                  <Button className="h-11" leadingIcon={<Plus size={16} />} onClick={() => beginEdit(backgroundSection)}>
                     Add diagnosis & allergies
                   </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleLoadSampleRecord}
-                    loading={saving}
-                    leadingIcon={<Sparkles size={15} />}
-                  >
-                    Pre-fill clinical reference record
+                )}
+                {SHOW_MEDICAL_RECORDS_EXAMPLE && (
+                  <Button variant="secondary" className="h-11" leadingIcon={<Eye size={16} />} onClick={() => setShowExample(true)}>
+                    See an example
                   </Button>
-                </div>
-              }
-            />
-          ) : (
-            <Alert tone="neutral" title="Review existing information">
-              Earlier versions could save sample information. Check existing entries before using or sharing them; their authorship and clinical accuracy have not been verified.
-            </Alert>
+                )}
+              </div>
+            </section>
           )}
 
-          {/* Layer 2: Structured Category Filter & Layered Section Cards */}
           {hasInfo && (
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-              <button
-                type="button"
-                onClick={() => setSelectedCategory('all')}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${selectedCategory === 'all'
-                    ? 'bg-[var(--wa-hero)] text-white shadow-xs'
-                    : 'bg-wa-surface text-wa-plum-muted border border-wa-line hover:bg-wa-ground hover:text-wa-plum'
-                  }`}
-              >
-                <Layers size={13} />
-                All Sections
-              </button>
-              {groups.map(g => (
-                <button
-                  key={g.category}
-                  type="button"
-                  onClick={() => setSelectedCategory(g.category)}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${selectedCategory === g.category
-                      ? 'bg-[var(--wa-hero)] text-white shadow-xs'
-                      : 'bg-wa-surface text-wa-plum-muted border border-wa-line hover:bg-wa-ground hover:text-wa-plum'
-                    }`}
-                >
-                  <g.icon size={13} />
-                  {g.title}
-                </button>
-              ))}
-            </div>
+            <section aria-labelledby="emergency-card-title" className="overflow-hidden rounded-[22px] border border-wa-crimson/25 bg-wa-surface">
+              <div className="flex items-center gap-3 bg-wa-rose/50 px-4 py-3 dark:bg-wa-rose/10">
+                <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-wa-surface text-wa-crimson">
+                  <Stethoscope size={18} />
+                </span>
+                <div className="min-w-0">
+                  <h2 id="emergency-card-title" className="font-display text-[15px] font-bold text-wa-crimson">Emergency card</h2>
+                  <p className="text-xs text-wa-plum-muted">Show this to hospital staff</p>
+                </div>
+              </div>
+              {hasEmergencyInfo ? (
+                <div className="space-y-3 p-4">
+                  <dl className="space-y-2.5">
+                    {[
+                      { label: 'Diagnosis', value: diagnosis },
+                      { label: 'Allergies', value: allergies },
+                      { label: 'Tell emergency staff', value: erNote },
+                    ].filter(row => isRecorded(row.value)).map(row => (
+                      <div key={row.label}>
+                        <dt className="text-xs font-semibold text-wa-plum-muted">{row.label}</dt>
+                        <dd className="mt-0.5 whitespace-pre-wrap break-words text-sm font-semibold text-wa-plum">{displayValue(row.value)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  {isRecorded(contactName) && (
+                    <p className="text-[13px] text-wa-plum">
+                      <span className="text-wa-plum-muted">Care contact: </span>
+                      <span className="font-semibold">{displayValue(contactName)}</span>
+                      {isRecorded(contactPhone) ? ` · ${displayValue(contactPhone)}` : ''}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-11"
+                      onClick={() => void handleCopyER()}
+                      leadingIcon={copiedER ? <Check size={15} /> : <Copy size={15} />}
+                    >
+                      {copiedER ? 'Copied' : 'Copy for ER'}
+                    </Button>
+                    {isRecorded(contactPhone) && !readOnly && (
+                      <a
+                        href={`tel:${String(contactPhone).replace(/[^\d+]/g, '')}`}
+                        className="inline-flex h-11 items-center gap-1.5 rounded-full border border-wa-line bg-wa-surface px-4 text-[13px] font-bold text-wa-plum hover:bg-wa-ground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
+                      >
+                        <Phone size={15} aria-hidden="true" /> Call care contact
+                      </a>
+                    )}
+                    {careSection && !readOnly && (
+                      <Button variant="ghost" size="sm" className="h-11" leadingIcon={<Pencil size={14} />} onClick={() => beginEdit(careSection)}>
+                        Edit emergency plan
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 p-4">
+                  <p className="text-[13px] text-wa-plum-muted">Add your diagnosis, allergies and a short note for emergency staff so this card is ready when you need it.</p>
+                  {careSection && !readOnly && (
+                    <Button size="sm" className="h-11" leadingIcon={<Plus size={15} />} onClick={() => beginEdit(careSection)}>
+                      Add emergency plan
+                    </Button>
+                  )}
+                </div>
+              )}
+            </section>
           )}
 
-          {/* Category Groups - All groups stay in DOM to guarantee accessibility & test compatibility */}
-          <div className="space-y-3.5">
+          <div className="space-y-2.5">
+            <h2 className="px-1 text-xs font-bold uppercase tracking-wider text-wa-plum-muted">Your record</h2>
             {groups.map((group, index) => {
-              const isFiltered = selectedCategory !== 'all' && selectedCategory !== group.category;
-
+              const count = groupCount(group);
               return (
                 <details
                   key={group.title}
-                  open={selectedCategory === group.category || index === 0 ? true : undefined}
-                  className={`group rounded-3xl border border-wa-line bg-wa-surface shadow-xs transition-shadow hover:shadow-sm overflow-hidden ${isFiltered ? 'hidden' : ''
-                    }`}
+                  open={index === 0 ? true : undefined}
+                  className="group overflow-hidden rounded-[22px] border border-wa-line bg-wa-surface"
                 >
-                  <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 sm:px-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus hover:bg-wa-ground/50 transition-colors">
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${group.badgeColor} shadow-xs`}>
-                        <group.icon size={22} aria-hidden="true" />
-                      </div>
-                      <div className="min-w-0">
-                        <h2 className="text-heading-2 text-wa-plum font-display">{group.title}</h2>
-                        <p className="text-xs text-wa-plum-muted truncate hidden sm:block mt-0.5">
-                          {group.description}
-                        </p>
-                      </div>
+                  <summary className="flex min-h-[68px] cursor-pointer list-none items-center gap-3 px-4 py-3 transition-colors hover:bg-wa-ground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-wa-crimson">
+                    <span aria-hidden="true" className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${group.iconClass}`}>
+                      <group.icon size={20} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="font-display text-[15px] font-bold leading-tight text-wa-plum">{group.title}</h2>
+                      <p className="mt-0.5 text-xs leading-snug text-wa-plum-muted">{group.description}</p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-wa-ground text-wa-plum border border-wa-line-soft">
-                        {itemsCountForGroup(group)}
-                      </span>
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full text-wa-plum-muted group-open:rotate-180 transition-transform duration-200">
-                        <ChevronDown size={20} aria-hidden="true" />
-                      </div>
-                    </div>
+                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${count ? 'bg-wa-ground text-wa-plum' : 'text-wa-plum-muted'}`}>
+                      {count ? `${count} added` : 'Empty'}
+                    </span>
+                    <ChevronDown size={20} className="shrink-0 text-wa-plum-muted transition-transform group-open:rotate-180" aria-hidden="true" />
                   </summary>
-
-                  <div className="space-y-5 border-t border-wa-line-soft p-4 sm:p-6 bg-wa-ground/40">
-                    {recordSections.filter(section => group.keys.includes(section.key)).map(renderSection)}
+                  <div className="space-y-5 border-t border-wa-line-soft bg-wa-ground/40 p-4 dark:bg-white/[0.02]">
+                    {/* A group with one section would repeat its own title, so only multi-section groups label them. */}
+                    {recordSections.filter(section => group.keys.includes(section.key)).map(section => renderSection(section, group.keys.length > 1))}
                   </div>
                 </details>
               );
             })}
           </div>
 
-          {/* Layer 3: Health Summary Export & Vault Management Card */}
-          <section
-            aria-labelledby="medical-summary-title"
-            className="rounded-3xl border border-wa-line bg-wa-surface p-5 sm:p-6 shadow-xs space-y-4"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-wa-rose text-wa-crimson">
-                    <Download size={18} />
-                  </div>
-                  <h2 id="medical-summary-title" className="text-heading-2 text-wa-plum font-display">Health summary</h2>
-                </div>
-                <p className="max-w-prose text-small text-wa-plum-muted leading-relaxed">
-                  Download the information shown in these sections. The summary contains no generated advice and is not a clinician-approved care plan. Review existing entries before sharing it.
+          <section aria-labelledby="medical-summary-title" className="space-y-3 rounded-[22px] border border-wa-line bg-wa-surface p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-wa-rose text-wa-crimson">
+                <Download size={20} />
+              </span>
+              <div className="min-w-0">
+                <h2 id="medical-summary-title" className="font-display text-[15px] font-bold text-wa-plum">Health summary</h2>
+                <p className="text-xs leading-snug text-wa-plum-muted">
+                  A PDF of everything above to take to clinic. It contains only what you entered, no generated advice.
                 </p>
               </div>
-
-              <div className="flex flex-wrap items-center gap-3">
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                className="h-11"
+                disabled={!hasOwnInfo || readOnly || saving || Boolean(editor)}
+                loading={exporting}
+                leadingIcon={<Download size={16} />}
+                onClick={async () => {
+                  setExporting(true);
+                  setError('');
+                  try {
+                    await generateClinicalPassportPDF(data);
+                  } catch {
+                    setError('The summary could not be downloaded. Please try again.');
+                  } finally {
+                    setExporting(false);
+                  }
+                }}
+              >
+                Download health summary
+              </Button>
+              {hasOwnInfo && !readOnly && (
                 <Button
-                  disabled={!hasInfo || saving || Boolean(editor)}
-                  loading={exporting}
-                  leadingIcon={<Download size={18} />}
-                  onClick={async () => {
-                    setExporting(true);
-                    setError('');
-                    try {
-                      await generateClinicalPassportPDF(data);
-                    } catch {
-                      setError('The summary could not be downloaded. Please try again.');
-                    } finally {
-                      setExporting(false);
-                    }
-                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="h-11"
+                  disabled={saving || Boolean(editor)}
+                  onClick={() => setClearConfirmOpen(true)}
+                  leadingIcon={<RotateCcw size={15} />}
                 >
-                  Download health summary
+                  Reset records
                 </Button>
-
-                {hasInfo && (
-                  <>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={saving || Boolean(editor)}
-                      onClick={handleLoadSampleRecord}
-                      leadingIcon={<Sparkles size={14} />}
-                    >
-                      Reload reference sample
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={saving || Boolean(editor)}
-                      onClick={() => setClearConfirmOpen(true)}
-                      leadingIcon={<RotateCcw size={16} />}
-                    >
-                      Reset records
-                    </Button>
-                  </>
-                )}
-              </div>
+              )}
+              {hasOwnInfo && SHOW_MEDICAL_RECORDS_EXAMPLE && !showExample && (
+                <Button variant="ghost" size="sm" className="h-11" leadingIcon={<Eye size={15} />} onClick={() => setShowExample(true)}>
+                  See an example
+                </Button>
+              )}
             </div>
             {error && !editor && !deletion && <Alert tone="danger" title="Download unavailable">{error}</Alert>}
           </section>
 
-          {/* Compact Privacy & Scope Footer Card */}
-          <div className="rounded-3xl border border-wa-line-soft bg-wa-ground/70 p-4 sm:p-5 space-y-2">
-            <div className="flex items-center gap-2 text-wa-plum">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
-                <ShieldCheck size={16} />
-              </div>
-              <h3 className="text-sm font-bold font-display">Consent & Privacy Ethics</h3>
-            </div>
-            <p className="text-xs text-wa-plum-muted leading-relaxed">
-              Your medical records belong exclusively to you and can be exported as a PDF or deleted whenever you choose. Daily pain, symptoms, hydration, and check-ins remain in Health History; medication entries here describe history and do not change your Home medication schedule.
-            </p>
-          </div>
+          <p className="px-1 text-xs leading-relaxed text-wa-plum-muted">
+            Your records belong to you; download or delete them any time. Medicines listed here are your history and do not change your daily medicine check-in on Home.
+          </p>
         </>
       )}
 
-      {/* Remove Single Entry Modal */}
       <Modal
         open={Boolean(deletion)}
         onOpenChange={open => {
@@ -917,19 +722,21 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
             setError('');
           }
         }}
-        title="Remove recorded information?"
-        description="This removes the selected entry from your patient-maintained records."
+        title="Remove this entry?"
+        description="It will be deleted from your medical records."
+        size="sm"
         footer={
-          <div className="flex flex-wrap gap-3">
-            <Button variant="secondary" disabled={saving} onClick={() => { setDeletion(null); setError(''); }}>
+          <div className="flex w-full gap-3 sm:justify-end">
+            <Button variant="secondary" className="h-12 flex-1 sm:flex-none" disabled={saving} onClick={() => { setDeletion(null); setError(''); }}>
               Keep entry
             </Button>
             <Button
               variant="danger"
+              className="h-12 flex-1 sm:flex-none"
               loading={saving}
               onClick={async () => {
                 if (!deletion) return;
-                const next = itemsFor(deletion.section).filter((_, index) => index !== deletion.index);
+                const next = itemsFor(deletion.section, data).filter((_, index) => index !== deletion.index);
                 if (await persist({ [deletion.section.key]: next })) setDeletion(null);
               }}
             >
@@ -938,55 +745,63 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
           </div>
         }
       >
-        <p className="text-small text-foreground-secondary leading-relaxed">
-          This will permanently delete this recorded item from your vault.
-        </p>
+        <p className="text-[13px] text-wa-plum-muted">This can&apos;t be undone.</p>
       </Modal>
 
-      {/* Clear All Records Modal */}
       <Modal
         open={clearConfirmOpen}
         onOpenChange={open => { if (!open && !saving) setClearConfirmOpen(false); }}
         title="Reset all medical records?"
-        description="This will clear all recorded entries from your patient-maintained vault on this device and account. You can re-enter your details at any time."
+        description="This clears every entry from your records on this device and your account."
+        size="sm"
         footer={
-          <div className="flex flex-wrap gap-3">
-            <Button variant="secondary" disabled={saving} onClick={() => setClearConfirmOpen(false)}>
+          <div className="flex w-full gap-3 sm:justify-end">
+            <Button variant="secondary" className="h-12 flex-1 sm:flex-none" disabled={saving} onClick={() => setClearConfirmOpen(false)}>
               Keep records
             </Button>
-            <Button
-              variant="danger"
-              loading={saving}
-              onClick={handleClearAll}
-            >
+            <Button variant="danger" className="h-12 flex-1 sm:flex-none" loading={saving} onClick={handleClearAll}>
               Reset all
             </Button>
           </div>
         }
       >
-        <p className="text-small text-foreground-secondary leading-relaxed">
-          Resetting will remove all diagnoses, medications, procedures, labs, and care notes entered in this profile.
-        </p>
+        <p className="text-[13px] text-wa-plum-muted">Diagnoses, medicines, hospital history, blood tests and care notes will all be removed.</p>
       </Modal>
 
-      {/* Add / Edit Medical Record Modal */}
       <Modal
         open={Boolean(editor)}
         onOpenChange={open => {
           if (!open && !saving) closeEditor();
         }}
         title={editor ? (editor.index === undefined && editor.section.itemLabel ? 'Add ' + editor.section.itemLabel : 'Edit ' + editor.section.title.toLowerCase()) : 'Edit record'}
-        description={editor ? (sectionGuides[editor.section.key]?.purpose || editor.section.title) : undefined}
+        description={editor ? sectionHints[editor.section.key] : undefined}
         size="md"
+        footer={editor ? (
+          <div className="flex w-full gap-3 sm:justify-end">
+            <Button type="button" variant="secondary" className="h-12 flex-1 sm:flex-none" disabled={saving} onClick={closeEditor}>
+              Cancel editing
+            </Button>
+            <Button type="submit" form="medical-record-form" className="h-12 flex-1 sm:flex-none" loading={saving} loadingLabel="Saving information…">
+              Save information
+            </Button>
+          </div>
+        ) : undefined}
       >
         {editor && (
-          <form onSubmit={saveEditor} noValidate className="space-y-4">
+          <form id="medical-record-form" onSubmit={saveEditor} noValidate className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               {fieldsFor(editor.section).map(field => (
-                <FormField key={field.key} label={field.label} required={field.required} error={fieldErrors[field.key]}>
+                <FormField
+                  key={field.key}
+                  label={field.label}
+                  required={field.required}
+                  error={fieldErrors[field.key]}
+                  className={field.type === 'multiline' ? 'sm:col-span-2' : undefined}
+                >
                   {field.type === 'multiline' ? (
                     <Textarea
                       disabled={saving}
+                      rows={3}
                       value={editor.draft[field.key]}
                       onChange={event => setEditor({ ...editor, draft: { ...editor.draft, [field.key]: event.target.value } })}
                     />
@@ -1003,7 +818,8 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
                   ) : (
                     <TextInput
                       disabled={saving}
-                      type={field.type === 'number' ? 'number' : 'text'}
+                      type={field.type === 'number' ? 'number' : isDateField(field.key) ? 'date' : 'text'}
+                      inputMode={field.type === 'number' ? 'decimal' : undefined}
                       step={field.type === 'number' ? 'any' : undefined}
                       min={field.type === 'number' ? 0 : undefined}
                       value={editor.draft[field.key]}
@@ -1015,15 +831,6 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
             </div>
 
             {error && <Alert tone="danger" title="Not saved" live="assertive">{error}</Alert>}
-
-            <div className="flex flex-wrap justify-end gap-3 pt-2">
-              <Button type="button" variant="secondary" disabled={saving} onClick={closeEditor}>
-                Cancel editing
-              </Button>
-              <Button type="submit" loading={saving} loadingLabel="Saving information…">
-                Save information
-              </Button>
-            </div>
           </form>
         )}
       </Modal>

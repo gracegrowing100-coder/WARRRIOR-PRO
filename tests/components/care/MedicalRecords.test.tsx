@@ -42,14 +42,14 @@ describe('Patient-maintained Medical Records', () => {
       painCrises: [{ chiefComplaint: 'Excluded legacy symptom' }], attachedFiles: [{ name: 'mock-scan.pdf' }],
     } });
     const user = userEvent.setup(); await openRecords(user);
-    expect(await screen.findByText('Patient-entered diagnosis')).toBeInTheDocument();
+    expect((await screen.findAllByText('Patient-entered diagnosis')).length).toBeGreaterThan(0);
     expect(screen.getByText('Recorded condition')).toBeInTheDocument();
-    await expand(user, 'Medications & therapies');
+    await expand(user, 'Medicines & treatment');
     expect(screen.getByText('Recorded medication')).toBeVisible();
     expect(screen.getByText('No', { selector: 'dd' })).toBeVisible();
-    await expand(user, 'Laboratory records');
+    await expand(user, 'Blood tests');
     expect(screen.getByText('0', { selector: 'dd' })).toBeVisible();
-    await expand(user, 'Immunizations');
+    await expand(user, 'Vaccines');
     expect(screen.getByText('Recorded vaccination')).toBeVisible();
     expect(screen.queryByText(/Excluded legacy symptom|mock-scan.pdf/)).not.toBeInTheDocument();
   });
@@ -92,7 +92,7 @@ describe('Patient-maintained Medical Records', () => {
     expect(await screen.findByText(/Changes recorded in your account/)).toBeInTheDocument();
   });
   it('adds an actual lab value without filling unrelated measurements', async () => {
-    const user = userEvent.setup(); await openRecords(user); await expand(user, 'Laboratory records');
+    const user = userEvent.setup(); await openRecords(user); await expand(user, 'Blood tests');
     await user.click(screen.getByRole('button', { name: 'Add laboratory record' }));
     await user.type(screen.getByLabelText(/Laboratory date/), '2026-09-29');
     await user.type(screen.getByLabelText(/Haemoglobin/), '0');
@@ -112,12 +112,44 @@ describe('Patient-maintained Medical Records', () => {
   it('cannot show a previous account while the next account loads', async () => {
     service.getCareVaultResult.mockResolvedValueOnce({ state: 'recorded', data: { primaryDiagnosis: 'Only account A' } });
     const { rerender } = render(<CareVault userId="A" />);
-    await screen.findByText('Only account A');
+    await screen.findAllByText('Only account A');
     let finish: (value: unknown) => void = () => {};
     service.getCareVaultResult.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
     rerender(<CareVault userId="B" />);
     expect(screen.queryByText('Only account A')).not.toBeInTheDocument();
     await act(async () => finish({ state: 'unavailable', data: {} }));
     expect(await screen.findByText('Medical records unavailable')).toBeInTheDocument();
+  });
+});
+
+describe('Medical records example', () => {
+  beforeEach(() => {
+    service.getCareVaultResult.mockReset().mockResolvedValue({ state: 'empty', data: {} });
+    service.saveCareVault.mockReset().mockResolvedValue({ state: 'recorded' });
+  });
+
+  it('shows a clearly labelled example on screen only and never saves it', async () => {
+    const user = userEvent.setup();
+    render(<CareVault userId="A" />);
+    await user.click(await screen.findByRole('button', { name: 'See an example' }));
+
+    expect(screen.getByText('Example only, not your records')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Emergency card/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Edit|^Remove|^Add/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download health summary' })).toBeDisabled();
+    expect(service.saveCareVault).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.getByText('No information recorded yet')).toBeInTheDocument();
+    expect(screen.queryByText('Example only, not your records')).not.toBeInTheDocument();
+  });
+
+  it('shows only recorded fields instead of rows of "Not recorded"', async () => {
+    service.getCareVaultResult.mockResolvedValue({ state: 'recorded', data: { labs: [{ id: 'l1', date: '2026-08-14', hemoglobin: 8.7 }] } });
+    const user = userEvent.setup();
+    render(<CareVault userId="A" />);
+    await user.click(await screen.findByRole('heading', { level: 2, name: 'Blood tests' }));
+    expect(screen.getByText('8.7', { selector: 'dd' })).toBeVisible();
+    expect(screen.queryByText('Not recorded')).not.toBeInTheDocument();
   });
 });
