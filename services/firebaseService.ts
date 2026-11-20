@@ -1485,7 +1485,9 @@ export const firebaseService = {
 
       // Sync into pain logs as well so 30-day pain visualization is always updated
       await this.addPainLog(userId, painLevel, dateStr, triggers);
-      await this.saveWaterLog(userId, dateStr, waterIntake, 3.0);
+      // No hydration write here: the water popup and tracker own today's total and goal.
+      // Writing waterIntake back with a fixed goal reset custom goals to 3 L, and wrote 0
+      // whenever the day's total could not be read before the pain entry was saved.
       await this.updateStreak(userId);
     } catch (error) {
       try {

@@ -104,7 +104,7 @@ describe('firebaseService current persistence contracts', () => {
     ]);
   });
 
-  it('writes an authenticated symptom before invoking linked pain and hydration writes', async () => {
+  it('writes an authenticated symptom, then the linked pain log, without touching hydration', async () => {
     const pain = vi.spyOn(firebaseService, 'addPainLog').mockResolvedValue(undefined);
     const water = vi.spyOn(firebaseService, 'saveWaterLog').mockResolvedValue(undefined);
     const streak = vi.spyOn(firebaseService, 'updateStreak').mockResolvedValue(1);
@@ -114,7 +114,7 @@ describe('firebaseService current persistence contracts', () => {
     expect(firestore.addDoc).toHaveBeenCalledTimes(1);
     expect(firestore.addDoc.mock.invocationCallOrder[0]).toBeLessThan(pain.mock.invocationCallOrder[0]);
     expect(pain).toHaveBeenCalledWith('user-1', 5, '2026-09-25', ['Cold weather']);
-    expect(water).toHaveBeenCalledWith('user-1', '2026-09-25', 2, 3);
+    expect(water).not.toHaveBeenCalled();
     expect(streak).toHaveBeenCalledWith('user-1');
   });
 
