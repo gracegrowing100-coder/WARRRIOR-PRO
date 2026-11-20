@@ -215,7 +215,7 @@ export const RecentHealthSummary: React.FC<RecentHealthSummaryProps> = ({ userId
       className="flex flex-col gap-3 rounded-[28px] bg-wa-surface p-5 text-wa-plum dark:text-white border border-wa-line-soft dark:border-white/10 shadow-none"
     >
       <div>
-        <p className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">
+        <p className="text-xs sm:text-xs font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">
           Past 7 days
         </p>
         <h2 id="recent-health-title" className="font-display text-[18px] sm:text-[20px] font-bold text-wa-plum dark:text-white mt-0.5">

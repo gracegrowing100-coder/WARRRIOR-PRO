@@ -96,9 +96,11 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
   // Parse appointment date for display
   let dayOfWeek = '';
   let dayOfMonth = '';
+  let readableDate = appointment?.bookedDate || '';
   if (appointment?.bookedDate) {
     const parsed = new Date(`${appointment.bookedDate}T12:00:00`);
     if (!Number.isNaN(parsed.getTime())) {
+      readableDate = parsed.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
       dayOfWeek = parsed.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
       dayOfMonth = String(parsed.getDate());
     } else {
@@ -118,7 +120,7 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
             <CalendarDays size={22} />
           </span>
           <div className="min-w-0">
-            <div className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">
+            <div className="text-xs sm:text-xs font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">
               Next appointment
             </div>
             <p className="mt-0.5 font-display text-[15px] font-bold leading-snug text-wa-plum dark:text-white">
@@ -151,7 +153,7 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
 
       {/* Date badge */}
       <div className="flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 flex-col items-center justify-center rounded-[18px] bg-[var(--wa-hero)] text-white shadow-sm">
-        <span className="text-[10px] sm:text-[11px] font-bold tracking-wider text-wa-rose-text uppercase leading-tight">
+        <span className="text-xs sm:text-xs font-bold tracking-wider text-wa-rose-text uppercase leading-tight">
           {dayOfWeek || 'APT'}
         </span>
         <span className="font-display text-[20px] sm:text-[22px] font-extrabold leading-tight mt-0.5">
@@ -160,14 +162,14 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">
+        <div className="text-xs sm:text-xs font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">
           Next appointment
         </div>
-        <p className="font-display font-bold text-[15px] sm:text-[16px] text-wa-plum dark:text-white leading-snug truncate mt-0.5">
+        <p className="font-display font-bold text-[15px] sm:text-[16px] text-wa-plum dark:text-white leading-snug mt-0.5">
           Hematology care request
         </p>
-        <p className="text-[12px] sm:text-[13px] text-wa-plum-muted dark:text-wa-on-plum-muted truncate mt-0.5">
-          Requested for {appointment.bookedDate || 'date not recorded'}{appointment.bookedTime ? ` at ${appointment.bookedTime}` : ''}
+        <p className="text-[12px] sm:text-[13px] text-wa-plum-muted dark:text-wa-on-plum-muted mt-0.5">
+          Requested for {readableDate || 'date not recorded'}{appointment.bookedTime ? ` at ${appointment.bookedTime}` : ''}
         </p>
       </div>
 
@@ -178,7 +180,7 @@ export const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = (
           e.stopPropagation();
           onOpenCare();
         }}
-        className="inline-flex shrink-0 items-center gap-1 text-wa-crimson font-body font-bold text-xs sm:text-sm px-2.5 sm:px-3 py-1.5 rounded-full bg-wa-crimson/10 hover:bg-wa-crimson/20 active:scale-95 transition-all"
+        className="inline-flex min-h-11 shrink-0 items-center gap-1 text-wa-crimson font-body font-bold text-[13px] sm:text-sm px-3.5 rounded-full bg-wa-crimson/10 hover:bg-wa-crimson/20 active:scale-95 transition-all"
       >
         <span className="hidden sm:inline">View requests</span>
         <span className="sm:hidden">View</span>

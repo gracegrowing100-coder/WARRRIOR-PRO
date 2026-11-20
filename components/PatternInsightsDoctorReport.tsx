@@ -83,6 +83,8 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
         topSymptoms: Array.from(symptomsSet).slice(0, 4),
         topTriggers: Array.from(triggersSet).slice(0, 4),
       });
+      // The factual summary is ready; the optional AI headline must not hold it behind a spinner.
+      setLoadingInsights(false);
 
       // Attempt optional AI enhancement if online
       try {
@@ -252,7 +254,7 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
         <div className="space-y-3">
           {aiHeadline && (
             <div className="rounded-[20px] bg-wa-hero text-white p-4">
-              <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-white/70">
+              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-white/70">
                 <span>Generated observation</span>
                 <span>Experimental AI output</span>
               </div>
@@ -264,25 +266,25 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             <div className="rounded-[18px] bg-wa-ground/60 dark:bg-white/5 p-3 text-center border border-wa-line-soft/60 dark:border-white/5">
-              <span className="block text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">30-Day Avg Pain</span>
+              <span className="block text-xs font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">30-Day Avg Pain</span>
               <span className="font-display text-lg font-black text-wa-plum dark:text-white mt-0.5 block">
                 {logsSummary.avgPain ? `${logsSummary.avgPain} / 10` : 'Baseline'}
               </span>
             </div>
             <div className="rounded-[18px] bg-wa-ground/60 dark:bg-white/5 p-3 text-center border border-wa-line-soft/60 dark:border-white/5">
-              <span className="block text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">Crisis Events</span>
+              <span className="block text-xs font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">Crisis Events</span>
               <span className="font-display text-lg font-black text-wa-plum dark:text-white mt-0.5 block">
                 {logsSummary.severeCount}
               </span>
             </div>
             <div className="rounded-[18px] bg-wa-ground/60 dark:bg-white/5 p-3 text-center border border-wa-line-soft/60 dark:border-white/5">
-              <span className="block text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">Hydration Rate</span>
+              <span className="block text-xs font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">Hydration Rate</span>
               <span className="font-display text-lg font-black text-wa-plum dark:text-white mt-0.5 block">
                 {logsSummary.hydrationRate || 'Recorded'}
               </span>
             </div>
             <div className="rounded-[18px] bg-wa-ground/60 dark:bg-white/5 p-3 text-center border border-wa-line-soft/60 dark:border-white/5">
-              <span className="block text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">Entries Logged</span>
+              <span className="block text-xs font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">Entries Logged</span>
               <span className="font-display text-lg font-black text-wa-plum dark:text-white mt-0.5 block">
                 {logsSummary.recordedDays}
               </span>
@@ -290,7 +292,7 @@ export const PatternInsightsDoctorReport: React.FC<PatternInsightsDoctorReportPr
           </div>
 
           <p className="text-xs text-wa-plum-muted dark:text-wa-on-plum-muted leading-relaxed">
-            Ready to review with your hematologist or clinic team. Click <strong>View Doctor Report</strong> to view, copy, or print the full summary.
+            Ready to review with your haematologist or clinic team. Tap <strong>Generate Discussion Summary</strong> to view, copy or print it.
           </p>
         </div>
       )}

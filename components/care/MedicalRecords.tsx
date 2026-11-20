@@ -615,7 +615,7 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
       <header className="relative overflow-hidden rounded-[28px] bg-[var(--wa-hero)] px-5 pt-5 pb-12 text-white sm:px-6 sm:pt-6 sm:pb-14">
         <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-8 h-44 w-44 rounded-full bg-wa-coral/15 blur-2xl" />
         <div className="relative space-y-2">
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-wa-on-plum-soft">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3 py-1 text-xs font-bold uppercase tracking-wider text-wa-on-plum-soft">
             <ShieldCheck size={13} className="text-emerald-300" aria-hidden="true" />
             <span>Self-Managed Vault · Private &amp; PDF Exportable</span>
           </div>
@@ -632,28 +632,28 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
       <div className="-mt-10 relative z-10 rounded-[28px] border border-wa-line bg-wa-surface p-4 text-wa-plum shadow-[0_12px_30px_rgb(59_15_44/0.12)] sm:p-5 space-y-4">
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
           <div className="rounded-[18px] border border-wa-line-soft bg-wa-ground/70 p-3 dark:bg-white/5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-wa-crimson">Clinical Profile</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-wa-crimson">Clinical Profile</span>
             <p className="mt-1 truncate font-display text-sm font-bold text-wa-plum">
               {hasInfo ? 'Genotype & Info' : 'Not started'}
             </p>
           </div>
 
           <div className="rounded-[18px] border border-wa-line-soft bg-wa-ground/70 p-3 dark:bg-white/5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-wa-water-ink dark:text-wa-water-bright">Blood Tests</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-wa-water-ink dark:text-wa-water-bright">Blood Tests</span>
             <p className="mt-1 truncate font-display text-sm font-bold text-wa-plum">
               {labsList.length > 0 ? `${labsList.length} Lab Record${labsList.length === 1 ? '' : 's'}` : 'None recorded'}
             </p>
           </div>
 
           <div className="rounded-[18px] border border-wa-line-soft bg-wa-ground/70 p-3 dark:bg-white/5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-wa-plum-muted">Active Regimen</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-wa-plum-muted">Active Regimen</span>
             <p className="mt-1 truncate font-display text-sm font-bold text-wa-plum">
               {activeMedsCount > 0 ? `${activeMedsCount} Active` : 'None recorded'}
             </p>
           </div>
 
           <div className="rounded-[18px] border border-wa-line-soft bg-wa-ground/70 p-3 dark:bg-white/5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Vaccine Shield</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Vaccine Shield</span>
             <p className="mt-1 truncate font-display text-sm font-bold text-wa-plum">
               {immunizationsList.length > 0 ? `${immunizationsList.length} Logged` : 'None recorded'}
             </p>
@@ -665,7 +665,7 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
             <span className="font-display text-xs font-extrabold uppercase tracking-wider text-wa-plum">
               Quick add to your records
             </span>
-            <span className="text-[11px] text-wa-plum-muted">Tap any category</span>
+            <span className="text-xs text-wa-plum-muted">Tap any category</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {[
@@ -683,7 +683,7 @@ export const MedicalRecords: React.FC<{ userId: string }> = ({ userId }) => {
                   type="button"
                   disabled={saving || Boolean(editor)}
                   onClick={() => beginEdit(targetSection)}
-                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-wa-line bg-wa-ground px-3.5 text-xs font-bold text-wa-plum transition-colors hover:border-wa-crimson hover:bg-wa-rose/40 disabled:opacity-50 cursor-pointer"
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-wa-line bg-wa-ground px-3.5 text-[13px] font-bold text-wa-plum focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson transition-colors hover:border-wa-crimson hover:bg-wa-rose/40 disabled:opacity-50 cursor-pointer"
                 >
                   <Plus size={14} className="text-wa-crimson" aria-hidden="true" />
                   {quick.label}

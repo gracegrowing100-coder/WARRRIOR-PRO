@@ -344,7 +344,7 @@ export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId, compac
           </div>
           <div>
             <h4 className="font-black text-gray-800 dark:text-white text-sm uppercase tracking-wider">Hydration Tracker</h4>
-            <p className="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-0.5">SCD Crisis Prevention</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-0.5">SCD Crisis Prevention</p>
           </div>
         </div>
         {amount > 0 && (
@@ -466,7 +466,7 @@ export const WaterIntakeTracker: React.FC<WaterTrackerProps> = ({ userId, compac
 
           {/* 7-day Hydration bar chart history */}
           <div className="pt-4 border-t border-gray-100 dark:border-slate-800">
-            <h5 className="text-[10px] text-gray-400 dark:text-slate-500 font-black uppercase tracking-widest mb-3 flex items-center gap-1.5 justify-between">
+            <h5 className="text-xs text-gray-400 dark:text-slate-500 font-black uppercase tracking-widest mb-3 flex items-center gap-1.5 justify-between">
               <span className="flex items-center gap-1.5"><BarChart2 className="w-3.5 h-3.5 text-blue-500" /> 7-Day Hydration History</span>
               <span className="text-blue-500">Goal: {goal}L</span>
             </h5>

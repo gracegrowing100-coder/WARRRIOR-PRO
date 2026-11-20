@@ -32,7 +32,7 @@ describe('DesignatedCaregiverWidget patient data', () => {
     const user = userEvent.setup();
     render(<DesignatedCaregiverWidget userId="patient-1" />);
 
-    await user.click(screen.getByRole('button', { name: /Add Info/i }));
+    await user.click(screen.getByRole('button', { name: /Add trusted caregiver/i }));
     await user.type(screen.getByPlaceholderText('Caregiver or trusted contact name'), 'Ada Okafor');
     await user.type(screen.getByPlaceholderText('e.g. Spouse / Primary Support'), 'Sibling');
     await user.type(screen.getByPlaceholderText('Include country code'), '+2348000000000');

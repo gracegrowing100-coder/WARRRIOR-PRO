@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowRight, Check, CheckCircle2, CircleDashed, Droplets, HeartPulse, Pill, Plus, RefreshCw } from 'lucide-react';
 import { firebaseService } from '../../services/firebaseService';
-import { Alert, Button, Card, ChoiceChip, Modal, Skeleton } from '../ui';
+import { Alert, Button, Card, Skeleton } from '../ui';
 import { MedicineCheckInModal, type MedicationSummary } from './MedicineCheckInModal';
+import { WaterQuickAddModal } from './WaterQuickAddModal';
 
 interface TodaysHealthCardProps {
   userId: string;
@@ -43,9 +44,6 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [waterModalOpen, setWaterModalOpen] = useState(false);
-  const [selectedUnit, setSelectedUnit] = useState<'liters' | 'sachets' | 'bottles'>('liters');
-  const [quantity, setQuantity] = useState(1);
-  const [isAddingWater, setIsAddingWater] = useState(false);
   const [medsModalOpen, setMedsModalOpen] = useState(false);
 
   const loadSnapshot = useCallback(async () => {
@@ -85,51 +83,6 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
       setLoading(false);
     }
   }, [userId]);
-
-  const calculateAmount = (unit: 'liters' | 'sachets' | 'bottles', qty: number): number => {
-    switch (unit) {
-      case 'sachets':
-        return qty * 0.5; // 50cl sachet = 0.5L
-      case 'bottles':
-        return qty * 1.0; // 1L bottle = 1.0L
-      default:
-        return qty;
-    }
-  };
-
-  const addWater = async () => {
-    setIsAddingWater(true);
-    try {
-      const today = getTodayKey();
-      const currentWater = snapshot?.waterAmount ?? 0;
-      const waterGoal = snapshot?.waterGoal ?? 3.0;
-      const amountToAdd = calculateAmount(selectedUnit, quantity);
-      const newTotal = Math.min(8, parseFloat((currentWater + amountToAdd).toFixed(2)));
-
-      const result = await firebaseService.saveWaterLog(
-        userId,
-        today,
-        newTotal,
-        waterGoal
-      );
-
-      setSnapshot((prev) => prev ? {
-        ...prev,
-        waterAmount: newTotal,
-        waterGoal,
-        hydrationState: result.state === 'recorded' ? 'recorded' : 'cached',
-      } : prev);
-
-      setQuantity(1);
-      setWaterModalOpen(false);
-      window.dispatchEvent(new CustomEvent('warrior-streak-updated'));
-      await loadSnapshot();
-    } catch (error) {
-      console.error('Could not add water:', error);
-    } finally {
-      setIsAddingWater(false);
-    }
-  };
 
   useEffect(() => {
     void loadSnapshot();
@@ -381,93 +334,18 @@ export const TodaysHealthCard: React.FC<TodaysHealthCardProps> = ({ userId, refr
         </div>
       </Card>
 
-      {/* Quick Add Water Modal */}
-      <Modal
+      <WaterQuickAddModal
         open={waterModalOpen}
         onOpenChange={setWaterModalOpen}
-        title="Add water intake"
-        description="Quickly add water by container type"
-        size="sm"
-        footer={
-          <div className="flex w-full items-center justify-between gap-2">
-            {onOpenHydration ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setWaterModalOpen(false);
-                  onOpenHydration();
-                }}
-              >
-                Full water tracker
-              </Button>
-            ) : <span />}
-            <Button
-              variant="primary"
-              onClick={addWater}
-              disabled={isAddingWater}
-              loading={isAddingWater}
-              loadingLabel="Adding…"
-            >
-              Add {(quantity * calculateAmount(selectedUnit, 1)).toFixed(1)}L
-            </Button>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {[
-              { value: 'sachets' as const, label: '50cl Sachet', description: 'Common Nigerian sachet water (0.5L each)', example: '3 sachets = 1.5L' },
-              { value: 'bottles' as const, label: '1L Bottle', description: 'Standard 1-liter bottle (1L each)', example: '2 bottles = 2L' },
-              { value: 'liters' as const, label: 'Liters', description: 'Enter amount in liters directly', example: '1.5L = 1.5L' },
-            ].map((unit) => (
-              <div key={unit.value} className="flex-1 min-w-[120px]">
-                <ChoiceChip
-                  selected={selectedUnit === unit.value}
-                  onSelectedChange={() => setSelectedUnit(unit.value)}
-                  disabled={isAddingWater}
-                  className="w-full justify-center text-sm"
-                >
-                  {unit.label}
-                </ChoiceChip>
-                <p className="text-caption text-foreground-secondary mt-1 text-center">{unit.description}</p>
-                <p className="text-caption text-action-accent mt-0.5 text-center font-medium">{unit.example}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="rounded-lg bg-surface border border-line p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-body font-medium text-foreground">How many did you drink?</span>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  disabled={isAddingWater || quantity <= 1}
-                  className="px-3 py-2"
-                >
-                  <Droplets size={16} />
-                </Button>
-                <span className="min-w-16 text-center text-heading-3 font-bold tabular-nums text-foreground">{quantity}</span>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setQuantity(quantity + 1)}
-                  disabled={isAddingWater || quantity >= 10}
-                  className="px-3 py-2"
-                >
-                  <Droplets size={16} />
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-center justify-between pt-2 border-t border-line">
-              <span className="text-small text-foreground-secondary">Total to add:</span>
-              <span className="text-heading-2 font-bold tabular-nums text-action-accent">{quantity} {selectedUnit === 'sachets' ? 'sachets' : selectedUnit === 'bottles' ? 'bottles' : 'L'} = {(quantity * calculateAmount(selectedUnit, 1)).toFixed(1)}L</span>
-            </div>
-          </div>
-        </div>
-      </Modal>
+        userId={userId}
+        amount={snapshot.waterAmount}
+        goal={snapshot.waterGoal}
+        onOpenHydration={onOpenHydration}
+        onSaved={(total, goal, state) => {
+          setSnapshot((prev) => (prev ? { ...prev, waterAmount: total, waterGoal: goal, hydrationState: state } : prev));
+          void loadSnapshot();
+        }}
+      />
 
       <MedicineCheckInModal
         open={medsModalOpen}

@@ -184,6 +184,13 @@ const App: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // Pages scroll inside the shell's <main>, not the window, so a new page must reset it
+  // or it opens at the previous page's scroll position.
+  useEffect(() => {
+    const main = document.querySelector('main');
+    if (main && typeof main.scrollTo === 'function') main.scrollTo({ top: 0 });
+  }, [currentPage]);
+
   const navigate = (to: Page) => {
     setCurrentPage(to);
     try {

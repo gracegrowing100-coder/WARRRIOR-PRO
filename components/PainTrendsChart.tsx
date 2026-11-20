@@ -134,9 +134,9 @@ export const PainTrendsChart: React.FC<PainTrendsChartProps> = ({ userId, refres
             <Calendar size={20} />
           </span>
           <div>
-            <h4 className="font-display text-[16px] sm:text-[18px] font-bold text-wa-plum dark:text-white leading-tight">
+            <h2 className="font-display text-[16px] sm:text-[18px] font-bold text-wa-plum dark:text-white leading-tight">
               30-Day Pain Trends
-            </h4>
+            </h2>
             <p className="text-[12px] text-wa-plum-muted dark:text-wa-on-plum-muted mt-0.5">
               Based on your recorded daily health entries
             </p>
@@ -157,19 +157,19 @@ export const PainTrendsChart: React.FC<PainTrendsChartProps> = ({ userId, refres
       {/* Summary KPI Pills */}
       <div className="grid grid-cols-3 gap-2.5">
         <div className="rounded-[18px] bg-wa-ground/60 dark:bg-white/5 p-3 text-center border border-wa-line-soft/60 dark:border-white/5">
-          <span className="block text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">Avg Pain</span>
+          <span className="block text-xs font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">Avg Pain</span>
           <span className="font-display text-lg sm:text-xl font-black text-wa-plum dark:text-white mt-0.5 block">
             {stats.averagePain ? `${stats.averagePain} / 10` : '—'}
           </span>
         </div>
         <div className="rounded-[18px] bg-wa-ground/60 dark:bg-white/5 p-3 text-center border border-wa-line-soft/60 dark:border-white/5">
-          <span className="block text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">Highest Pain</span>
+          <span className="block text-xs font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">Highest Pain</span>
           <span className="font-display text-lg sm:text-xl font-black text-wa-plum dark:text-white mt-0.5 block">
             {stats.maxPain !== null ? `${stats.maxPain} / 10` : '—'}
           </span>
         </div>
         <div className="rounded-[18px] bg-wa-ground/60 dark:bg-white/5 p-3 text-center border border-wa-line-soft/60 dark:border-white/5">
-          <span className="block text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">Days Logged</span>
+          <span className="block text-xs font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">Days Logged</span>
           <span className="font-display text-lg sm:text-xl font-black text-wa-plum dark:text-white mt-0.5 block">
             {stats.recordedDays}
           </span>
@@ -255,7 +255,7 @@ export const PainTrendsChart: React.FC<PainTrendsChartProps> = ({ userId, refres
         <div className="lg:col-span-5 flex flex-col justify-between">
           <form onSubmit={handleSubmitLog} className="space-y-3.5 flex-1 flex flex-col justify-between">
             <div className="space-y-2.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted block">
+              <span className="text-xs font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted block">
                 Record today&apos;s pain
               </span>
               
@@ -277,7 +277,7 @@ export const PainTrendsChart: React.FC<PainTrendsChartProps> = ({ userId, refres
               {/* Status Indicator detail card */}
               <div className={`p-3 rounded-[16px] border transition-all ${currentLabelState.color}`}>
                 <span className="font-bold text-xs block leading-tight">{currentLabelState.text}</span>
-                <p className="text-[11px] leading-snug mt-0.5 opacity-90">{currentLabelState.desc}</p>
+                <p className="text-xs leading-snug mt-0.5 opacity-90">{currentLabelState.desc}</p>
               </div>
             </div>
 
@@ -285,7 +285,7 @@ export const PainTrendsChart: React.FC<PainTrendsChartProps> = ({ userId, refres
               <button 
                 type="submit" 
                 disabled={submitting}
-                className="w-full min-h-11 rounded-full bg-wa-crimson hover:bg-wa-crimson-press text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                className="w-full min-h-11 rounded-full bg-wa-crimson hover:bg-wa-crimson-press text-white font-bold text-sm shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
               >
                 <Plus size={16} />
                 <span>{submitting ? 'Recording…' : 'Record pain level'}</span>

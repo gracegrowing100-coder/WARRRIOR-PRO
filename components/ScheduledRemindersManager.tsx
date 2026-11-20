@@ -284,7 +284,7 @@ export const ScheduledRemindersManager: React.FC<ScheduledRemindersManagerProps>
             data-ui-control
             onClick={() => triggerTestAlert()}
             title="Test alert chime and popup"
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-wa-ground dark:bg-white/10 px-3.5 text-xs font-bold text-wa-plum dark:text-white hover:bg-wa-line-soft dark:hover:bg-white/20 transition-all"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-wa-ground dark:bg-white/10 px-4 text-[13px] font-bold text-wa-plum dark:text-white hover:bg-wa-line-soft dark:hover:bg-white/20 transition-all"
           >
             <Volume2 size={14} className="text-wa-crimson" />
             <span>Test alert</span>
@@ -295,7 +295,7 @@ export const ScheduledRemindersManager: React.FC<ScheduledRemindersManagerProps>
             data-ui-control
             onClick={() => setShowAddModal(true)}
             aria-label="Add reminder"
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-wa-crimson px-3.5 text-xs font-bold text-white hover:bg-wa-crimson-press transition-all"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-wa-crimson px-4 text-[13px] font-bold text-white hover:bg-wa-crimson-press transition-all"
           >
             <Plus size={15} />
             <span>New</span>
@@ -310,7 +310,7 @@ export const ScheduledRemindersManager: React.FC<ScheduledRemindersManagerProps>
           <button
             type="button"
             onClick={requestPermission}
-            className="font-bold text-wa-crimson hover:underline ml-2"
+            className="ml-2 inline-flex min-h-11 items-center font-bold text-wa-crimson hover:underline"
           >
             Enable browser popups
           </button>
@@ -327,33 +327,28 @@ export const ScheduledRemindersManager: React.FC<ScheduledRemindersManagerProps>
           {reminders.map((rem) => (
             <div
               key={rem.id}
-              className={`p-3.5 rounded-[20px] border transition-all flex items-center justify-between gap-3 ${
+              className={`flex items-start gap-3 rounded-[20px] border p-3.5 transition-all ${
                 rem.enabled
                   ? 'bg-wa-ground/60 dark:bg-white/5 border-wa-line-soft/80 dark:border-white/5'
-                  : 'bg-wa-ground/30 dark:bg-white/[0.02] border-wa-line-soft/40 dark:border-white/[0.02] opacity-60'
+                  : 'bg-wa-ground/30 dark:bg-white/[0.02] border-wa-line-soft/40 dark:border-white/[0.02]'
               }`}
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="p-2 rounded-[12px] bg-wa-surface dark:bg-white/10 border border-wa-line-soft/80 dark:border-white/10 shrink-0">
-                  {getTypeIcon(rem.type)}
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h5 className="font-bold text-[13px] text-wa-plum dark:text-white truncate">
-                      {rem.title}
-                    </h5>
-                    <span className="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-wa-line-soft dark:bg-white/10 text-wa-plum dark:text-white shrink-0">
-                      {rem.time}
-                    </span>
-                  </div>
-                  <p className="text-[12px] text-wa-plum-muted dark:text-wa-on-plum-muted truncate mt-0.5">
-                    {rem.details}
-                  </p>
-                </div>
+              <div className="mt-0.5 shrink-0 rounded-[12px] border border-wa-line-soft/80 bg-wa-surface p-2 dark:border-white/10 dark:bg-white/10">
+                {getTypeIcon(rem.type)}
+              </div>
+              {/* Name and description wrap instead of truncating; controls sit on the right. */}
+              <div className={`min-w-0 flex-1 ${rem.enabled ? '' : 'opacity-60'}`}>
+                <p className="font-display text-[15px] font-extrabold tabular-nums text-wa-plum dark:text-white">{rem.time}</p>
+                <h3 className="text-[13px] font-bold leading-snug text-wa-plum dark:text-white">
+                  {rem.title}
+                </h3>
+                <p className="mt-0.5 text-xs leading-snug text-wa-plum-muted dark:text-wa-on-plum-muted">
+                  {rem.details}
+                </p>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                {/* Toggle switch */}
+              <div className="flex shrink-0 flex-col items-center">
+                {/* Toggle switch: 44px hit area around a standard-size track */}
                 <button
                   type="button"
                   data-ui-control
@@ -361,26 +356,25 @@ export const ScheduledRemindersManager: React.FC<ScheduledRemindersManagerProps>
                   aria-checked={rem.enabled}
                   aria-label={`Toggle ${rem.title}`}
                   onClick={() => toggleReminder(rem.id)}
-                  className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                    rem.enabled ? 'bg-wa-crimson' : 'bg-wa-line-soft dark:bg-white/20'
-                  }`}
+                  className="flex h-11 w-14 cursor-pointer items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
                 >
-                  <span
-                    className={`block w-4 h-4 rounded-full bg-white transition-transform transform absolute top-1 ${
-                      rem.enabled ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
+                  <span className={`relative block h-6 w-11 rounded-full transition-colors ${rem.enabled ? 'bg-wa-crimson' : 'bg-wa-line dark:bg-white/20'}`}>
+                    <span
+                      className={`absolute top-1 block h-4 w-4 rounded-full bg-white transition-transform ${
+                        rem.enabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </span>
                 </button>
 
-                {/* Delete button */}
                 <button
                   type="button"
                   data-ui-control
                   onClick={() => deleteReminder(rem.id)}
                   aria-label={`Delete ${rem.title}`}
-                  className="p-1.5 text-wa-plum-muted hover:text-wa-crimson rounded-lg transition-all"
+                  className="flex h-11 w-11 items-center justify-center rounded-full text-wa-plum-muted transition-colors hover:bg-wa-rose/40 hover:text-wa-crimson focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
                 >
-                  <Trash2 size={15} />
+                  <Trash2 size={16} aria-hidden="true" />
                 </button>
               </div>
             </div>

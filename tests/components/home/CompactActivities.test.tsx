@@ -37,7 +37,7 @@ describe('Compact Home activities preserve their workflows', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Edit'}));
     await userEvent.click(screen.getByRole('button', {name: 'Calm & Restful'}));
     expect(service.saveDailyMoodCheckIn).toHaveBeenCalledTimes(1);
-    await userEvent.click(screen.getByRole('button', {name: 'Save (Calm & Restful)'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save check-in'}));
     expect(service.saveDailyMoodCheckIn).toHaveBeenLastCalledWith('test-patient', expect.any(String), expect.objectContaining({emotion: 'Calm & Restful', score: 7.5}));
   });
 

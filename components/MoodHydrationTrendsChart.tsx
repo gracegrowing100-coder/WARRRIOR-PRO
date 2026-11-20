@@ -109,7 +109,7 @@ export const MoodHydrationTrendsChart: React.FC<MoodHydrationTrendsProps> = ({ u
             </span>
           </div>
           {dayData?.moodLabel && (
-            <p className="text-[11px] text-white/70 italic pt-1 border-t border-white/10">
+            <p className="text-xs text-white/70 italic pt-1 border-t border-white/10">
               {dayData.moodLabel}
             </p>
           )}
@@ -128,9 +128,9 @@ export const MoodHydrationTrendsChart: React.FC<MoodHydrationTrendsProps> = ({ u
             <TrendingUp size={20} />
           </span>
           <div>
-            <h4 className="font-display text-[16px] sm:text-[18px] font-bold text-wa-plum dark:text-white leading-tight">
+            <h2 className="font-display text-[16px] sm:text-[18px] font-bold text-wa-plum dark:text-white leading-tight">
               7-Day Mood & Hydration Trends
-            </h4>
+            </h2>
             <p className="text-[12px] text-wa-plum-muted dark:text-wa-on-plum-muted mt-0.5">
               Daily fluid intake and wellness check-in patterns
             </p>
@@ -141,7 +141,7 @@ export const MoodHydrationTrendsChart: React.FC<MoodHydrationTrendsProps> = ({ u
           type="button"
           onClick={fetchData}
           disabled={loading}
-          className="self-start sm:self-center inline-flex items-center gap-1.5 px-3 py-1.5 bg-wa-ground dark:bg-white/10 hover:bg-wa-line-soft dark:hover:bg-white/20 text-wa-plum dark:text-white rounded-full text-xs font-bold transition-all"
+          className="self-start sm:self-center inline-flex min-h-11 items-center gap-1.5 px-4 bg-wa-ground dark:bg-white/10 hover:bg-wa-line-soft dark:hover:bg-white/20 text-wa-plum dark:text-white rounded-full text-xs font-bold transition-all"
         >
           <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
           <span>Refresh</span>
@@ -151,21 +151,21 @@ export const MoodHydrationTrendsChart: React.FC<MoodHydrationTrendsProps> = ({ u
       {/* KPI Overview Pills */}
       <div className="grid grid-cols-3 gap-2.5">
         <div className="rounded-[18px] bg-wa-ground/60 dark:bg-white/5 p-3 text-center border border-wa-line-soft/60 dark:border-white/5">
-          <span className="block text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">Hydration Days</span>
+          <span className="block text-xs font-bold uppercase tracking-wide text-wa-plum-muted dark:text-wa-on-plum-muted">Hydration Days</span>
           <span className="font-display text-lg sm:text-xl font-black text-wa-plum dark:text-white mt-0.5 block">
-            {stats.waterDaysCount} / 7
+            {loading ? "…" : `${stats.waterDaysCount} / 7`}
           </span>
         </div>
         <div className="rounded-[18px] bg-wa-ground/60 dark:bg-white/5 p-3 text-center border border-wa-line-soft/60 dark:border-white/5">
-          <span className="block text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">Avg Fluid</span>
+          <span className="block text-xs font-bold uppercase tracking-wide text-wa-plum-muted dark:text-wa-on-plum-muted">Avg Fluid</span>
           <span className="font-display text-lg sm:text-xl font-black text-wa-plum dark:text-white mt-0.5 block">
-            {stats.avgWater ? `${stats.avgWater} L` : '—'}
+            {loading ? "…" : stats.avgWater ? `${stats.avgWater} L` : "—"}
           </span>
         </div>
         <div className="rounded-[18px] bg-wa-ground/60 dark:bg-white/5 p-3 text-center border border-wa-line-soft/60 dark:border-white/5">
-          <span className="block text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted dark:text-wa-on-plum-muted">Check-ins</span>
+          <span className="block text-xs font-bold uppercase tracking-wide text-wa-plum-muted dark:text-wa-on-plum-muted">Check-ins</span>
           <span className="font-display text-lg sm:text-xl font-black text-wa-plum dark:text-white mt-0.5 block">
-            {stats.moodDaysCount} / 7
+            {loading ? "…" : `${stats.moodDaysCount} / 7`}
           </span>
         </div>
       </div>

@@ -53,9 +53,8 @@ describe('SymptomPainCheckIn', () => {
     expect(slider).toHaveAttribute('aria-valuetext', '0 out of 10');
 
     await user.click(screen.getByRole('button', { name: 'Fatigue' }));
-    await user.click(screen.getByText('Optional details'));
+    await user.click(screen.getByText('Possible triggers'));
     await user.click(screen.getByRole('button', { name: 'Stress' }));
-    await user.click(screen.getByRole('button', { name: /Increase today['’]s hydration total by 250/i }));
     await user.click(screen.getByRole('button', { name: 'Save health entry' }));
 
     await waitFor(() => {
@@ -64,7 +63,7 @@ describe('SymptomPainCheckIn', () => {
         0,
         ['Fatigue'],
         ['Stress'],
-        2,
+        1.75,
         today(),
       );
     });
@@ -77,8 +76,6 @@ describe('SymptomPainCheckIn', () => {
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save health entry' })).toBeEnabled());
     fireEvent.change(screen.getByRole('slider', { name: 'Pain score' }), { target: { value: '10' } });
-    await user.click(screen.getByText('Optional details'));
-    expect(screen.getAllByText('1.75 L').length).toBeGreaterThan(0);
     await user.click(screen.getByRole('button', { name: 'Save health entry' }));
 
     await waitFor(() => {
@@ -146,12 +143,43 @@ describe('SymptomPainCheckIn', () => {
     expect(trigger).toHaveFocus();
   });
 
-  it('keeps optional fields secondary and introduces no body-location or note field', async () => {
+  it('keeps triggers secondary and introduces no free-text note field', async () => {
     renderOpenWorkflow();
 
-    expect(screen.getByText('Optional details').closest('details')).not.toHaveAttribute('open');
+    expect(screen.getByText('Possible triggers').closest('details')).not.toHaveAttribute('open');
     expect(screen.getByRole('button', { name: 'Fatigue' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.queryByRole('textbox', { name: /note|body location/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/body location/i)).not.toBeInTheDocument();
+  });
+
+  it('adjusts the score with the buttons, names the band, and offers help at severe pain', async () => {
+    const user = userEvent.setup();
+    const onPainChange = vi.fn();
+    renderOpenWorkflow({ onPainChange });
+
+    expect(screen.getByText('Mild')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Get help now' })).not.toBeInTheDocument();
+    for (let i = 0; i < 4; i += 1) {
+      await user.click(screen.getByRole('button', { name: 'Raise pain score by 1' }));
+    }
+    expect(screen.getByRole('slider', { name: 'Pain score' })).toHaveValue('7');
+    expect(onPainChange).toHaveBeenLastCalledWith(7);
+    expect(screen.getByText('Severe')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Get help now' })).toBeInTheDocument();
+  });
+
+  it('saves a body area and a custom symptom added by the patient', async () => {
+    const user = userEvent.setup();
+    renderOpenWorkflow();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save health entry' })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    await user.type(screen.getByLabelText('Something else?'), 'Headache{Enter}');
+    expect(screen.getByRole('button', { name: 'Remove Headache' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save health entry' }));
+
+    await waitFor(() => {
+      expect(service.addSymptomLog).toHaveBeenCalledWith('patient-1', 3, ['Pain site: Back', 'Headache'], [], 1.75, today());
+    });
   });
 });

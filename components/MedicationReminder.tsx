@@ -322,7 +322,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
           </div>
           <div>
             <h4 className="font-black text-gray-800 dark:text-white text-sm uppercase tracking-wider">Medication Reminder & Alarm</h4>
-            <p className="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-0.5">Hydroxyurea & Daily Schedule</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-0.5">Hydroxyurea & Daily Schedule</p>
           </div>
         </div>
 
@@ -331,13 +331,13 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
             <button
               type="button"
               onClick={requestNotificationPermission}
-              className="flex items-center gap-1 px-2 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 rounded-xl text-[10px] font-black uppercase tracking-wider border border-amber-200 dark:border-amber-800/50 hover:bg-amber-100 transition-all cursor-pointer"
+              className="flex items-center gap-1 px-2 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 rounded-xl text-xs font-black uppercase tracking-wider border border-amber-200 dark:border-amber-800/50 hover:bg-amber-100 transition-all cursor-pointer"
               title="Enable push alerts"
             >
               <BellOff className="w-3 h-3 text-amber-500" /> Alerts
             </button>
           ) : (
-            <span className="flex items-center gap-1 px-2 py-1 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-[10px] font-black uppercase tracking-wider border border-emerald-200 dark:border-emerald-800/50">
+            <span className="flex items-center gap-1 px-2 py-1 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-black uppercase tracking-wider border border-emerald-200 dark:border-emerald-800/50">
               <BellRing className="w-3 h-3 text-emerald-500" /> Active
             </span>
           )}
@@ -345,7 +345,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
           <button
             type="button"
             onClick={triggerTestAlarm}
-            className="flex items-center gap-1 px-2.5 py-1 bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 rounded-xl text-[10px] font-black uppercase tracking-wider border border-rose-300 dark:border-rose-800/60 hover:bg-rose-200 transition-all cursor-pointer shadow-sm"
+            className="flex items-center gap-1 px-2.5 py-1 bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-black uppercase tracking-wider border border-rose-300 dark:border-rose-800/60 hover:bg-rose-200 transition-all cursor-pointer shadow-sm"
             title="Test high-decibel alarm tone"
           >
             <Volume2 className="w-3 h-3 text-rose-600 animate-pulse" /> Test Alarm
@@ -393,9 +393,9 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
                   <div className="min-w-0">
                     <span className={`font-bold text-sm block truncate ${isTaken ? 'line-through text-wa-plum-muted' : 'text-wa-plum'}`}>{med.name}</span>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[10px] text-gray-400 dark:text-slate-450 font-bold uppercase">{med.dosage}</span>
-                      <span className="text-[10px] text-gray-300 dark:text-slate-600">•</span>
-                      <span className="text-[10px] text-gray-400 dark:text-slate-450 font-bold flex items-center gap-0.5 uppercase">
+                      <span className="text-xs text-gray-400 dark:text-slate-450 font-bold uppercase">{med.dosage}</span>
+                      <span className="text-xs text-gray-300 dark:text-slate-600">•</span>
+                      <span className="text-xs text-gray-400 dark:text-slate-450 font-bold flex items-center gap-0.5 uppercase">
                         <Clock className="w-3 h-3 text-red-500" /> {med.time}
                       </span>
                     </div>
@@ -492,7 +492,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
 
           <form onSubmit={handleCreateMed} className="space-y-4">
             <div>
-              <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Medication Name</label>
+              <label className="text-xs font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Medication Name</label>
               <input
                 type="text"
                 required
@@ -505,7 +505,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Dosage</label>
+                <label className="text-xs font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Dosage</label>
                 <input
                   type="text"
                   required
@@ -516,7 +516,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
                 />
               </div>
               <div>
-                <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Reminder Time</label>
+                <label className="text-xs font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Reminder Time</label>
                 <input
                   type="time"
                   required
@@ -528,7 +528,7 @@ export const MedicationReminder: React.FC<MedicationProps> = ({ userId, compact 
             </div>
 
             <div>
-              <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Frequency</label>
+              <label className="text-xs font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Frequency</label>
               <input
                 type="text"
                 required

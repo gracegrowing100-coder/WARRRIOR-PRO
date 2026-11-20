@@ -144,18 +144,21 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
           </div>
         </div>
 
-        <button
-          type="button"
-          data-ui-control
-          onClick={() => {
-            setFormData(caregiver);
-            setIsEditing(true);
-          }}
-          className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-wa-line bg-wa-ground px-3.5 text-xs font-bold text-wa-plum transition-colors hover:border-wa-crimson/40 hover:bg-wa-rose/40 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
-        >
-          <Edit3 size={14} aria-hidden="true" />
-          {hasCaregiver ? 'Edit Info' : 'Add Info'}
-        </button>
+        {/* With no caregiver yet, the empty state's "Add trusted caregiver" is the one way in. */}
+        {hasCaregiver ? (
+          <button
+            type="button"
+            data-ui-control
+            onClick={() => {
+              setFormData(caregiver);
+              setIsEditing(true);
+            }}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-wa-line bg-wa-ground px-4 text-[13px] font-bold text-wa-plum transition-colors hover:border-wa-crimson/40 hover:bg-wa-rose/40 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
+          >
+            <Edit3 size={14} aria-hidden="true" />
+            Edit Info
+          </button>
+        ) : null}
       </div>
 
       {savedSuccess && (
@@ -174,7 +177,7 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
           <div className="space-y-3 rounded-[22px] border border-wa-line-soft bg-wa-ground/70 p-4 dark:bg-white/5">
             <div className="flex flex-col justify-between gap-3 border-b border-wa-line-soft pb-3 sm:flex-row sm:items-center">
               <div className="min-w-0">
-                <span className="inline-flex items-center rounded-full bg-wa-rose px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-wa-crimson">
+                <span className="inline-flex items-center rounded-full bg-wa-rose px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-wa-crimson">
                   Primary Contact
                 </span>
                 <h3 className="mt-1.5 flex items-center gap-2 font-display text-lg font-extrabold text-wa-plum">
@@ -187,7 +190,7 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
               </div>
 
               <div className="text-left sm:text-right">
-                <span className="block text-[11px] font-bold uppercase tracking-wider text-wa-plum-muted">
+                <span className="block text-xs font-bold uppercase tracking-wider text-wa-plum-muted">
                   Phone Number
                 </span>
                 <a
@@ -246,7 +249,7 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
             >
               <Phone size={20} className="mb-1" aria-hidden="true" />
               <span className="text-xs font-bold">Call Now</span>
-              <span className="text-[10px] text-white/85">Direct dial</span>
+              <span className="text-xs text-white/85">Direct dial</span>
             </a>
 
             <a
@@ -255,7 +258,7 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
             >
               <MessageSquare size={20} className="mb-1" aria-hidden="true" />
               <span className="text-xs font-bold">SMS Alert</span>
-              <span className="text-[10px] text-white/85">Quick message</span>
+              <span className="text-xs text-white/85">Quick message</span>
             </a>
 
             <a
@@ -266,7 +269,7 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
             >
               <ExternalLink size={20} className="mb-1" aria-hidden="true" />
               <span className="text-xs font-bold">WhatsApp</span>
-              <span className="text-[10px] text-white/85">Instant chat</span>
+              <span className="text-xs text-white/85">Instant chat</span>
             </a>
 
             <button
@@ -277,7 +280,7 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
             >
               <AlertTriangle size={20} className="mb-1" aria-hidden="true" />
               <span className="text-xs font-bold">Emergency Alert</span>
-              <span className="text-[10px] text-white/85">Send crisis alert</span>
+              <span className="text-xs text-white/85">Send crisis alert</span>
             </button>
           </div>
 
@@ -306,21 +309,21 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
             <div className="mt-3 rounded-[22px] border border-wa-line bg-wa-ground/80 p-4 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
                     Trusted Companion Health Linking &bull; Live Snapshot
                   </span>
                   <h4 className="mt-1 font-display text-sm font-bold text-wa-plum">
                     What {caregiver.name} receives during check-ins &amp; SOS
                   </h4>
                 </div>
-                <span className="text-[11px] font-mono text-wa-plum-muted">
+                <span className="text-xs font-mono text-wa-plum-muted">
                   Synced on device
                 </span>
               </div>
 
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                 <div className="rounded-2xl border border-wa-line-soft bg-wa-surface p-3">
-                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-wa-plum-muted">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-wa-plum-muted">
                     <Activity size={13} className="text-wa-crimson" />
                     <span>Pain Signal</span>
                   </div>
@@ -329,7 +332,7 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
                   </p>
                 </div>
                 <div className="rounded-2xl border border-wa-line-soft bg-wa-surface p-3">
-                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-wa-plum-muted">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-wa-plum-muted">
                     <Droplets size={13} className="text-wa-water" />
                     <span>Hydration Today</span>
                   </div>
@@ -338,7 +341,7 @@ export const DesignatedCaregiverWidget: React.FC<DesignatedCaregiverWidgetProps>
                   </p>
                 </div>
                 <div className="rounded-2xl border border-wa-line-soft bg-wa-surface p-3">
-                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-wa-plum-muted">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-wa-plum-muted">
                     <Pill size={13} className="text-emerald-600" />
                     <span>Daily Meds</span>
                   </div>

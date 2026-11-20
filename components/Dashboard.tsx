@@ -148,18 +148,22 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
     void fetchProfileAndStats(true);
   };
 
+  // The app scrolls inside the shell's <main>, so reset that as well as the window.
+  const scrollToTop = () => {
+    if (typeof window === 'undefined') return;
+    const main = document.querySelector('main');
+    if (main && typeof main.scrollTo === 'function') main.scrollTo({ top: 0, behavior: 'auto' });
+    if (typeof window.scrollTo === 'function') window.scrollTo({ top: 0, behavior: 'auto' });
+  };
+
   const openTool = (tool: Exclude<HomeToolView, null>) => {
     setActiveTool(tool);
-    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
-      window.scrollTo({ top: 0, behavior: 'auto' });
-    }
+    scrollToTop();
   };
 
   const closeTool = () => {
     setActiveTool(null);
-    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
-      window.scrollTo({ top: 0, behavior: 'auto' });
-    }
+    scrollToTop();
   };
 
   const firstName = profileName.trim().split(/\s+/)[0] || 'Warrior';
@@ -247,23 +251,23 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
 
     return (
       <div data-semantic className="space-y-5 pb-8">
-        <div className="sticky top-0 z-20 -mx-4 border-b border-wa-line bg-wa-ground/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-          <div className="flex items-center justify-between gap-3">
-            <button
-              type="button"
-              data-ui-control
-              onClick={closeTool}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-wa-line bg-wa-surface px-4 text-sm font-bold text-wa-plum shadow-xs transition-colors hover:bg-wa-rose/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
-            >
-              <ArrowLeft size={18} aria-hidden="true" />
-              Back to Home
-            </button>
-            <SosPill onClick={() => document.getElementById('emergency-fab')?.click()} />
-          </div>
-          <div className="mt-3">
-            <h1 className="font-display text-xl font-extrabold text-wa-plum sm:text-2xl">{meta.title}</h1>
-            <p className="text-xs text-wa-plum-muted sm:text-sm">{meta.subtitle}</p>
-          </div>
+        {/* Only the Back row sticks, and it sits below the sticky app header (min-h 4.25rem / lg 5rem)
+            instead of sliding underneath it. */}
+        <div className="sticky top-[4.25rem] z-30 -mx-4 -mt-4 flex items-center justify-between gap-3 border-b border-wa-line bg-wa-ground/95 px-4 py-2.5 backdrop-blur sm:-mx-6 sm:-mt-6 sm:px-6 lg:top-20 lg:-mx-8 lg:-mt-8 lg:px-8">
+          <button
+            type="button"
+            data-ui-control
+            onClick={closeTool}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-wa-line bg-wa-surface px-4 text-sm font-bold text-wa-plum shadow-xs transition-colors hover:bg-wa-rose/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wa-crimson"
+          >
+            <ArrowLeft size={18} aria-hidden="true" />
+            Back to Home
+          </button>
+          <SosPill onClick={() => document.getElementById('emergency-fab')?.click()} />
+        </div>
+        <div>
+          <h1 className="font-display text-xl font-extrabold text-wa-plum sm:text-2xl">{meta.title}</h1>
+          <p className="mt-0.5 text-[13px] text-wa-plum-muted sm:text-sm">{meta.subtitle}</p>
         </div>
 
         {activeTool === 'hydration' && (
