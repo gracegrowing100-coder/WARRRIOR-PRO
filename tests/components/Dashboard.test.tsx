@@ -18,7 +18,6 @@ vi.mock('../../services/firebaseService', () => ({ firebaseService: service }));
 vi.mock('../../components/WaterIntakeTracker', () => ({ WaterIntakeTracker: ({ userId }: { userId: string }) => `Hydration for ${userId}` }));
 vi.mock('../../components/MedicationReminder', () => ({ MedicationReminder: ({ userId }: { userId: string }) => `Medication for ${userId}` }));
 vi.mock('../../components/PainTrendsChart', () => ({ PainTrendsChart: ({ userId }: { userId: string }) => `Pain trends for ${userId}` }));
-vi.mock('../../components/CareVault', () => ({ CareVault: ({ userId }: { userId: string }) => `Care Vault for ${userId}` }));
 vi.mock('../../components/DesignatedCaregiverWidget', () => ({ DesignatedCaregiverWidget: () => <div>Caregiver widget</div> }));
 vi.mock('../../components/HealthTipsWisdom', () => ({ HealthTipsWisdom: () => <div>Health guidance</div> }));
 vi.mock('../../components/DailyMoodCheckIn', () => ({ DailyMoodCheckIn: ({ userId }: { userId: string }) => `Daily mood for ${userId}` }));
@@ -54,7 +53,8 @@ describe('Patient Home critical rendering', () => {
 
   it('renders the compact Home Hub and opens full-page tools with Back to Home navigation', async () => {
     const user = userEvent.setup();
-    const { container } = render(<Dashboard userId="patient-1" onNavigate={vi.fn()} />);
+    const onNavigate = vi.fn();
+    const { container } = render(<Dashboard userId="patient-1" onNavigate={onNavigate} />);
 
     expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening), Tayo/ })).toBeInTheDocument();
     expect(screen.getByTestId('todays-health')).toBeInTheDocument();
@@ -62,7 +62,6 @@ describe('Patient Home critical rendering', () => {
     expect(screen.getByRole('heading', { name: 'Need urgent help?' })).toBeInTheDocument();
 
     // Heavy tools stay unmounted on Home until tapped
-    expect(document.body).not.toHaveTextContent('Care Vault for patient-1');
     expect(document.body).not.toHaveTextContent('Pattern report for patient-1');
     expect(document.body).not.toHaveTextContent('Pain trends for patient-1');
 
@@ -79,11 +78,9 @@ describe('Patient Home critical rendering', () => {
     expect(document.body).toHaveTextContent('Pain trends for patient-1');
     await user.click(screen.getByRole('button', { name: /Back to Home/i }));
 
-    // Open Care Vault full page and return Home
-    await user.click(screen.getByRole('button', { name: /Care Vault/i }));
-    expect(container.querySelector('#care-vault-section')).toBeInTheDocument();
-    expect(document.body).toHaveTextContent('Care Vault for patient-1');
-    await user.click(screen.getByRole('button', { name: /Back to Home/i }));
+    // Medical records live in one place: the tile opens Care > Medical records
+    await user.click(screen.getByRole('button', { name: /Medical records/i }));
+    expect(onNavigate).toHaveBeenCalledWith('care', 'records');
 
     // Open Doctor Report full page
     await user.click(screen.getByRole('button', { name: /Doctor Report/i }));

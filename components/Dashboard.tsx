@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Bell, Calendar, CloudSun, FileText, LifeBuoy, Shield, ShieldCheck, Smile, TrendingUp, UserCheck, Volume2, VolumeX } from 'lucide-react';
 import { Page } from '../App';
+import type { CareView } from './care';
 import { WaterIntakeTracker } from './WaterIntakeTracker';
 import { MedicationReminder } from './MedicationReminder';
 import { PainTrendsChart } from './PainTrendsChart';
-import { CareVault } from './CareVault';
 import { DesignatedCaregiverWidget } from './DesignatedCaregiverWidget';
 import { DailyMoodCheckIn } from './DailyMoodCheckIn';
 import { MoodHydrationTrendsChart } from './MoodHydrationTrendsChart';
@@ -21,7 +21,7 @@ import { auth } from '../firebase-init';
 import { APP_TRANSLATIONS, SupportedLanguage } from '../services/offlineKnowledgeBase';
 
 interface DashboardProps {
-  onNavigate: (to: Page) => void;
+  onNavigate: (to: Page, careView?: CareView) => void;
   userId: string;
   language?: SupportedLanguage;
 }
@@ -35,7 +35,6 @@ type HomeToolView =
   | 'reports'
   | 'reminders'
   | 'caregiver'
-  | 'vault'
   | 'weather';
 
 interface ToolMeta {
@@ -71,10 +70,6 @@ const TOOL_META: Record<Exclude<HomeToolView, null>, ToolMeta> = {
   caregiver: {
     title: 'Caregiver & Alerts',
     subtitle: 'Manage emergency alerts for family or trusted contacts',
-  },
-  vault: {
-    title: 'Care Vault',
-    subtitle: 'Store genotype, steady-state PCV, E/U/Cr & clinic notes',
   },
   weather: {
     title: 'Weather & Recent Logs',
@@ -205,11 +200,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
     },
     {
       id: 'vault',
-      title: 'Care Vault',
+      title: 'Medical records',
       description: 'PCV, E/U/Cr & labs',
       icon: <Shield size={22} />,
       accentClass: 'bg-wa-sun-soft text-wa-sun-ink dark:text-amber-300',
-      onClick: () => openTool('vault'),
+      onClick: () => onNavigate('care', 'records'),
     },
     {
       id: 'reminders',
@@ -317,11 +312,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userId, language = 'e
           </section>
         )}
 
-        {activeTool === 'vault' && (
-          <section id="care-vault-section" aria-label="Care Vault">
-            <CareVault userId={userId} />
-          </section>
-        )}
 
         {activeTool === 'weather' && (
           <div className="space-y-5">

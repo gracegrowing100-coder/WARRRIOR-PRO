@@ -22,7 +22,7 @@ import { EmergencyButton } from './components/EmergencyButton';
 import { AuthFlow } from './components/AuthFlow';
 import { OfflineWarriorAI } from './components/OfflineWarriorAI';
 import { SyntheticDemo } from './components/SyntheticDemo';
-import { CareHub } from './components/care';
+import { CareHub, type CareView } from './components/care';
 import { SosPill } from './components/ui';
 import { AnimatedSplash } from './components/brand';
 import {
@@ -47,6 +47,8 @@ const pageFromHash = (): Page => {
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>(pageFromHash);
+  // One-shot section for the Care page when another page links into it.
+  const [careView, setCareView] = useState<CareView | undefined>(undefined);
   const [user, setUser] = useState<typeof auth.currentUser>(null);
   const [authResolved, setAuthResolved] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
@@ -191,7 +193,8 @@ const App: React.FC = () => {
     if (main && typeof main.scrollTo === 'function') main.scrollTo({ top: 0 });
   }, [currentPage]);
 
-  const navigate = (to: Page) => {
+  const navigate = (to: Page, careView?: CareView) => {
+    setCareView(to === 'care' ? careView : undefined);
     setCurrentPage(to);
     try {
       window.location.hash = `/${to}`;
@@ -246,7 +249,7 @@ const App: React.FC = () => {
           }}
         />
       );
-      case 'care': return <CareHub userId={user?.uid || ''} onOpenAppointments={() => navigate('telemedicine')} />;
+      case 'care': return <CareHub key={careView ?? 'overview'} userId={user?.uid || ''} initialView={careView} onOpenAppointments={() => navigate('telemedicine')} />;
       case 'telemedicine': return (
         <Telemedicine
           userId={user?.uid || ''}

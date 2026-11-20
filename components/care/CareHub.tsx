@@ -7,7 +7,7 @@ import { PageHeader } from '../layout';
 import { Button, SosPill } from '../ui';
 import { firebaseService } from '../../services/firebaseService';
 
-type CareView = 'overview' | 'history' | 'records' | 'directory';
+export type CareView = 'overview' | 'history' | 'records' | 'directory';
 
 interface ScdDirectoryFacility {
   id: string;
@@ -75,10 +75,12 @@ const SCD_CARE_DIRECTORY: ScdDirectoryFacility[] = [
 export interface CareHubProps {
   userId: string;
   onOpenAppointments: () => void;
+  /** Section to open first, e.g. 'records' when Home's Medical records tile links here. */
+  initialView?: CareView;
 }
 
-export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments }) => {
-  const [view, setView] = useState<CareView>('overview');
+export const CareHub: React.FC<CareHubProps> = ({ userId, onOpenAppointments, initialView = 'overview' }) => {
+  const [view, setView] = useState<CareView>(initialView);
   const [stats, setStats] = useState<{ count: number; avgPain: string | null }>({ count: 0, avgPain: null });
   const [copied, setCopied] = useState(false);
 
