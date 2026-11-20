@@ -37,3 +37,6 @@ artifacts/
 *.txt
 
 .firebase
+
+# Local Netlify folder
+.netlify

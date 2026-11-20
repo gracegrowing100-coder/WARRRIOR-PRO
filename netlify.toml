@@ -11,8 +11,10 @@
 
 [functions]
   node_bundler = "esbuild"
-  # Keep the heavy server SDKs as real node_modules instead of bundling them.
-  external_node_modules = ["firebase-admin", "@google/genai"]
+  # firebase-admin is bundled on purpose: its jwks-rsa -> jose chain is ESM-only, and
+  # left as node_modules it crashes the function with "require() of ES Module".
+  # Bundling converts it to CommonJS. Only firebase-admin/app and /auth are used.
+  external_node_modules = ["@google/genai"]
 
 # API first, then the single-page-app fallback. Order matters.
 [[redirects]]

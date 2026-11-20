@@ -17,7 +17,8 @@ const openRecords = async (user: ReturnType<typeof userEvent.setup>) => {
 const expand = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
   await user.click(screen.getByRole('heading', { level: 2, name }));
 };
-describe('Patient-maintained Medical Records', () => {
+// Typing-heavy form tests; give them room on slower machines.
+describe('Patient-maintained Medical Records', { timeout: 15000 }, () => {
   beforeEach(() => {
     service.getCareVaultResult.mockReset().mockResolvedValue({ state: 'empty', data: {} });
     service.saveCareVault.mockReset().mockResolvedValue({ state: 'recorded' });

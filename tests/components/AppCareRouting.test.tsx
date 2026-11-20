@@ -93,7 +93,8 @@ describe('Care hash entry and browser history', () => {
     window.history.replaceState(null, '', hash);
     render(<App />);
     act(() => authHarness.callback?.({ uid: 'patient-1' }));
-    expect(await screen.findByText(title)).toBeInTheDocument();
+    // Pages other than Home are lazily loaded, so the first open can take a moment.
+    expect(await screen.findByText(title, undefined, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.queryByText('Patient Home for patient-1')).not.toBeInTheDocument();
     expect(window.location.hash).toBe(hash);
   });

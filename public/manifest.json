@@ -1,27 +1,42 @@
 {
+  "id": "/",
   "short_name": "Warrior AI",
   "name": "Warrior AI — Sickle Cell Patient Support",
-  "icons": [
-    {
-      "src": "/brand/png/icon/app-icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "/brand/png/icon/app-icon-512.png",
-      "type": "image/png",
-      "sizes": "512x512"
-    },
-    {
-      "src": "/brand/png/icon/app-icon-rounded-512.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "maskable"
-    }
-  ],
+  "description": "Daily support for people living with sickle cell: log pain, water and medicines, keep your medical records, and find care.",
+  "lang": "en",
+  "dir": "ltr",
   "start_url": "/#/home",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#3B0F2C",
   "theme_color": "#3B0F2C",
-  "display": "standalone"
+  "categories": ["health", "medical", "lifestyle"],
+  "icons": [
+    { "src": "/brand/png/icon/app-icon-48.png", "type": "image/png", "sizes": "48x48", "purpose": "any" },
+    { "src": "/brand/png/icon/app-icon-96.png", "type": "image/png", "sizes": "96x96", "purpose": "any" },
+    { "src": "/brand/png/icon/app-icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "/brand/png/icon/app-icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" },
+    { "src": "/brand/png/icon/app-icon-rounded-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Log pain",
+      "short_name": "Log pain",
+      "url": "/#/home",
+      "icons": [{ "src": "/brand/png/icon/app-icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Ask Mira",
+      "short_name": "Mira",
+      "url": "/#/chat",
+      "icons": [{ "src": "/brand/png/icon/app-icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Medical records",
+      "short_name": "Records",
+      "url": "/#/care",
+      "icons": [{ "src": "/brand/png/icon/app-icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    }
+  ]
 }
-

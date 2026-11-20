@@ -100,7 +100,8 @@ describe('App startup, auth state, navigation, and settings', () => {
     expect(screen.getByRole('button', { name: 'Emergency HUD' })).toBeInTheDocument();
   });
 
-  it('handles hash changes after mount and separates Mira AI from Community', async () => {
+  // Mira and Community are lazily loaded pages, so allow for their first download.
+  it('handles hash changes after mount and separates Mira AI from Community', { timeout: 15000 }, async () => {
     const user = userEvent.setup();
     render(<App />);
     await act(async () => authHarness.callback?.({ uid: 'patient-1' }));
@@ -111,11 +112,11 @@ describe('App startup, auth state, navigation, and settings', () => {
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
 
-    expect(await screen.findByText('Mira assistant')).toBeInTheDocument();
+    expect(await screen.findByText('Mira assistant', undefined, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.queryByText('Community screen')).not.toBeInTheDocument();
 
     await user.click(screen.getAllByRole('button', { name: 'Community' })[0]);
-    expect(await screen.findByText('Community screen')).toBeInTheDocument();
+    expect(await screen.findByText('Community screen', undefined, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it('persists language, dark mode, and high contrast selections', async () => {
@@ -141,7 +142,8 @@ describe('App startup, auth state, navigation, and settings', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Open synthetic demo' }));
 
-    expect(screen.getByText('Synthetic demo')).toBeInTheDocument();
+    // The demo is a lazily loaded page.
+    expect(await screen.findByText('Synthetic demo')).toBeInTheDocument();
     expect(authHarness.auth.currentUser).toBeNull();
   });
 

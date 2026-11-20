@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, lazy, useState, useEffect } from 'react';
 import {
   User,
   Activity,
@@ -11,18 +11,12 @@ import {
 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import Dashboard from './components/Dashboard';
-import GamesHub from './components/GamesHub';
-import ChatWorkspace from './components/ChatWorkspace';
-import Telemedicine from './components/Telemedicine';
-import Community from './components/Community';
-import Advocacy from './components/Advocacy';
 import UserProfile from './components/UserProfile';
 import { auth, subscribeToAuth } from './firebase-init';
 import { EmergencyButton } from './components/EmergencyButton';
 import { AuthFlow } from './components/AuthFlow';
 import { OfflineWarriorAI } from './components/OfflineWarriorAI';
-import { SyntheticDemo } from './components/SyntheticDemo';
-import { CareHub, type CareView } from './components/care';
+import type { CareView } from './components/care';
 import { SosPill } from './components/ui';
 import { AnimatedSplash } from './components/brand';
 import {
@@ -35,6 +29,22 @@ import {
 } from './components/layout';
 import { SupportedLanguage, APP_TRANSLATIONS } from './services/offlineKnowledgeBase';
 import { firebaseService } from './services/firebaseService';
+
+// Home loads with the app; every other page downloads the first time it is opened,
+// which keeps the first load small on mobile data.
+const GamesHub = lazy(() => import('./components/GamesHub'));
+const ChatWorkspace = lazy(() => import('./components/ChatWorkspace'));
+const Telemedicine = lazy(() => import('./components/Telemedicine'));
+const Community = lazy(() => import('./components/Community'));
+const Advocacy = lazy(() => import('./components/Advocacy'));
+const CareHub = lazy(() => import('./components/care').then((m) => ({ default: m.CareHub })));
+const SyntheticDemo = lazy(() => import('./components/SyntheticDemo').then((m) => ({ default: m.SyntheticDemo })));
+
+const PageLoading: React.FC = () => (
+  <div role="status" className="flex min-h-[40vh] items-center justify-center text-sm text-wa-plum-muted">
+    Loading…
+  </div>
+);
 
 export type Page = 'home' | 'games' | 'chat' | 'care' | 'telemedicine' | 'community' | 'more' | 'advocacy';
 
@@ -266,7 +276,7 @@ const App: React.FC = () => {
   };
 
   if (demoMode) {
-    return <SyntheticDemo onExit={() => setDemoMode(false)} />;
+    return <Suspense fallback={<PageLoading />}><SyntheticDemo onExit={() => setDemoMode(false)} /></Suspense>;
   }
 
   if (!splashDone) {
@@ -375,7 +385,7 @@ const App: React.FC = () => {
           />
         )}
       >
-        <PageContainer width={currentPage === 'home' ? 'home' : 'patient'}>{renderPage()}</PageContainer>
+        <PageContainer width={currentPage === 'home' ? 'home' : 'patient'}><Suspense fallback={<PageLoading />}>{renderPage()}</Suspense></PageContainer>
       </AppShell>
 
       {/* Emergency Action & Offline Multilingual AI Companion (modal overlays preserved, floating buttons hidden) */}

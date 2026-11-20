@@ -1,7 +1,7 @@
 // Warrior AI — Offline-First PWA Service Worker
 // Caches the core application shell and static assets for basic Android smartphones in low-bandwidth settings.
 
-const CACHE_NAME = 'warrior-ai-shell-v1';
+const CACHE_NAME = 'warrior-ai-shell-v2';
 const CORE_ASSETS = [
   '/',
   '/index.html',
